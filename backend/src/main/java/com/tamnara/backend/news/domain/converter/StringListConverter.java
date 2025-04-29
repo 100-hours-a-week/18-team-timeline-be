@@ -1,4 +1,4 @@
-package com.tamnara.backend.domain.converter;
+package com.tamnara.backend.news.domain.converter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

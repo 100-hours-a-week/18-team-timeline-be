@@ -1,6 +1,6 @@
-package com.tamnara.backend.repository;
+package com.tamnara.backend.news.repository;
 
-import com.tamnara.backend.domain.Category;
+import com.tamnara.backend.news.domain.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

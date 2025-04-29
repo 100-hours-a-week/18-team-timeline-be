@@ -1,4 +1,4 @@
-package com.tamnara.backend.domain;
+package com.tamnara.backend.news.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -9,15 +9,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "categories")
-public class Category {
+@Table(name = "tags")
+public class Tag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 10, unique = true)
+    @Column(name = "name", length = 10, nullable = false, unique = true)
     private String name;
-
-    @Column(name = "num", nullable = false, unique = true)
-    private Long num = 0L;
 }

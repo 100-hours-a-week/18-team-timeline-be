@@ -1,6 +1,6 @@
-package com.tamnara.backend.repository;
+package com.tamnara.backend.news.repository;
 
-import com.tamnara.backend.domain.Tag;
+import com.tamnara.backend.news.domain.Tag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

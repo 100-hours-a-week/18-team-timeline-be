@@ -1,6 +1,6 @@
-package com.tamnara.backend.repository;
+package com.tamnara.backend.news.repository;
 
-import com.tamnara.backend.domain.News;
+import com.tamnara.backend.news.domain.News;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

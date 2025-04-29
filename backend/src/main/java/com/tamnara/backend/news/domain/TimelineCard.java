@@ -1,6 +1,6 @@
-package com.tamnara.backend.domain;
+package com.tamnara.backend.news.domain;
 
-import com.tamnara.backend.domain.converter.StringListConverter;
+import com.tamnara.backend.news.domain.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
