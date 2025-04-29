@@ -31,9 +31,9 @@ public class Comment {
 //    private News news;
 
     @Column(name = "content", length = 150, nullable = false)
-    String content;
+    private String content;
 
     @CreatedDate
     @Column(name="created_at", nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 }
