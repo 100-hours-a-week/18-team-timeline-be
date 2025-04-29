@@ -1,4 +1,4 @@
-package com.tamnara.backend.domain;
+package com.tamnara.backend.comment.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
