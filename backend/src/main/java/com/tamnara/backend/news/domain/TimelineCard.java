@@ -8,6 +8,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -36,12 +37,13 @@ public class TimelineCard {
     @Column(name = "source", columnDefinition = "json", nullable = true)
     private List<String> source;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", length = 10, nullable = false)
-    private String type = "DAY";
+    private TimelineCardType type = TimelineCardType.DAY;
 
     @Column(name = "start_at", nullable = false)
-    private Date startAt;
+    private LocalDate startAt;
 
     @Column(name = "end_at", nullable = false)
-    private Date endAt;
+    private LocalDate endAt;
 }
