@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  ✅ Checkstyle 기본 설정 파일
+  이 파일은 코드 스타일 검사 기준을 정의하며,
+  Gradle의 checkstyleMain task에 의해 적용됨.
+-->
+
+<module name="Checker">
+
+  <!--
+    TreeWalker는 대부분의 코드 검사 규칙들을 포함함.
+    실제 코드 트리를 순회하면서 다양한 룰 적용
+  -->
+  <module name="TreeWalker">
+
+    <!--
+      지역 변수에 final 선언이 가능한데도 하지 않으면 경고
+      ➜ 불변 변수 강조 → 안정적인 코드
+    -->
+    <module name="FinalLocalVariable"/>
+
+    <!--
+      사용되지 않는 import 문이 있을 경우 경고
+      ➜ 불필요한 코드 제거 유도
+    -->
+    <module name="UnusedImports"/>
+
+    <!--
+      import java.util.*; 이런 와일드카드 import를 경고
+      ➜ 명확한 import 유지 (클래스별로 하나씩)
+    -->
+    <module name="AvoidStarImport"/>
+
+  </module>
+</module>
