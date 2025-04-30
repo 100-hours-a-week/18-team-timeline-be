@@ -27,7 +27,7 @@ public class News {
 //    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = true)
     @OnDelete(action = OnDeleteAction.RESTRICT)
     private Category category;
 

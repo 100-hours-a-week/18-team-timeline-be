@@ -11,14 +11,25 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface NewsRepository extends JpaRepository<News, Long> {
     @Query("""
         SELECT n FROM News n
         WHERE n.isHotissue = :isHotissue
-        AND (:isHotissue = true OR n.category.id = :categoryId)
-        ORDER BY n.updatedAt DESC
+        ORDER BY n.updatedAt DESC, n.id DESC
+    """)
+    Page<News> findAllByIsHotissue(@Param("isHotissue") boolean isHotissue, Pageable pageable);
+
+    @Query("""
+        SELECT n FROM News n
+        WHERE n.isHotissue = :isHotissue
+          AND (
+              (:categoryId IS NULL AND n.category IS NULL)
+              OR (:categoryId IS NOT NULL AND n.category.id = :categoryId)
+          )
+        ORDER BY n.updatedAt DESC, n.id DESC
     """)
     Page<News> findNewsByIsHotissueAndCategoryId(
             @Param("isHotissue") boolean isHotissue,
@@ -32,5 +43,5 @@ public interface NewsRepository extends JpaRepository<News, Long> {
         DELETE FROM News n
         WHERE n.updatedAt < :cutoff
     """)
-    void deleteNewsOlderThan(@Param("cutoff") LocalDateTime cutoff);
+    void deleteAllOlderThan(@Param("cutoff") LocalDateTime cutoff);
 }
