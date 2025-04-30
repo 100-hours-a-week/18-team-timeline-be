@@ -18,5 +18,5 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
             WHERE nt.tag = t
         )
     """)
-    void deleteTagsNotLinkedToNews();
+    void deleteAllOrphan();
 }
