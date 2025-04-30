@@ -1,8 +1,8 @@
 package com.tamnara.backend.news.RepositoryTest;
 
+import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
-import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
 import jakarta.persistence.EntityManager;
