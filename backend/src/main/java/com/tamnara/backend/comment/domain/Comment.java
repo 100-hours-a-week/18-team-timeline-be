@@ -1,5 +1,6 @@
 package com.tamnara.backend.comment.domain;
 
+import com.tamnara.backend.news.domain.News;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,10 +26,10 @@ public class Comment {
 //    @OnDelete(action = OnDeleteAction.SET_NULL)
 //    private User user;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
-//    @OnDelete(action = OnDeleteAction.CASCADE)
-//    private News news;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private News news;
 
     @Column(name = "content", length = 150, nullable = false)
     private String content;
