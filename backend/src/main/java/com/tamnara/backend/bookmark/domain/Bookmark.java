@@ -1,8 +1,11 @@
 package com.tamnara.backend.bookmark.domain;
 
+import com.tamnara.backend.news.domain.News;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -23,10 +26,10 @@ public class Bookmark {
     //    @OnDelete(action = OnDeleteAction.SET_NULL)
     //    private User user;
 
-    //    @ManyToOne(fetch = FetchType.LAZY)
-    //    @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
-    //    @OnDelete(action = OnDeleteAction.CASCADE)
-    //    private News news;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
+        @OnDelete(action = OnDeleteAction.CASCADE)
+        private News news;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
