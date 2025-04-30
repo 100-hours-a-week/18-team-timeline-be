@@ -1,0 +1,51 @@
+# GitHub Actions Workflow: 백엔드 정적 분석 및 타입 검사
+# 목적: feature → develop 브랜치로 PR 생성 또는 병합 시 자동 검사 수행
+
+name: Backend Static Analysis & Type Check
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    # 대상 브랜치가 develop일 때만 실행
+    branches: [develop]
+    # backend 폴더 내부 코드가 변경된 경우에만 실행
+    paths:
+      - 'backend/**'
+
+jobs:
+  check-backend:
+    # GitHub Actions가 제공하는 리눅스 환경에서 실행
+    runs-on: ubuntu-latest
+    name: Run Checkstyle and Compile
+
+    steps:
+      # 1. PR의 코드 받아오기 (GitHub에서 checkout)
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Java 21 설치 (Temurin은 OpenJDK의 공식 배포판 중 하나)
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'         # Java 21로 설정
+          distribution: 'temurin'    # 무료 OpenJDK 배포판
+
+      # 3. Checkstyle 실행 (정적 분석 수행)
+      - name: Run Checkstyle
+        working-directory: ./backend # backend 폴더 기준으로 실행
+        run: ./gradlew checkstyleMain
+
+      # 4. Java 컴파일만 수행 (타입 에러 확인용)
+      - name: Type Check (Compile Only)
+        working-directory: ./backend
+        run: ./gradlew compileJava
+          
+      # 5. 실패 시 Discord 알림 전송
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{"content":"🚨 백엔드 정적 분석 또는 타입 검사 실패! PR 확인 필요합니다."}' \
+          ${{ secrets.DISCORD_WEBHOOK_URL }}
+

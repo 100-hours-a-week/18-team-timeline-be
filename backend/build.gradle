@@ -2,6 +2,9 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+
+	id 'checkstyle' //정적 분석 도구 추가
+
 }
 
 group = 'com.tamnara'
@@ -68,3 +71,9 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+checkstyle {
+	toolVersion = '10.3.4' // 버전 수정 가능
+	configFile = file("${rootDir}/config/checkstyle/checkstyle.xml") // ✅ 규칙 파일 경로
+}
+
