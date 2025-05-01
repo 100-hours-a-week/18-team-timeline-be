@@ -92,6 +92,26 @@ public class NewsController {
         }
     }
 
+    @GetMapping("/{newsId}")
+    public ResponseEntity<?> findNewsDetail(@PathVariable("newsId") Long newsId) {
+        try {
+            NewsDetailResponse res = newsService.getNewsDetail(newsId, null);
+
+            Map<String, Object> data = Map.of(
+                    "news", res,
+                    "comment", null
+            );
+
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                    "success", true,
+                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
+                    "data", data
+            ));
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> createNews(@ModelAttribute NewsCreateRequest req) {
         try {
