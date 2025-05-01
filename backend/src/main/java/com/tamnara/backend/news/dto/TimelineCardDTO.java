@@ -17,7 +17,7 @@ public class TimelineCardDTO {
     private String content;
     private List<String> source;
     @ValueOfEnum(enumClass = TimelineCardType.class, message = "타임라인 카드 종류가 올바르지 않습니다.")
-    private String type;
+    private String duration;
     private LocalDate startAt;
     private LocalDate endAt;
 }

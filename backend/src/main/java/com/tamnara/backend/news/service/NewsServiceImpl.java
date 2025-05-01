@@ -106,7 +106,7 @@ public class NewsServiceImpl implements NewsService {
             tc.setTitle(timelineCardDTO.getTitle());
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
-            tc.setType(TimelineCardType.valueOf(timelineCardDTO.getType()));
+            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
             tc.setStartAt(startAt);
             tc.setEndAt(endAt);
             tc.setNews(news);
@@ -158,7 +158,7 @@ public class NewsServiceImpl implements NewsService {
                     tc.getTitle(),
                     tc.getContent(),
                     tc.getSource(),
-                    tc.getType().toString(),
+                    tc.getDuration().toString(),
                     tc.getStartAt(),
                     tc.getEndAt()
             );
@@ -200,7 +200,7 @@ public class NewsServiceImpl implements NewsService {
             tc.setTitle(timelineCardDTO.getTitle());
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
-            tc.setType(TimelineCardType.valueOf(timelineCardDTO.getType()));
+            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
             tc.setStartAt(startAt);
             tc.setEndAt(endAt);
             tc.setNews(news);
@@ -266,13 +266,13 @@ public class NewsServiceImpl implements NewsService {
         timeline = mergeTimelineCards(timeline, TimelineCardType.WEEK, 4);
 
         // 3. 1달카드: 3개월 지남 -> 삭제
-        timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getType()) == TimelineCardType.MONTH)
+        timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getDuration()) == TimelineCardType.MONTH)
                 && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
 
         return timeline;
     }
 
-    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType type, Integer countNum) {
+    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
         timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
 
         List<TimelineCardDTO> mergedList = new ArrayList<>();
@@ -281,7 +281,7 @@ public class NewsServiceImpl implements NewsService {
         int count = 0;
 
         for (TimelineCardDTO tc : timeline) {
-            if (TimelineCardType.valueOf(tc.getType()) != type) {
+            if (TimelineCardType.valueOf(tc.getDuration()) != duration) {
                 mergedList.add(tc);
                 continue;
             }
@@ -373,7 +373,7 @@ public class NewsServiceImpl implements NewsService {
                     t.getTitle(),
                     t.getContent(),
                     t.getSource(),
-                    t.getType().name(),
+                    t.getDuration().name(),
                     t.getStartAt(),
                     t.getEndAt()
             );

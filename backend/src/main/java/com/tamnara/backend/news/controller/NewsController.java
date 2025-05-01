@@ -31,7 +31,7 @@ public class NewsController {
         }
     }
 
-    @PatchMapping(("/{newsId}"))
+    @PatchMapping("/{newsId}")
     public ResponseEntity<?> updateNews(@PathVariable Long newsId) {
         try {
             NewsDetailResponse res = newsService.update(newsId, null);
@@ -45,7 +45,7 @@ public class NewsController {
         }
     }
 
-    @DeleteMapping(("/{newsId}"))
+    @DeleteMapping("/{newsId}")
     public ResponseEntity<?> deleteNews(@PathVariable Long newsId) {
         try {
             Long resNewsId = newsService.delete(newsId, null);

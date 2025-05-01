@@ -37,8 +37,8 @@ public class TimelineCard {
     private List<String> source;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 10, nullable = false)
-    private TimelineCardType type = TimelineCardType.DAY;
+    @Column(name = "duration", length = 10, nullable = false)
+    private TimelineCardType duration = TimelineCardType.DAY;
 
     @Column(name = "start_at", nullable = false)
     private LocalDate startAt;
