@@ -2,6 +2,11 @@ package com.tamnara.backend.user.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tamnara.backend.global.jwt.JwtProvider;
+import com.tamnara.backend.user.domain.Role;
+import com.tamnara.backend.user.domain.State;
+import com.tamnara.backend.user.domain.User;
+import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -12,10 +17,14 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class KakaoService {
+
+    private final UserRepository userRepository;
+    private final JwtProvider jwtProvider;
 
     @Value("${kakao.client-id}")
     private String clientId;
@@ -74,9 +83,35 @@ public class KakaoService {
             String email = (String) kakaoAccount.get("email");
             String nickname = (String) properties.get("nickname");
 
-            return ResponseEntity.ok().body(
-                    "✅ 카카오 로그인 성공\n\n닉네임: " + nickname + "\n이메일: " + email + "\n카카오 ID: " + kakaoId
-            );
+            // 7. 이미 카카오 로그인으로 가입된 사용자인지 확인
+            Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
+
+            User user;
+
+            if (optionalUser.isPresent()) {
+                // 기존 사용자 → 로그인 처리
+                user = optionalUser.get();
+            } else {
+                // 신규 사용자 → 회원가입 처리
+                user = User.builder()
+                        .email(email)
+                        .username(nickname)
+                        .provider("KAKAO")
+                        .providerId(kakaoId)
+                        .role(Role.USER)         // 기본 권한
+                        .state(State.ACTIVE)     // 기본 상태
+                        .build();
+
+                userRepository.save(user);
+            }
+
+            String tamnaraAccessToken = jwtProvider.createAccessToken(user);
+
+            return ResponseEntity.ok().body(Map.of(
+                    "access_token", tamnaraAccessToken,
+                    "user_id", user.getId(),
+                    "username", user.getUsername()
+            ));
 
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
