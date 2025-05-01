@@ -1,0 +1,36 @@
+package com.tamnara.backend.news.controller;
+
+import com.tamnara.backend.common.exception.CustomException;
+import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.NewsDetailResponse;
+import com.tamnara.backend.news.service.NewsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/news")
+public class NewsController {
+    private final NewsService newsService;
+
+    @PostMapping
+    public ResponseEntity<?> createNews(@ModelAttribute NewsCreateRequest req) {
+        try {
+            NewsDetailResponse res = newsService.save(null, false, req);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                    "success", true,
+                    "message", "데이터가 성공적으로 생성되었습니다.",
+                    "data", res
+            ));
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+}
