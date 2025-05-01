@@ -7,10 +7,7 @@ import com.tamnara.backend.news.service.NewsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -27,6 +24,20 @@ public class NewsController {
             return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 생성되었습니다.",
+                    "data", res
+            ));
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PatchMapping(("/{newsId}"))
+    public ResponseEntity<?> updateNews(@PathVariable Long newsId) {
+        try {
+            NewsDetailResponse res = newsService.update(newsId, null);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                    "success", true,
+                    "message", "데이터가 성공적으로 업데이트되었습니다.",
                     "data", res
             ));
         } catch (RuntimeException e) {
