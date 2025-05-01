@@ -1,0 +1,394 @@
+package com.tamnara.backend.news.service;
+
+import com.tamnara.backend.news.domain.*;
+import com.tamnara.backend.news.dto.NewsCardDTO;
+import com.tamnara.backend.news.dto.StatisticsDTO;
+import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.*;
+import com.tamnara.backend.news.dto.response.AINewsResponse;
+import com.tamnara.backend.news.dto.response.NewsDetailResponse;
+import com.tamnara.backend.news.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class NewsServiceImpl implements NewsService {
+
+    private final WebClient aiWebClient;
+
+    private final NewsRepository newsRepository;
+    private final TimelineCardRepository timelineCardRepository;
+    private final NewsImageRepository newsImageRepository;
+    private final CategoryRepository categoryRepository;
+    private final TagRepository tagRepository;
+    private final NewsTagRepository newsTagRepository;
+
+    private final String timelineAIEndpoint = "/timeline";
+    private final String mergeAIEndpoint = "/merge";
+    private final String hotissueAIEndpoint = "/hot";
+    private final String statisticsAIEndpoint = "/comment";
+
+    @Override
+    public List<NewsCardDTO> getNewsPage(Long userId, boolean isHotissue, Integer page, Integer size) {
+        Page<News> newsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
+        return getNewsCardDTOS(userId, newsPage);
+    }
+
+    @Override
+    public List<NewsCardDTO> getNewsPage(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
+        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase())).orElse(null);
+        Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
+        return getNewsCardDTOS(userId, newsPage);
+    }
+
+    @Override
+    public NewsDetailResponse getNewsDetail(Long newsId, Long userId) {
+        News news = newsRepository.findById(newsId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+
+        List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
+        StatisticsDTO statistics = getStatisticsDTO(news);
+        boolean bookmarked = getBookmarked(newsId, userId);
+
+        return new NewsDetailResponse(
+                news.getTitle(),
+                news.getUpdatedAt(),
+                bookmarked,
+                timelineCardDTOList,
+                statistics
+        );
+    }
+
+    @Override
+    public NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req) {
+        // 1. AI에 요청하여 뉴스를 생성한다.
+        LocalDate endAt = LocalDate.now();
+        LocalDate startAt = endAt.minusMonths(3);
+        AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt);
+
+        // 2. AI에 요청하여 타임라인 카드들을 병합한다.
+        List<TimelineCardDTO> timeline = mergeAITimelineCards(aiNewsResponse.getTimeline());
+
+        // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
+        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), 100);
+
+        // 4. 저장
+        // 4-1. 뉴스를 저장한다.
+        Optional<Category> category = categoryRepository.findByName(CategoryType.valueOf(aiNewsResponse.getCategory()));
+
+        News news = new News();
+        news.setTitle(aiNewsResponse.getTitle());
+        news.setSummary(aiNewsResponse.getSummary());
+        news.setIsHotissue(isHotissue);
+        news.setRatioPosi(statistics.getPositive());
+        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNeut(statistics.getNegative());
+//        news.setUser(userRepository.findById(userId));
+        news.setCategory(category.get());
+        newsRepository.save(news);
+
+        // 4-2. 타임라인 카드들을 저장한다.
+        for (TimelineCardDTO timelineCardDTO : timeline) {
+            TimelineCard tc = new TimelineCard();
+            tc.setTitle(timelineCardDTO.getTitle());
+            tc.setContent(timelineCardDTO.getContent());
+            tc.setSource(timelineCardDTO.getSource());
+            tc.setType(TimelineCardType.valueOf(timelineCardDTO.getType()));
+            tc.setStartAt(startAt);
+            tc.setEndAt(endAt);
+            tc.setNews(news);
+            timelineCardRepository.save(tc);
+        }
+
+        // 5. 뉴스 태그들을 저장하고, DB에 없는 태그를 저장한다.
+        req.getKeywords().forEach(keyword -> {
+            NewsTag newsTag = new NewsTag();
+            newsTag.setNews(news);
+
+            Optional<Tag> tag = tagRepository.findByName(keyword);
+            if (tag.isPresent()) {
+                newsTag.setTag(tag.get());
+                newsTagRepository.save(newsTag);
+            } else {
+                Tag newTag = new Tag();
+                newTag.setName(keyword);
+                tagRepository.save(newTag);
+
+                newsTag.setTag(newTag);
+                newsTagRepository.save(newsTag);
+            }
+        });
+
+        // 6. 생성된 뉴스에 대해 북마크 설정한다.
+        boolean bookmarked = true;
+
+        // 7. 뉴스의 상세 페이지 데이터를 반환한다.
+        return new NewsDetailResponse(
+                news.getTitle(),
+                news.getUpdatedAt(),
+                bookmarked,
+                timeline,
+                statistics
+        );
+    }
+
+    @Override
+    public NewsDetailResponse update(Long newsId, Long userId) {
+        // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
+        News news = newsRepository.findById(newsId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+
+        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndType(newsId, null);
+        List<TimelineCardDTO> oldTimeline = new ArrayList<>();
+        for (TimelineCard tc : timelineCards) {
+            TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
+                    tc.getTitle(),
+                    tc.getContent(),
+                    tc.getSource(),
+                    tc.getType().toString(),
+                    tc.getStartAt(),
+                    tc.getEndAt()
+            );
+            oldTimeline.add(timelineCardDTO);
+        }
+
+        List<NewsTag> tags = newsTagRepository.findByNewsId(news.getId());
+        List<String> keywords = new ArrayList<>();
+        for (NewsTag tag : tags) {
+            keywords.add(tag.getTag().getName());
+        }
+
+        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 startAt 이후 시점에 대한 뉴스를 생성한다.
+        LocalDate endAt = LocalDate.now();
+        LocalDate startAt = endAt.minusMonths(3);
+        AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt);
+
+        // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
+        oldTimeline.addAll(aiNewsResponse.getTimeline());
+        List<TimelineCardDTO> newTimeline = mergeAITimelineCards(oldTimeline);
+
+        // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
+        StatisticsDTO statistics = getAIStatisticsDTO(keywords, 100);
+
+        // 4. 저장
+        // 4-1. 뉴스를 저장한다.
+        news.setSummary(aiNewsResponse.getSummary());
+        news.setViewCount(news.getViewCount() + 1);
+        news.setUpdateCount(news.getUpdateCount() + 1);
+        news.setRatioPosi(statistics.getPositive());
+        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNega(statistics.getNegative());
+        newsRepository.save(news);
+
+        // 4-2. 타임라인 카드들을 저장한다.
+        timelineCardRepository.deleteAllByNewsId(news.getId());
+        for (TimelineCardDTO timelineCardDTO : newTimeline) {
+            TimelineCard tc = new TimelineCard();
+            tc.setTitle(timelineCardDTO.getTitle());
+            tc.setContent(timelineCardDTO.getContent());
+            tc.setSource(timelineCardDTO.getSource());
+            tc.setType(TimelineCardType.valueOf(timelineCardDTO.getType()));
+            tc.setStartAt(startAt);
+            tc.setEndAt(endAt);
+            tc.setNews(news);
+        }
+
+
+        // 5. 생성된 뉴스에 대해 북마크 설정한다.
+        boolean bookmarked = true;
+
+        // 6. 뉴스의 상세 페이지 데이터를 반환한다.
+        return new NewsDetailResponse(
+                news.getTitle(),
+                news.getUpdatedAt(),
+                bookmarked,
+                newTimeline,
+                statistics
+        );
+    }
+
+    @Override
+    public Long delete(Long newsId, Long userId) {
+        // 추가: 회원의 role이 관리자인지 검증
+        // -> 회원 리포지토리
+
+        News news = newsRepository.findById(newsId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+
+        if (!news.getUpdatedAt().isBefore(LocalDateTime.now().minusMonths(3))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
+        }
+
+        newsRepository.delete(news);
+        return newsId;
+    }
+
+
+    /*
+        AI 통신용
+     */
+
+    private AINewsResponse createAINews(List<String> keywords, LocalDate startAt, LocalDate endAt) {
+        AINewsRequest aiNewsRequest = new AINewsRequest(
+                keywords,
+                startAt,
+                endAt
+        );
+
+        return aiWebClient.post()
+                .uri(timelineAIEndpoint)
+                .bodyValue(aiNewsRequest)
+                .retrieve()
+                .bodyToMono(AINewsResponse.class)
+                .block();
+    }
+
+    private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline) {
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+
+        // 1. 1일카드 -> 1주카드
+        timeline = mergeTimelineCards(timeline, TimelineCardType.DAY, 7);
+
+        // 2. 1주카드 -> 1달카드
+        timeline = mergeTimelineCards(timeline, TimelineCardType.WEEK, 4);
+
+        // 3. 1달카드: 3개월 지남 -> 삭제
+        timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getType()) == TimelineCardType.MONTH)
+                && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
+
+        return timeline;
+    }
+
+    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType type, Integer countNum) {
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+
+        List<TimelineCardDTO> mergedList = new ArrayList<>();
+        List<TimelineCardDTO> temp = new ArrayList<>();
+
+        int count = 0;
+
+        for (TimelineCardDTO tc : timeline) {
+            if (TimelineCardType.valueOf(tc.getType()) != type) {
+                mergedList.add(tc);
+                continue;
+            }
+
+            temp.add(tc);
+            count++;
+
+            if (count == countNum) {
+                AITimelineMergeReqeust mergeRequest = new AITimelineMergeReqeust(temp);
+                TimelineCardDTO merged = aiWebClient.post()
+                        .uri(mergeAIEndpoint)
+                        .bodyValue(mergeRequest)
+                        .retrieve()
+                        .bodyToMono(TimelineCardDTO.class)
+                        .block();
+
+                mergedList.add(merged);
+
+                temp.clear();
+                count = 0;
+            }
+        }
+
+        mergedList.addAll(temp);
+        temp.clear();
+
+        timeline = mergedList;
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+
+        return timeline;
+    }
+
+    private StatisticsDTO getAIStatisticsDTO(List<String> keywords, Integer num) {
+        AIStatisticsRequest aiStatisticsRequest = new AIStatisticsRequest(
+                keywords,
+                num
+        );
+
+        return aiWebClient.post()
+                .uri(statisticsAIEndpoint)
+                .bodyValue(aiStatisticsRequest)
+                .retrieve()
+                .bodyToMono(StatisticsDTO.class)
+                .block();
+    }
+
+
+    /*
+        함수 편의용
+    */
+
+    private StatisticsDTO getStatisticsDTO(News news) {
+        return new StatisticsDTO(
+                news.getRatioPosi(),
+                news.getRatioNeut(),
+                news.getRatioNega()
+        );
+    }
+
+    private List<NewsCardDTO> getNewsCardDTOS(Long userId, Page<News> newsPage) {
+        List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
+
+        newsPage.forEach(n -> {
+            Optional<NewsImage> image = newsImageRepository.findByNewsId(n.getId());
+            boolean bookmarked = getBookmarked(n.getId(), userId);
+            LocalDateTime bookmarkedAt = getBookmarkedAt(n.getId(), userId);
+
+            NewsCardDTO dto = new NewsCardDTO(
+                    n.getId(),
+                    n.getTitle(),
+                    n.getSummary(),
+                    image.get().getUrl(),
+                    n.getCategory().toString(),
+                    n.getUpdatedAt(),
+                    bookmarked,
+                    bookmarkedAt
+            );
+            newsCardDTOList.add(dto);
+        });
+
+        return newsCardDTOList;
+    }
+
+    private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
+        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndType(news.getId(), null);
+        List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
+        timeline.forEach(t -> {
+            TimelineCardDTO dto = new TimelineCardDTO(
+                    t.getTitle(),
+                    t.getContent(),
+                    t.getSource(),
+                    t.getType().name(),
+                    t.getStartAt(),
+                    t.getEndAt()
+            );
+            timelineCardDTOList.add(dto);
+        });
+        return timelineCardDTOList;
+    }
+
+    private boolean getBookmarked(Long newsId, Long userId) {
+        if (userId == null) return false;
+        return false;
+    }
+
+    private LocalDateTime getBookmarkedAt(Long newsId, Long userId) {
+        if (userId == null) return null;
+        return null;
+    }
+}

@@ -17,4 +17,6 @@ public interface TimelineCardRepository extends JpaRepository<TimelineCard, Long
         ORDER BY t.startAt DESC
     """)
     List<TimelineCard> findAllByNewsIdAndType(Long newsId, TimelineCardType type);
+
+    void deleteAllByNewsId(Long newsId);
 }
