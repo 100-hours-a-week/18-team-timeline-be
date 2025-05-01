@@ -44,4 +44,20 @@ public class NewsController {
             throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
+
+    @DeleteMapping(("/{newsId}"))
+    public ResponseEntity<?> deleteNews(@PathVariable Long newsId) {
+        try {
+            Long resNewsId = newsService.delete(newsId, null);
+
+            Map<String, Object> data = Map.of("newsId", resNewsId);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
+                    "success", true,
+                    "message", "데이터가 성공적으로 삭제되었습니다.",
+                    "data", data
+            ));
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
 }
