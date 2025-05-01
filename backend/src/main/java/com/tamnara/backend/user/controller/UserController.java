@@ -27,26 +27,6 @@ public class UserController {
 
     private final UserService userService;
 
-//    @Operation(
-//            summary = "회원가입 API",
-//            description = "이메일, 비밀번호, 닉네임을 입력받아 회원가입을 진행합니다."
-//    )
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "201", description = "회원가입 성공"),
-//            @ApiResponse(responseCode = "400", description = "요청 형식 오류"),
-//            @ApiResponse(responseCode = "409", description = "이메일 또는 닉네임 중복"),
-//            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-//    })
-//    @PostMapping
-//    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequestDto requestDto) {
-//        try {
-//            return ResponseEntity.status(HttpStatus.CREATED).body(userService.signup(requestDto));
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(ErrorResponse.of(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요."));
-//        }
-//    }
-
     @PatchMapping("/me")
     public ResponseEntity<?> updateUsername(@RequestBody @Valid UserUpdateRequestDto dto,
                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
