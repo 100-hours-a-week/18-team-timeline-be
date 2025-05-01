@@ -72,4 +72,8 @@ public class User {
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void updateUsername(String newUsername) {
+        this.username = newUsername;
+    }
 }
