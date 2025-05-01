@@ -1,13 +1,28 @@
 package com.tamnara.backend.news.service;
 
-import com.tamnara.backend.news.domain.*;
+import com.tamnara.backend.news.domain.Category;
+import com.tamnara.backend.news.domain.CategoryType;
+import com.tamnara.backend.news.domain.News;
+import com.tamnara.backend.news.domain.NewsImage;
+import com.tamnara.backend.news.domain.NewsTag;
+import com.tamnara.backend.news.domain.Tag;
+import com.tamnara.backend.news.domain.TimelineCard;
+import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
-import com.tamnara.backend.news.dto.request.*;
+import com.tamnara.backend.news.dto.request.AINewsRequest;
+import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
+import com.tamnara.backend.news.dto.request.AITimelineMergeReqeust;
+import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
-import com.tamnara.backend.news.repository.*;
+import com.tamnara.backend.news.repository.CategoryRepository;
+import com.tamnara.backend.news.repository.NewsImageRepository;
+import com.tamnara.backend.news.repository.NewsRepository;
+import com.tamnara.backend.news.repository.NewsTagRepository;
+import com.tamnara.backend.news.repository.TagRepository;
+import com.tamnara.backend.news.repository.TimelineCardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,7 +35,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -36,10 +53,10 @@ public class NewsServiceImpl implements NewsService {
     private final TagRepository tagRepository;
     private final NewsTagRepository newsTagRepository;
 
-    private final String timelineAIEndpoint = "/timeline";
-    private final String mergeAIEndpoint = "/merge";
-    private final String hotissueAIEndpoint = "/hot";
-    private final String statisticsAIEndpoint = "/comment";
+    private final String TIMELINE_AI_ENDPOINT = "/timeline";
+    private final String MERGE_AI_ENDPOINT = "/merge";
+    private final String HOTISSUE_AI_ENDPOINT = "/hot";
+    private final String STATISTIC_AI_ENDPOINT = "/comment";
 
     @Override
     public List<NewsCardDTO> getNewsPage(Long userId, boolean isHotissue, Integer page, Integer size) {
@@ -52,6 +69,23 @@ public class NewsServiceImpl implements NewsService {
         Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase())).orElse(null);
         Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
         return getNewsCardDTOS(userId, newsPage);
+    }
+
+    @Override
+    public Map<String, List<NewsCardDTO>> getNormalNewsPages(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
+        List<Category> categories = categoryRepository.findAll();
+        Map<String, List<NewsCardDTO>> newsCardDTOS = new HashMap<>();
+
+        // 전체
+        Page<News> allNewsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
+        newsCardDTOS.put("ALL", getNewsCardDTOS(userId, allNewsPage));
+
+        // 카테고리별
+        for (Category c : categories) {
+            Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
+            newsCardDTOS.put(c.getName().toString(), getNewsCardDTOS(userId, newsPage));
+        }
+        return newsCardDTOS;
     }
 
     @Override
@@ -249,7 +283,7 @@ public class NewsServiceImpl implements NewsService {
         );
 
         return aiWebClient.post()
-                .uri(timelineAIEndpoint)
+                .uri(TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
                 .bodyToMono(AINewsResponse.class)
@@ -292,7 +326,7 @@ public class NewsServiceImpl implements NewsService {
             if (count == countNum) {
                 AITimelineMergeReqeust mergeRequest = new AITimelineMergeReqeust(temp);
                 TimelineCardDTO merged = aiWebClient.post()
-                        .uri(mergeAIEndpoint)
+                        .uri(MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
                         .bodyToMono(TimelineCardDTO.class)
@@ -321,7 +355,7 @@ public class NewsServiceImpl implements NewsService {
         );
 
         return aiWebClient.post()
-                .uri(statisticsAIEndpoint)
+                .uri(STATISTIC_AI_ENDPOINT)
                 .bodyValue(aiStatisticsRequest)
                 .retrieve()
                 .bodyToMono(StatisticsDTO.class)
