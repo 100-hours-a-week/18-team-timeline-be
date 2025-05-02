@@ -27,7 +27,7 @@ public class BookmarkController {
     public ResponseEntity<?> addBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
-                throw new CustomException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
             }
 
             Long userId = userDetails.getUser().getId();
@@ -55,7 +55,7 @@ public class BookmarkController {
     public ResponseEntity<?> deleteBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
-                throw new CustomException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
             }
 
             Long userId = userDetails.getUser().getId();

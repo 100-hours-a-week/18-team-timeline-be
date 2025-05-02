@@ -1,8 +1,6 @@
 package com.tamnara.backend.config;
 
 import com.tamnara.backend.global.jwt.JwtProvider;
-import com.tamnara.backend.global.security.JwtAccessDeniedHandler;
-import com.tamnara.backend.global.security.JwtAuthenticationEntryPoint;
 import com.tamnara.backend.global.security.JwtAuthenticationFilter;
 import com.tamnara.backend.user.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +21,6 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final UserDetailsServiceImpl userDetailsService;
-    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -40,14 +36,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/webjars/**",
-                                "/auth/**"  // 로그인, 회원가입 등은 인증 없이 허용
+                                "/auth/**",  // 로그인, 회원가입 등은 인증 없이 허용
+                                "/news/**"
                         ).permitAll()
                         .anyRequest().authenticated() // 나머지는 인증 필요
 //                        .anyRequest().permitAll()
-                )
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                        .accessDeniedHandler(jwtAccessDeniedHandler)
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, userDetailsService),
