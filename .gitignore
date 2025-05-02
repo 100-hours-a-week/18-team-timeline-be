@@ -25,7 +25,6 @@ bin/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-backend/src/test/resources/application-test.properties
 
 ### NetBeans ###
 /nbproject/private/
@@ -36,10 +35,3 @@ backend/src/test/resources/application-test.properties
 
 ### VS Code ###
 .vscode/
-.DS_Store
-backend/.DS_Store
-backend/src/.DS_Store
-
-### selina 개인 파일 ###
-backend/src/main/resources/kakao
-backend/jwt_code.sh
