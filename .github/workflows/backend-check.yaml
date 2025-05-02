@@ -41,11 +41,24 @@ jobs:
         working-directory: ./backend
         run: ./gradlew compileJava
           
-      # 5. 실패 시 Discord 알림 전송
-      - name: Notify Discord on failure
+      # 5. 실패 시 Discord 알림 전송 , 에러 메세지 전송
+      - name: Notify Discord on Checkstyle failure
         if: failure()
         run: |
+          echo "🚨 Checkstyle 실패: 위반 내역을 Discord에 전송합니다."
+          
+          # Checkstyle 오류 추출: 메시지, 줄번호 추출
+          ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ \2 (Line \1)/p' | \
+            head -n 3)
+          
+          # 줄바꿈 처리
+          ERROR_MSG=$(echo "$ERRORS" | sed ':a;N;$!ba;s/\n/\\n/g')
+          
+          # Discord 전송
           curl -X POST -H "Content-Type: application/json" \
-          -d '{"content":"🚨 백엔드 정적 분석 또는 타입 검사 실패! PR 확인 필요합니다."}' \
-          ${{ secrets.DISCORD_WEBHOOK_URL }}
-
+            -d "{\"content\": \"🚨 Checkstyle 오류 발생 (최대 3건):\\n$ERROR_MSG\\n👉 자세한 내용은 GitHub Actions 로그에서 확인하세요.\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+     
+      
+ 
