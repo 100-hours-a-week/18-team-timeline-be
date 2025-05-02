@@ -1,6 +1,6 @@
 package com.tamnara.backend.news.controller;
 
-import com.tamnara.backend.common.exception.CustomException;
+import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
