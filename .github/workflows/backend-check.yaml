@@ -1,4 +1,7 @@
-name: Backend CI - Static Analysis, Build & Docker Push
+# GitHub Actions Workflow: 백엔드 정적 분석 및 타입 검사
+# 목적: feature → develop 브랜치로 PR 생성 또는 병합 시 자동 검사 수행
+
+name: Backend Static Analysis & Type Check
 
 on:
   push:
