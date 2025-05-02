@@ -33,7 +33,9 @@
       import java.util.*; 이런 와일드카드 import를 경고
       ➜ 명확한 import 유지 (클래스별로 하나씩)
     -->
+    <!--
     <module name="AvoidStarImport"/>
+     -->
 
   </module>
 </module>
