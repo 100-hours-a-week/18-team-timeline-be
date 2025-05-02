@@ -1,4 +1,4 @@
-package com.tamnara.backend.common.exception;
+package com.tamnara.backend.global.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
