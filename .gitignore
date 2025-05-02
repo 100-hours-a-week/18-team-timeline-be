@@ -1,5 +1,5 @@
 HELP.md
-.gradle
+backend/.gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -18,7 +18,7 @@ bin/
 !**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
-.idea
+.idea/**
 *.iws
 *.iml
 *.ipr
@@ -35,3 +35,11 @@ out/
 
 ### VS Code ###
 .vscode/
+.DS_Store
+backend/.DS_Store
+backend/src/.DS_Store
+
+### application.properties (민감정보) ###
+backend/src/main/resources/application.properties
+backend/src/main/resources/kakao
+backend/jwt_code.sh
