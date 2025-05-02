@@ -32,7 +32,38 @@ public class UserController {
                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             Long userId = userDetails.getUser().getId();
-            User updatedUser = userService.updateUsername(userId, dto.getNickname());
+            User updatedUser = userService.updateUsername(userId, dto.getUsername());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "회원 정보가 성공적으로 수정되었습니다.",
+                    "data", Map.of("user", Map.of("userId", updatedUser.getId()))
+            ));
+
+        } catch (DuplicateUsernameException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "success", false,
+                    "message", "이미 사용 중인 닉네임입니다."
+            ));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", "관련된 회원이 없습니다."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요."
+            ));
+        }
+    }
+
+    @PatchMapping("/me/test")
+    public ResponseEntity<?> updateUsernameForTest(@RequestParam("username") String username,
+                                            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        try {
+            Long userId = userDetails.getUser().getId();
+            User updatedUser = userService.updateUsername(userId, username);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
