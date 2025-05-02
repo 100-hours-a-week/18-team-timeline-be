@@ -154,7 +154,7 @@ public class NewsController {
     public ResponseEntity<?> createNews(@ModelAttribute NewsCreateRequest req) {
         try {
             NewsDetailResponse res = newsService.save(null, false, req);
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 생성되었습니다.",
                     "data", res
