@@ -1,4 +1,4 @@
-package com.tamnara.backend.common.exception;
+package com.tamnara.backend.global.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +18,6 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    // Optional: 일반 예외 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
