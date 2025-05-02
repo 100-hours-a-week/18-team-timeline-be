@@ -1,8 +1,7 @@
 package com.tamnara.backend.global.config;
 
-import com.tamnara.backend.global.jwt.JwtProvider;
-import com.tamnara.backend.global.security.JwtAuthenticationFilter;
-import com.tamnara.backend.user.security.UserDetailsServiceImpl;
+import com.tamnara.backend.global.security.JwtAccessDeniedHandler;
+import com.tamnara.backend.global.security.JwtAuthenticationHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
