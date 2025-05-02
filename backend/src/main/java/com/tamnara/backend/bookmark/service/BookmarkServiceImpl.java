@@ -30,12 +30,15 @@ public class BookmarkServiceImpl implements BookmarkService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 뉴스입니다."));
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
-        if (bookmark.isEmpty()) {
-            bookmark.get().setUser(user);
-            bookmark.get().setNews(news);
-            bookmarkRepository.save(bookmark.get());
+        if (bookmark.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "뉴스에 이미 북마크가 등록되어 있습니다.");
         }
-        return bookmark.get().getId();
+
+        Bookmark savedBookmark = new Bookmark();
+        savedBookmark.setUser(user);
+        savedBookmark.setNews(news);
+        bookmarkRepository.save(savedBookmark);
+        return savedBookmark.getId();
     }
 
     @Override
@@ -47,10 +50,11 @@ public class BookmarkServiceImpl implements BookmarkService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 뉴스입니다."));
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
-        if (bookmark.isPresent()) {
-            bookmarkRepository.delete(bookmark.get());
-            return bookmark.get().getId();
+        if (bookmark.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스에 북마크가 등록되어 있지 않습니다.");
         }
-        return 0L;
+
+        bookmarkRepository.delete(bookmark.get());
+        return bookmark.get().getId();
     }
 }
