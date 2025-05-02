@@ -25,7 +25,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public List<CommentDTO> getComments(Long newsId, Integer page, Integer size) {
         if (!newsRepository.existsById(newsId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스가 존재하지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
         }
         Page<Comment> comments = commentRepository.findAllByNewsId(newsId, PageRequest.of(page, size));
 
@@ -45,7 +45,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Long save(Long newsId, CommentCreateRequest commentCreateRequest) {
         if (!newsRepository.existsById(newsId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스가 존재하지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
         }
 
         Comment comment = new Comment();
@@ -54,7 +54,11 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public Long delete(Long commentId) {
+    public Long delete(Long newsId, Long commentId) {
+        if (!newsRepository.existsById(newsId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
+        }
+
         commentRepository.deleteById(commentId);
         return commentId;
     }
