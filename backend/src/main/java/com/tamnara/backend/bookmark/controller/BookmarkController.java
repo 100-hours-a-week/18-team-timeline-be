@@ -6,10 +6,7 @@ import com.tamnara.backend.user.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,13 +52,13 @@ public class BookmarkController {
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteBookmark(@PathVariable Long newsId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-            throw new CustomException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
-        }
+    public ResponseEntity<?> deleteBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            Long userId = (Long) authentication.getPrincipal();
+            if (userDetails == null || userDetails.getUser() == null) {
+                throw new CustomException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
+            }
+
+            Long userId = userDetails.getUser().getId();
             Long bookmarkId = bookmarkService.deleteBookmark(userId, newsId);
 
             Map<String, Object> data = Map.of("bookmarkId", bookmarkId);
