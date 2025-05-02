@@ -39,7 +39,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
-    public void deleteBookmark(Long userId, Long newsId) {
+    public Long deleteBookmark(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -49,6 +49,8 @@ public class BookmarkServiceImpl implements BookmarkService {
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isPresent()) {
             bookmarkRepository.delete(bookmark.get());
+            return bookmark.get().getId();
         }
+        return 0L;
     }
 }
