@@ -3,11 +3,12 @@ package com.tamnara.backend.comment.controller;
 import com.tamnara.backend.comment.dto.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
 import com.tamnara.backend.comment.service.CommentService;
-import com.tamnara.backend.common.exception.CustomException;
+import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.user.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,12 +16,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/news/{newsId}/comments")
 public class CommentController {
@@ -62,9 +64,17 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createComment(@PathVariable Long newsId, @RequestBody CommentCreateRequest req) {
+    public ResponseEntity<?> createComment(@PathVariable Long newsId,
+                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
+                                           @RequestBody CommentCreateRequest req
+    ) {
         try {
-            Long commentId = commentService.save(newsId, req);
+            if (userDetails == null || userDetails.getUsername() == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다.");
+            }
+
+            Long userId = userDetails.getUser().getId();
+            Long commentId = commentService.save(userId, newsId, req);
 
             Map<String, Object> data = Map.of(
                     "commendId", commentId
@@ -72,7 +82,7 @@ public class CommentController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
-                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
+                    "message", "댓글이 성공적으로 생성되었습니다.",
                     "data", data
             ));
         } catch (ResponseStatusException e) {
@@ -86,17 +96,25 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long newsId, @RequestParam Long commentId) {
+    public ResponseEntity<?> deleteComment(@PathVariable Long newsId,
+                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
+                                           @RequestParam Long commentId
+    ) {
         try {
-            Long deletedCommentId = commentService.delete(newsId, commentId);
+            if (userDetails == null || userDetails.getUsername() == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다.");
+            }
+
+            Long userId = userDetails.getUser().getId();
+            Long deletedCommentId = commentService.delete(userId, newsId, commentId);
 
             Map<String, Object> data = Map.of(
-                    "commendId", commentId
+                    "commendId", deletedCommentId
             );
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
                     "success", true,
-                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
+                    "message", "댓글이 성공적으로 삭제되었습니다.",
                     "data", data
             ));
         } catch (ResponseStatusException e) {

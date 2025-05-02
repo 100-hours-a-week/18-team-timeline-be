@@ -28,7 +28,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDTO> getComments(Long newsId, Integer page, Integer size) {
-        if (newsRepository.existsById(newsId)) {
+        if (!newsRepository.existsById(newsId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
         }
 
