@@ -16,7 +16,7 @@ public interface TimelineCardRepository extends JpaRepository<TimelineCard, Long
           AND (:duration IS NULL OR t.duration = :duration)
         ORDER BY t.startAt DESC
     """)
-    List<TimelineCard> findAllByNewsIdAndType(Long newsId, TimelineCardType duration);
+    List<TimelineCard> findAllByNewsIdAndDuration(Long newsId, TimelineCardType duration);
 
     void deleteAllByNewsId(Long newsId);
 }

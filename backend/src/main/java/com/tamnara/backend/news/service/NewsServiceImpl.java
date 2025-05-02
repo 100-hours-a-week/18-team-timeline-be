@@ -59,31 +59,33 @@ public class NewsServiceImpl implements NewsService {
     private final String STATISTIC_AI_ENDPOINT = "/comment";
 
     @Override
-    public List<NewsCardDTO> getNewsPage(Long userId, boolean isHotissue, Integer page, Integer size) {
+    public List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, Integer page, Integer size) {
         Page<News> newsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
-        return getNewsCardDTOS(userId, newsPage);
+        return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public List<NewsCardDTO> getNewsPage(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
-        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase())).orElse(null);
+    public List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
+        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
+
         Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
-        return getNewsCardDTOS(userId, newsPage);
+        return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public Map<String, List<NewsCardDTO>> getNormalNewsPages(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
+    public Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, boolean isHotissue, Integer page, Integer size) {
         List<Category> categories = categoryRepository.findAll();
         Map<String, List<NewsCardDTO>> newsCardDTOS = new HashMap<>();
 
         // 전체
         Page<News> allNewsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
-        newsCardDTOS.put("ALL", getNewsCardDTOS(userId, allNewsPage));
+        newsCardDTOS.put("ALL", getNewsCardDTOList(userId, allNewsPage));
 
         // 카테고리별
         for (Category c : categories) {
             Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
-            newsCardDTOS.put(c.getName().toString(), getNewsCardDTOS(userId, newsPage));
+            newsCardDTOS.put(c.getName().toString(), getNewsCardDTOList(userId, newsPage));
         }
         return newsCardDTOS;
     }
@@ -91,7 +93,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public NewsDetailResponse getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
         StatisticsDTO statistics = getStatisticsDTO(news);
@@ -185,7 +187,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
 
-        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndType(newsId, null);
+        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndDuration(newsId, null);
         List<TimelineCardDTO> oldTimeline = new ArrayList<>();
         for (TimelineCard tc : timelineCards) {
             TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
@@ -375,11 +377,15 @@ public class NewsServiceImpl implements NewsService {
         );
     }
 
-    private List<NewsCardDTO> getNewsCardDTOS(Long userId, Page<News> newsPage) {
+    private List<NewsCardDTO> getNewsCardDTOList(Long userId, Page<News> newsPage) {
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
         newsPage.forEach(n -> {
             Optional<NewsImage> image = newsImageRepository.findByNewsId(n.getId());
+            String imageUrl = image.isPresent() ? image.get().getUrl() : null;
+
+            String categoryName = n.getCategory() != null ? n.getCategory().getName().toString() : null;
+
             boolean bookmarked = getBookmarked(n.getId(), userId);
             LocalDateTime bookmarkedAt = getBookmarkedAt(n.getId(), userId);
 
@@ -387,8 +393,8 @@ public class NewsServiceImpl implements NewsService {
                     n.getId(),
                     n.getTitle(),
                     n.getSummary(),
-                    image.get().getUrl(),
-                    n.getCategory().toString(),
+                    imageUrl,
+                    categoryName,
                     n.getUpdatedAt(),
                     bookmarked,
                     bookmarkedAt
@@ -400,14 +406,14 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
-        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndType(news.getId(), null);
+        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
         List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
         timeline.forEach(t -> {
             TimelineCardDTO dto = new TimelineCardDTO(
                     t.getTitle(),
                     t.getContent(),
                     t.getSource(),
-                    t.getDuration().name(),
+                    t.getDuration().toString(),
                     t.getStartAt(),
                     t.getEndAt()
             );

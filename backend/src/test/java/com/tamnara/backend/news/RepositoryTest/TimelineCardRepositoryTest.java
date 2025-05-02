@@ -130,7 +130,7 @@ public class TimelineCardRepositoryTest {
         timelineCardRepository.save(timelineCard1);
 
         // when
-        List<TimelineCard> timelineCardsList = timelineCardRepository.findAllByNewsIdAndType(news.getId(), null);
+        List<TimelineCard> timelineCardsList = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
 
         // then
         assertEquals(3, timelineCardsList.size());
@@ -156,7 +156,7 @@ public class TimelineCardRepositoryTest {
         timelineCardRepository.save(timelineCard3);
 
         // when
-        List<TimelineCard> timelineCardsWeekList = timelineCardRepository.findAllByNewsIdAndType(news.getId(), duration);
+        List<TimelineCard> timelineCardsWeekList = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), duration);
 
         // then
         assertEquals(3, timelineCardsWeekList.size());
