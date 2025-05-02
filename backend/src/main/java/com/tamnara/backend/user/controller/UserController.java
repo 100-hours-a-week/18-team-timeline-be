@@ -84,4 +84,28 @@ public class UserController {
             ));
         }
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        try {
+            if (userDetails == null || userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "success", false,
+                        "message", "관련된 회원이 없습니다."
+                ));
+            }
+
+            // 실제로는 클라이언트가 토큰을 제거해야 하며, 서버는 상태 저장하지 않음
+            // (JavaScript에서) localStorage.removeItem('access_token');
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "정상적으로 로그아웃되었습니다."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "서버 내부 오류가 발생했습니다. 나중에 다시 시도해주세요."
+            ));
+        }
+    }
 }
