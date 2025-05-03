@@ -1,4 +1,4 @@
-package com.tamnara.backend.config;
+package com.tamnara.backend.global.config;
 
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.global.security.JwtAuthenticationFilter;
