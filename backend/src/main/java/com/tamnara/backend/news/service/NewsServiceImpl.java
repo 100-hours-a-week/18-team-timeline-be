@@ -103,11 +103,16 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
-        User user = userRepository.findById(userId).orElse(null);
+        Optional<User> user;
+        if (userId != null) {
+            user = userRepository.findById(userId);
+        } else {
+            user = Optional.empty();
+        }
 
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
         StatisticsDTO statistics = getStatisticsDTO(news);
-        boolean bookmarked = getBookmarked(user, news);
+        boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
 
         return new NewsDetailResponse(
                 news.getTitle(),
@@ -404,7 +409,12 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<NewsCardDTO> getNewsCardDTOList(Long userId, Page<News> newsPage) {
-        User user = userRepository.findById(userId).orElse(null);
+        Optional<User> user;
+        if (userId != null) {
+            user = userRepository.findById(userId);
+        } else {
+            user = Optional.empty();
+        }
 
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
@@ -414,8 +424,9 @@ public class NewsServiceImpl implements NewsService {
 
             String categoryName = news.getCategory() != null ? news.getCategory().getName().toString() : null;
 
-            boolean bookmarked = getBookmarked(user, news);
-            LocalDateTime bookmarkedAt = getBookmarkedAt(user, news);
+            boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
+            LocalDateTime bookmarkedAt = user.map(u -> getBookmarkedAt(u, news)).orElse(null);
+
 
             NewsCardDTO dto = new NewsCardDTO(
                     news.getId(),
@@ -451,11 +462,13 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private boolean getBookmarked(User user, News news) {
+        if (user == null) return false;
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         return bookmark.isPresent();
     }
 
     private LocalDateTime getBookmarkedAt(User user, News news) {
+        if (user == null) return null;
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         return bookmark.map(Bookmark::getCreatedAt).orElse(null);
     }
