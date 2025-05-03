@@ -91,6 +91,8 @@ public class KakaoService {
             if (optionalUser.isPresent()) {
                 // 기존 사용자 → 로그인 처리
                 user = optionalUser.get();
+                user.updateLastActiveAtNow();
+                userRepository.save(user);
             } else {
                 // 신규 사용자 → 회원가입 처리
                 user = User.builder()
@@ -102,6 +104,7 @@ public class KakaoService {
                         .state(State.ACTIVE)     // 기본 상태
                         .build();
 
+                user.updateLastActiveAtNow();
                 userRepository.save(user);
             }
 
