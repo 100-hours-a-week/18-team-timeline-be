@@ -274,14 +274,15 @@ public class NewsServiceImpl implements NewsService {
     public Long delete(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+
         if (user.getRole() != Role.ADMIN) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스 삭제에 대한 권한이 없습니다.");
         }
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
-        if (!news.getUpdatedAt().isBefore(LocalDateTime.now().minusMonths(3))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMonths(3))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
         }
 
