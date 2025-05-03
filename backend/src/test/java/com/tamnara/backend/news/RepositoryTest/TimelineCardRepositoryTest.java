@@ -52,7 +52,7 @@ public class TimelineCardRepositoryTest {
         timelineCard1.setTitle("18자의 타임라인 카드");
         timelineCard1.setContent("타임라인 카드의 내용");
         timelineCard1.setSource(source);
-        timelineCard1.setType(TimelineCardType.DAY);
+        timelineCard1.setDuration(TimelineCardType.DAY);
         timelineCard1.setStartAt(LocalDate.of(2025, 4, 11));
         timelineCard1.setEndAt(LocalDate.of(2025, 4, 11));
         timelineCard1.setNews(news);
@@ -61,7 +61,7 @@ public class TimelineCardRepositoryTest {
         timelineCard2.setTitle("18자의 타임라인 카드");
         timelineCard2.setContent("타임라인 카드의 내용");
         timelineCard2.setSource(source);
-        timelineCard2.setType(TimelineCardType.WEEK);
+        timelineCard2.setDuration(TimelineCardType.WEEK);
         timelineCard2.setStartAt(LocalDate.of(2025, 4, 3));
         timelineCard2.setEndAt(LocalDate.of(2025, 4, 10));
         timelineCard2.setNews(news);
@@ -70,7 +70,7 @@ public class TimelineCardRepositoryTest {
         timelineCard3.setTitle("18자의 타임라인 카드");
         timelineCard3.setContent("타임라인 카드의 내용");
         timelineCard3.setSource(source);
-        timelineCard3.setType(TimelineCardType.MONTH);
+        timelineCard3.setDuration(TimelineCardType.MONTH);
         timelineCard3.setStartAt(LocalDate.of(2025, 3, 2));
         timelineCard3.setEndAt(LocalDate.of(2025, 4, 2));
         timelineCard3.setNews(news);
@@ -130,7 +130,7 @@ public class TimelineCardRepositoryTest {
         timelineCardRepository.save(timelineCard1);
 
         // when
-        List<TimelineCard> timelineCardsList = timelineCardRepository.findAllByNewsIdAndType(news.getId(), null);
+        List<TimelineCard> timelineCardsList = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
 
         // then
         assertEquals(3, timelineCardsList.size());
@@ -146,22 +146,22 @@ public class TimelineCardRepositoryTest {
     @Test
     public void 뉴스_연관_타입별_타임라인카드들_정렬_조회_테스트() {
         // given
-        TimelineCardType type = TimelineCardType.WEEK;
-        timelineCard1.setType(type);
-        timelineCard2.setType(type);
-        timelineCard3.setType(type);
+        TimelineCardType duration = TimelineCardType.WEEK;
+        timelineCard1.setDuration(duration);
+        timelineCard2.setDuration(duration);
+        timelineCard3.setDuration(duration);
 
         timelineCardRepository.save(timelineCard1);
         timelineCardRepository.save(timelineCard2);
         timelineCardRepository.save(timelineCard3);
 
         // when
-        List<TimelineCard> timelineCardsWeekList = timelineCardRepository.findAllByNewsIdAndType(news.getId(), type);
+        List<TimelineCard> timelineCardsWeekList = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), duration);
 
         // then
         assertEquals(3, timelineCardsWeekList.size());
         assertTrue(timelineCardsWeekList.stream().allMatch(t -> t.getNews().getId().equals(news.getId())));
-        assertTrue(timelineCardsWeekList.stream().allMatch(t -> t.getType().equals(type)));
+        assertTrue(timelineCardsWeekList.stream().allMatch(t -> t.getDuration().equals(duration)));
 
         TimelineCard first = timelineCardsWeekList.get(0);
         TimelineCard second = timelineCardsWeekList.get(1);
