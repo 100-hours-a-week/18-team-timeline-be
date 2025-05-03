@@ -1,5 +1,7 @@
 package com.tamnara.backend.news.service;
 
+import com.tamnara.backend.bookmark.domain.Bookmark;
+import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -23,6 +25,9 @@ import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.news.repository.NewsTagRepository;
 import com.tamnara.backend.news.repository.TagRepository;
 import com.tamnara.backend.news.repository.TimelineCardRepository;
+import com.tamnara.backend.user.domain.Role;
+import com.tamnara.backend.user.domain.User;
+import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -52,6 +57,9 @@ public class NewsServiceImpl implements NewsService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final NewsTagRepository newsTagRepository;
+
+    private final UserRepository userRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     private final String TIMELINE_AI_ENDPOINT = "/timeline";
     private final String MERGE_AI_ENDPOINT = "/merge";
@@ -95,9 +103,11 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
+        User user = userRepository.findById(userId).orElse(null);
+
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
         StatisticsDTO statistics = getStatisticsDTO(news);
-        boolean bookmarked = getBookmarked(newsId, userId);
+        boolean bookmarked = getBookmarked(user, news);
 
         return new NewsDetailResponse(
                 news.getTitle(),
@@ -110,6 +120,9 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
         LocalDate startAt = endAt.minusMonths(3);
@@ -132,22 +145,12 @@ public class NewsServiceImpl implements NewsService {
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNegative());
         news.setRatioNeut(statistics.getNegative());
-//        news.setUser(userRepository.findById(userId));
+        news.setUser(user);
         news.setCategory(category.get());
         newsRepository.save(news);
 
         // 4-2. 타임라인 카드들을 저장한다.
-        for (TimelineCardDTO timelineCardDTO : timeline) {
-            TimelineCard tc = new TimelineCard();
-            tc.setTitle(timelineCardDTO.getTitle());
-            tc.setContent(timelineCardDTO.getContent());
-            tc.setSource(timelineCardDTO.getSource());
-            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
-            tc.setStartAt(startAt);
-            tc.setEndAt(endAt);
-            tc.setNews(news);
-            timelineCardRepository.save(tc);
-        }
+        saveTimelineCards(timeline, startAt, endAt, news);
 
         // 5. 뉴스 태그들을 저장하고, DB에 없는 태그를 저장한다.
         req.getKeywords().forEach(keyword -> {
@@ -169,13 +172,16 @@ public class NewsServiceImpl implements NewsService {
         });
 
         // 6. 생성된 뉴스에 대해 북마크 설정한다.
-        boolean bookmarked = true;
+        Bookmark bookmark = new Bookmark();
+        bookmark.setUser(user);
+        bookmark.setNews(news);
+        bookmarkRepository.save(bookmark);
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailResponse(
                 news.getTitle(),
                 news.getUpdatedAt(),
-                bookmarked,
+                true,
                 timeline,
                 statistics
         );
@@ -183,9 +189,16 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public NewsDetailResponse update(Long newsId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(1))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
+        }
 
         List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndDuration(newsId, null);
         List<TimelineCardDTO> oldTimeline = new ArrayList<>();
@@ -231,26 +244,22 @@ public class NewsServiceImpl implements NewsService {
 
         // 4-2. 타임라인 카드들을 저장한다.
         timelineCardRepository.deleteAllByNewsId(news.getId());
-        for (TimelineCardDTO timelineCardDTO : newTimeline) {
-            TimelineCard tc = new TimelineCard();
-            tc.setTitle(timelineCardDTO.getTitle());
-            tc.setContent(timelineCardDTO.getContent());
-            tc.setSource(timelineCardDTO.getSource());
-            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
-            tc.setStartAt(startAt);
-            tc.setEndAt(endAt);
-            tc.setNews(news);
-        }
-
+        saveTimelineCards(newTimeline, startAt, endAt, news);
 
         // 5. 생성된 뉴스에 대해 북마크 설정한다.
-        boolean bookmarked = true;
+        Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
+        if (bookmark.isEmpty()) {
+            Bookmark savedBookmark = new Bookmark();
+            savedBookmark.setUser(user);
+            savedBookmark.setNews(news);
+            bookmarkRepository.save(savedBookmark);
+        }
 
         // 6. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailResponse(
                 news.getTitle(),
                 news.getUpdatedAt(),
-                bookmarked,
+                true,
                 newTimeline,
                 statistics
         );
@@ -258,11 +267,14 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public Long delete(Long newsId, Long userId) {
-        // 추가: 회원의 role이 관리자인지 검증
-        // -> 회원 리포지토리
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+        if (user.getRole() != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스 삭제에 대한 권한이 없습니다.");
+        }
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
         if (!news.getUpdatedAt().isBefore(LocalDateTime.now().minusMonths(3))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
@@ -377,25 +389,41 @@ public class NewsServiceImpl implements NewsService {
         );
     }
 
+    private void saveTimelineCards (List<TimelineCardDTO> timeline, LocalDate startAt, LocalDate endAt, News news) {
+        for (TimelineCardDTO timelineCardDTO : timeline) {
+            TimelineCard tc = new TimelineCard();
+            tc.setTitle(timelineCardDTO.getTitle());
+            tc.setContent(timelineCardDTO.getContent());
+            tc.setSource(timelineCardDTO.getSource());
+            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
+            tc.setStartAt(startAt);
+            tc.setEndAt(endAt);
+            tc.setNews(news);
+            timelineCardRepository.save(tc);
+        }
+    }
+
     private List<NewsCardDTO> getNewsCardDTOList(Long userId, Page<News> newsPage) {
+        User user = userRepository.findById(userId).orElse(null);
+
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
-        newsPage.forEach(n -> {
-            Optional<NewsImage> image = newsImageRepository.findByNewsId(n.getId());
-            String imageUrl = image.isPresent() ? image.get().getUrl() : null;
+        newsPage.forEach(news -> {
+            Optional<NewsImage> image = newsImageRepository.findByNewsId(news.getId());
+            String imageUrl = image.map(NewsImage::getUrl).orElse(null);
 
-            String categoryName = n.getCategory() != null ? n.getCategory().getName().toString() : null;
+            String categoryName = news.getCategory() != null ? news.getCategory().getName().toString() : null;
 
-            boolean bookmarked = getBookmarked(n.getId(), userId);
-            LocalDateTime bookmarkedAt = getBookmarkedAt(n.getId(), userId);
+            boolean bookmarked = getBookmarked(user, news);
+            LocalDateTime bookmarkedAt = getBookmarkedAt(user, news);
 
             NewsCardDTO dto = new NewsCardDTO(
-                    n.getId(),
-                    n.getTitle(),
-                    n.getSummary(),
+                    news.getId(),
+                    news.getTitle(),
+                    news.getSummary(),
                     imageUrl,
                     categoryName,
-                    n.getUpdatedAt(),
+                    news.getUpdatedAt(),
                     bookmarked,
                     bookmarkedAt
             );
@@ -422,13 +450,13 @@ public class NewsServiceImpl implements NewsService {
         return timelineCardDTOList;
     }
 
-    private boolean getBookmarked(Long newsId, Long userId) {
-        if (userId == null) return false;
-        return false;
+    private boolean getBookmarked(User user, News news) {
+        Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
+        return bookmark.isPresent();
     }
 
-    private LocalDateTime getBookmarkedAt(Long newsId, Long userId) {
-        if (userId == null) return null;
-        return null;
+    private LocalDateTime getBookmarkedAt(User user, News news) {
+        Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
+        return bookmark.map(Bookmark::getCreatedAt).orElse(null);
     }
 }
