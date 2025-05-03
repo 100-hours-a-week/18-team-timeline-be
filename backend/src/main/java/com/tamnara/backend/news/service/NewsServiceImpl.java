@@ -201,7 +201,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(1))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
         }
 
