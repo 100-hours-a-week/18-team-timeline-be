@@ -1,4 +1,4 @@
-package com.tamnara.backend.config;
+package com.tamnara.backend.global.config;
 
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.global.security.JwtAuthenticationFilter;
@@ -30,17 +30,17 @@ public class SecurityConfig {
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**",
-                                "/auth/**",  // 로그인, 회원가입 등은 인증 없이 허용
-                                "/news/**"
-                        ).permitAll()
-                        .anyRequest().authenticated() // 나머지는 인증 필요
-//                        .anyRequest().permitAll()
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/v3/api-docs/**",
+                                        "/swagger-resources/**",
+                                        "/webjars/**",
+                                        "/auth/**",  // 로그인, 회원가입 등은 인증 없이 허용
+                                        "/news/**"
+                                ).permitAll()
+                                .anyRequest().authenticated() // 나머지는 인증 필요
+//                                .anyRequest().permitAll()
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, userDetailsService),

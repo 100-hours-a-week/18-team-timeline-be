@@ -76,4 +76,8 @@ public class User {
     public void updateUsername(String newUsername) {
         this.username = newUsername;
     }
+
+    public void updateLastActiveAtNow() {
+        this.lastActiveAt = LocalDateTime.now();
+    }
 }
