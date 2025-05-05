@@ -39,8 +39,8 @@ public class SecurityConfig {
                                         "/auth/**",  // 로그인, 회원가입 등은 인증 없이 허용
                                         "/news/**"
                                 ).permitAll()
-//                        .anyRequest().authenticated() // 나머지는 인증 필요
-                                .anyRequest().permitAll()
+                                .anyRequest().authenticated() // 나머지는 인증 필요
+//                                .anyRequest().permitAll()
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, userDetailsService),
