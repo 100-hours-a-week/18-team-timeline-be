@@ -1,4 +1,4 @@
-package com.tamnara.backend.config;
+package com.tamnara.backend.global.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

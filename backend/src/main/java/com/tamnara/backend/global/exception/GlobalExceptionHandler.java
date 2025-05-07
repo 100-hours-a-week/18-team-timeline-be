@@ -8,8 +8,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<?> handleCustomException(CustomException e) {
+        return ResponseEntity.status(e.getStatus()).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    }
 
     @ExceptionHandler(DuplicateUsernameException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateUsernameException(DuplicateUsernameException ex) {
@@ -23,10 +33,11 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(false, "이미 사용 중인 이메일입니다."));
     }
 
-    // 그 외 서버 에러
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요."));
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "message", "서버에 문제가 발생했습니다."
+        ));
     }
 }

@@ -65,6 +65,19 @@ public class TagRepositoryTest {
     }
 
     @Test
+    public void 태그_저장_여부_테스트() {
+        // given
+        tagRepository.save(tag1);
+
+        // when
+        String exist = "tag1";
+        Optional<Tag> exists = tagRepository.findByName(exist);
+
+        // then
+        assertEquals(exist, exists.get().getName());
+    }
+
+    @Test
     public void 동일_이름_태그_중복_저장시_예외_발생_테스트() {
         // given
         tagRepository.save(tag1);
