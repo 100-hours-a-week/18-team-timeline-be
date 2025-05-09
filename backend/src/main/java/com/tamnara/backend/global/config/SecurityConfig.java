@@ -27,6 +27,8 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final UserDetailsServiceImpl userDetailsService;
 
+    private final String FRONTEND_BASE_URL = "http://localhost:5173";
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
@@ -58,9 +60,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of(FRONTEND_BASE_URL));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
-        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
