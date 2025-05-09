@@ -34,7 +34,7 @@ public class KakaoService {
     private String redirectUri;
 
     public String buildKakaoLoginUrl() {
-        return UriComponentsBuilder.fromHttpUrl("https://kauth.kakao.com/oauth/authorize")
+        return UriComponentsBuilder.fromUriString("https://kauth.kakao.com/oauth/authorize")
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
@@ -120,11 +120,12 @@ public class KakaoService {
 
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
 
-            return ResponseEntity.ok().body(Map.of(
-                    "access_token", tamnaraAccessToken,
-                    "user_id", user.getId(),
-                    "username", user.getUsername()
-            ));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
+                    .body(Map.of(
+                            "success", true,
+                            "message", "카카오 로그인이 성공적으로 완료되었습니다."
+                    ));
 
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
