@@ -15,6 +15,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,15 @@ public class KakaoService {
 
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
+
+    public String buildKakaoLoginUrl() {
+        return UriComponentsBuilder.fromHttpUrl("https://kauth.kakao.com/oauth/authorize")
+                .queryParam("response_type", "code")
+                .queryParam("client_id", clientId)
+                .queryParam("redirect_uri", redirectUri)
+                .build()
+                .toUriString();
+    }
 
     public ResponseEntity<?> kakaoLogin(String code) {
         try {

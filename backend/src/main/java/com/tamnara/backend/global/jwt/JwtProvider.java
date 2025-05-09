@@ -33,8 +33,8 @@ public class JwtProvider {
     public String createAccessToken(User user) {
         return Jwts.builder()
                 .subject(user.getId().toString())
-                .claim("username", user.getUsername())
                 .claim("role", user.getRole().toString())
+                .claim("name", user.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
                 .signWith(secretKey)
