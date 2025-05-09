@@ -67,6 +67,7 @@ public class SecurityConfig {
                 FRONTEND_BASE_URL_PROD
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
