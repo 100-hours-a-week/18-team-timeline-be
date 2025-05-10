@@ -5,6 +5,7 @@ import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.SignupRequestDto;
 import com.tamnara.backend.user.dto.SignupResponseDto;
+import com.tamnara.backend.user.dto.UserInfoResponseDto;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -49,6 +50,35 @@ public class UserService {
                 .message("회원가입이 성공적으로 완료되었습니다.")
                 .data(SignupResponseDto.UserData.builder()
                         .userId(savedUser.getId())
+                        .build())
+                .build();
+    }
+
+    public boolean isEmailAvailable(String email) {
+        return !userRepository.existsByEmail(email);
+    }
+
+    public boolean isUsernameAvailable(String username) {
+        return !userRepository.existsByUsername(username);
+    }
+
+    public UserInfoResponseDto getCurrentUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getState() != State.ACTIVE) {
+            throw new UserNotFoundException(); // DELETED나 INACTIVE는 허용하지 않음
+        }
+
+        return UserInfoResponseDto.builder()
+                .success(true)
+                .message("요청하신 정보를 성공적으로 불러왔습니다.")
+                .data(UserInfoResponseDto.Data.builder()
+                        .user(UserInfoResponseDto.UserData.builder()
+                                .userId(user.getId())
+                                .email(user.getEmail())
+                                .username(user.getUsername())
+                                .build())
                         .build())
                 .build();
     }
