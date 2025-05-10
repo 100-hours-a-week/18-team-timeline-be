@@ -30,11 +30,10 @@ public class SecurityConfig {
     private final String FRONTEND_BASE_URL_LOCAL = "http://localhost:5173";
     private final String FRONTEND_BASE_URL_PROD = "";
 
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(cors -> cors.configure(http))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
@@ -63,10 +62,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-                FRONTEND_BASE_URL_LOCAL,
-                FRONTEND_BASE_URL_PROD
+                FRONTEND_BASE_URL_LOCAL
+//                FRONTEND_BASE_URL_PROD
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
