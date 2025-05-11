@@ -38,12 +38,13 @@ public class NewsController {
     @GetMapping("/hotissue")
     public ResponseEntity<?> findHotissueNews() {
         try {
-            List<NewsCardDTO> newsCards = newsService.getNewsCardPage(null, true, 0, 3);
+            List<NewsCardDTO> newsCards = newsService.getHotissueNewsCardPage(null);
 
+            Map<String, Object> newsList = Map.of("newsList", newsCards);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", newsCards
+                    "data", newsList
             ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
@@ -75,9 +76,9 @@ public class NewsController {
                     throw new IllegalArgumentException("추가 요청일 경우 offset은 0이어야 합니다.");
                 }
 
-                List<NewsCardDTO> newsCards = newsService.getNewsCardPage(userId, false, category, pageNum, PAGE_SIZE);
+                List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPage(userId, category, pageNum, PAGE_SIZE);
 
-                boolean hasNext = !newsService.getNewsCardPage(userId, false, category, pageNum + 1, PAGE_SIZE).isEmpty();
+                boolean hasNext = !newsService.getNormalNewsCardPage(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
 
                 Map<String, Object> data = Map.of(
                         category, newsCards,
@@ -96,7 +97,7 @@ public class NewsController {
                     throw new IllegalArgumentException("최초 요청일 경우 offset은 0보다 큰 값이어야 합니다.");
                 }
 
-                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, false, pageNum, PAGE_SIZE);
+                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, pageNum, PAGE_SIZE);
                 Map<String, Object> data = new HashMap<>();
 
                 for (Map.Entry<String, List<NewsCardDTO>> entry : newsCardsMap.entrySet()) {
@@ -105,9 +106,9 @@ public class NewsController {
 
                     boolean hasNext;
                     if (categoryName == "ALL") {
-                        hasNext = newsService.getNewsCardPage(null, false,pageNum + 1, PAGE_SIZE).isEmpty();
+                        hasNext = newsService.getNormalNewsCardPage(null,pageNum + 1, PAGE_SIZE).isEmpty();
                     } else {
-                        hasNext = !newsService.getNewsCardPage(null, false, categoryName, pageNum + 1, PAGE_SIZE).isEmpty();
+                        hasNext = !newsService.getNormalNewsCardPage(null, categoryName, pageNum + 1, PAGE_SIZE).isEmpty();
                     }
 
                     Map<String, Object> categoryData = new HashMap<>();
