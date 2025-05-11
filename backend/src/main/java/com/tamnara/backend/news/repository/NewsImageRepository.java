@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface NewsImageRepository extends JpaRepository<NewsImage, Long> {
-    Optional<NewsImage> findFirstByNewsIdOrderByIdAsc(Long newsId);
+    Optional<NewsImage> findByNewsId(Long newsId);
 }
