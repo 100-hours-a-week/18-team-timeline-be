@@ -43,7 +43,7 @@ public class NewsController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", Map.of("newsList", newsCards)
+                    "data", newsCards
             ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
