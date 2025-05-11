@@ -420,7 +420,7 @@ public class NewsServiceImpl implements NewsService {
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
         newsPage.forEach(news -> {
-            Optional<NewsImage> image = newsImageRepository.findByNewsId(news.getId());
+            Optional<NewsImage> image = newsImageRepository.findFirstByNewsIdOrderByIdAsc(news.getId());
             String imageUrl = image.map(NewsImage::getUrl).orElse(null);
 
             String categoryName = news.getCategory() != null ? news.getCategory().getName().toString() : null;
