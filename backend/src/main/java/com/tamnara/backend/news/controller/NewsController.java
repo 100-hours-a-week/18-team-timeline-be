@@ -25,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
@@ -67,14 +68,14 @@ public class NewsController {
                 userId = userDetails.getUser().getId();
             }
 
-            int pageNum = offset / PAGE_SIZE;
-            int nextOffset = (pageNum + 1) * PAGE_SIZE;
-
             if (category != null) {
                 // 추가 로딩
-                if (offset <= 0) {
-                    throw new IllegalArgumentException("추가 요청일 경우 offset은 0이어야 합니다.");
+                if (offset < 0) {
+                    throw new IllegalArgumentException();
                 }
+
+                int pageNum = offset / PAGE_SIZE;
+                int nextOffset = (pageNum + 1) * PAGE_SIZE;
 
                 List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPage(userId, category, pageNum, PAGE_SIZE);
 
@@ -93,11 +94,7 @@ public class NewsController {
                 ));
             } else {
                 // 최초 요청
-                if (offset > 0) {
-                    throw new IllegalArgumentException("최초 요청일 경우 offset은 0보다 큰 값이어야 합니다.");
-                }
-
-                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, pageNum, PAGE_SIZE);
+                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, 0, PAGE_SIZE);
                 Map<String, Object> data = new HashMap<>();
 
                 for (Map.Entry<String, List<NewsCardDTO>> entry : newsCardsMap.entrySet()) {
@@ -105,18 +102,18 @@ public class NewsController {
                     List<NewsCardDTO> newsList = entry.getValue();
 
                     boolean hasNext;
-                    if (categoryName == "ALL") {
-                        hasNext = newsService.getNormalNewsCardPage(null,pageNum + 1, PAGE_SIZE).isEmpty();
+                    if (Objects.equals(categoryName, "ALL")) {
+                        hasNext = newsService.getNormalNewsCardPage(null,1, PAGE_SIZE).isEmpty();
                     } else {
-                        hasNext = !newsService.getNormalNewsCardPage(null, categoryName, pageNum + 1, PAGE_SIZE).isEmpty();
+                        hasNext = !newsService.getNormalNewsCardPage(null, categoryName, 1, PAGE_SIZE).isEmpty();
                     }
 
-                    Map<String, Object> categoryData = new HashMap<>();
-                    categoryData.put("newsList", newsList);
-                    categoryData.put("offset", nextOffset);
-                    categoryData.put("hasNext", hasNext);
+                    Map<String, Object> categoryNewsData = new HashMap<>();
+                    categoryNewsData.put("newsList", newsList);
+                    categoryNewsData.put("offset", PAGE_SIZE);
+                    categoryNewsData.put("hasNext", hasNext);
 
-                    data.put(categoryName, categoryData);
+                    data.put(categoryName, categoryNewsData);
                 }
 
                 return ResponseEntity.status(HttpStatus.OK).body(Map.of(
