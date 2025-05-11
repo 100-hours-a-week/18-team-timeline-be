@@ -31,6 +31,7 @@ import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -67,32 +68,38 @@ public class NewsServiceImpl implements NewsService {
     private final String STATISTIC_AI_ENDPOINT = "/comment";
 
     @Override
-    public List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, Integer page, Integer size) {
-        Page<News> newsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
+    public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
+        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
         return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, String category, Integer page, Integer size) {
+    public List<NewsCardDTO> getNormalNewsCardPage(Long userId, Integer page, Integer size) {
+        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
+        return getNewsCardDTOList(userId, newsPage);
+    }
+
+    @Override
+    public List<NewsCardDTO> getNormalNewsCardPage(Long userId, String category, Integer page, Integer size) {
         Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
 
-        Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
+        Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
         return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, boolean isHotissue, Integer page, Integer size) {
+    public Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, Integer page, Integer size) {
         List<Category> categories = categoryRepository.findAll();
         Map<String, List<NewsCardDTO>> newsCardDTOS = new HashMap<>();
 
         // 전체
-        Page<News> allNewsPage = newsRepository.findAllByIsHotissue(isHotissue, PageRequest.of(page, size));
+        Page<News> allNewsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
         newsCardDTOS.put("ALL", getNewsCardDTOList(userId, allNewsPage));
 
         // 카테고리별
         for (Category c : categories) {
-            Page<News> newsPage = newsRepository.findNewsByIsHotissueAndCategoryId(isHotissue, c.getId(), PageRequest.of(page, size));
+            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
             newsCardDTOS.put(c.getName().toString(), getNewsCardDTOList(userId, newsPage));
         }
         return newsCardDTOS;

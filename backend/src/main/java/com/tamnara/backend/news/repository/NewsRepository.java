@@ -14,24 +14,19 @@ import java.time.LocalDateTime;
 
 @Repository
 public interface NewsRepository extends JpaRepository<News, Long> {
-    @Query("""
-        SELECT n FROM News n
-        WHERE n.isHotissue = :isHotissue
-        ORDER BY n.updatedAt DESC, n.id DESC
-    """)
-    Page<News> findAllByIsHotissue(@Param("isHotissue") boolean isHotissue, Pageable pageable);
+    Page<News> findAllByIsHotissueTrueOrderByIdAsc(Pageable pageable);
+    Page<News> findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(Pageable pageable);
 
     @Query("""
         SELECT n FROM News n
-        WHERE n.isHotissue = :isHotissue
+        WHERE n.isHotissue = false
           AND (
               (:categoryId IS NULL AND n.category IS NULL)
               OR (:categoryId IS NOT NULL AND n.category.id = :categoryId)
           )
         ORDER BY n.updatedAt DESC, n.id DESC
     """)
-    Page<News> findNewsByIsHotissueAndCategoryId(
-            @Param("isHotissue") boolean isHotissue,
+    Page<News> findByIsHotissueFalseAndCategoryId(
             @Param("categoryId") Long categoryId,
             Pageable pageable
     );

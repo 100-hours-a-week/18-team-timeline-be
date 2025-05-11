@@ -25,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,12 +39,13 @@ public class NewsController {
     @GetMapping("/hotissue")
     public ResponseEntity<?> findHotissueNews() {
         try {
-            List<NewsCardDTO> newsCards = newsService.getNewsCardPage(null, true, 0, 3);
+            List<NewsCardDTO> newsCards = newsService.getHotissueNewsCardPage(null);
 
+            Map<String, Object> newsList = Map.of("newsList", newsCards);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", newsCards
+                    "data", newsList
             ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
@@ -66,18 +68,18 @@ public class NewsController {
                 userId = userDetails.getUser().getId();
             }
 
-            int pageNum = offset / PAGE_SIZE;
-            int nextOffset = (pageNum + 1) * PAGE_SIZE;
-
             if (category != null) {
                 // 추가 로딩
-                if (offset <= 0) {
-                    throw new IllegalArgumentException("추가 요청일 경우 offset은 0이어야 합니다.");
+                if (offset < 0) {
+                    throw new IllegalArgumentException();
                 }
 
-                List<NewsCardDTO> newsCards = newsService.getNewsCardPage(userId, false, category, pageNum, PAGE_SIZE);
+                int pageNum = offset / PAGE_SIZE;
+                int nextOffset = (pageNum + 1) * PAGE_SIZE;
 
-                boolean hasNext = !newsService.getNewsCardPage(userId, false, category, pageNum + 1, PAGE_SIZE).isEmpty();
+                List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPage(userId, category, pageNum, PAGE_SIZE);
+
+                boolean hasNext = !newsService.getNormalNewsCardPage(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
 
                 Map<String, Object> data = Map.of(
                         category, newsCards,
@@ -92,11 +94,7 @@ public class NewsController {
                 ));
             } else {
                 // 최초 요청
-                if (offset > 0) {
-                    throw new IllegalArgumentException("최초 요청일 경우 offset은 0보다 큰 값이어야 합니다.");
-                }
-
-                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, false, pageNum, PAGE_SIZE);
+                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, 0, PAGE_SIZE);
                 Map<String, Object> data = new HashMap<>();
 
                 for (Map.Entry<String, List<NewsCardDTO>> entry : newsCardsMap.entrySet()) {
@@ -104,18 +102,18 @@ public class NewsController {
                     List<NewsCardDTO> newsList = entry.getValue();
 
                     boolean hasNext;
-                    if (categoryName == "ALL") {
-                        hasNext = newsService.getNewsCardPage(null, false,pageNum + 1, PAGE_SIZE).isEmpty();
+                    if (Objects.equals(categoryName, "ALL")) {
+                        hasNext = newsService.getNormalNewsCardPage(null,1, PAGE_SIZE).isEmpty();
                     } else {
-                        hasNext = !newsService.getNewsCardPage(null, false, categoryName, pageNum + 1, PAGE_SIZE).isEmpty();
+                        hasNext = !newsService.getNormalNewsCardPage(null, categoryName, 1, PAGE_SIZE).isEmpty();
                     }
 
-                    Map<String, Object> categoryData = new HashMap<>();
-                    categoryData.put("newsList", newsList);
-                    categoryData.put("offset", nextOffset);
-                    categoryData.put("hasNext", hasNext);
+                    Map<String, Object> categoryNewsData = new HashMap<>();
+                    categoryNewsData.put("newsList", newsList);
+                    categoryNewsData.put("offset", PAGE_SIZE);
+                    categoryNewsData.put("hasNext", hasNext);
 
-                    data.put(categoryName, categoryData);
+                    data.put(categoryName, categoryNewsData);
                 }
 
                 return ResponseEntity.status(HttpStatus.OK).body(Map.of(
