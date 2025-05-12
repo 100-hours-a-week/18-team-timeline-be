@@ -157,7 +157,16 @@ public class NewsServiceImpl implements NewsService {
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
-        Optional<Category> category = categoryRepository.findByName(CategoryType.valueOf(aiNewsResponse.getCategory()));
+        Category category = null;
+        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty()) {
+            try {
+                CategoryType categoryType = CategoryType.valueOf(aiNewsResponse.getCategory());
+                category = categoryRepository.findByName(categoryType)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바르지 않은 카테고리 형식입니다.");
+            }
+        }
 
         News news = new News();
         news.setTitle(aiNewsResponse.getTitle());
@@ -167,7 +176,7 @@ public class NewsServiceImpl implements NewsService {
         news.setRatioNeut(statistics.getNeutral());
         news.setRatioNeut(statistics.getNegative());
         news.setUser(user);
-        news.setCategory(category.get());
+        news.setCategory(category);
         newsRepository.save(news);
 
         // 4-2. 타임라인 카드들을 저장한다.
