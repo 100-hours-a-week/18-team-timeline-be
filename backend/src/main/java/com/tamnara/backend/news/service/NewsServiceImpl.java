@@ -74,6 +74,11 @@ public class NewsServiceImpl implements NewsService {
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
     private final String STATISTIC_AI_ENDPOINT = "/comment";
 
+    private final Integer NEWS_TITLE_LIMIT = 24;
+    private final Integer NEWS_SUMMARY_LIMIT = 36;
+    private final Integer TIMELINE_CARD_TITLE_LIMIT = 18;
+    private final Integer TAG_NAME_LIMIT = 10;
+    private final Integer STATISTICS_AI_SEARCH_CNT = 1;
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -153,7 +158,7 @@ public class NewsServiceImpl implements NewsService {
         List<TimelineCardDTO> timeline = mergeAITimelineCards(aiNewsResponse.getTimeline());
 
         // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), 10).getData();
+        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), STATISTICS_AI_SEARCH_CNT).getData();
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
@@ -169,8 +174,18 @@ public class NewsServiceImpl implements NewsService {
         }
 
         News news = new News();
-        news.setTitle(aiNewsResponse.getTitle());
-        news.setSummary(aiNewsResponse.getSummary());
+        String title = aiNewsResponse.getTitle();
+        if (title != null && title.length() > NEWS_TITLE_LIMIT) {
+            title = title.substring(0, NEWS_TITLE_LIMIT);
+        }
+        news.setTitle(title);
+
+        String summary = aiNewsResponse.getSummary();
+        if (summary != null && summary.length() > NEWS_SUMMARY_LIMIT) {
+            summary = summary.substring(0, NEWS_SUMMARY_LIMIT);
+        }
+        news.setSummary(summary);
+
         news.setIsHotissue(isHotissue);
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNeutral());
@@ -186,6 +201,10 @@ public class NewsServiceImpl implements NewsService {
         req.getKeywords().forEach(keyword -> {
             NewsTag newsTag = new NewsTag();
             newsTag.setNews(news);
+
+            if (keyword != null && keyword.length() > TAG_NAME_LIMIT) {
+                keyword = keyword.substring(0, TAG_NAME_LIMIT);
+            }
 
             Optional<Tag> tag = tagRepository.findByName(keyword);
             if (tag.isPresent()) {
@@ -261,11 +280,16 @@ public class NewsServiceImpl implements NewsService {
         List<TimelineCardDTO> newTimeline = mergeAITimelineCards(oldTimeline);
 
         // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(keywords, 10).getData();
+        StatisticsDTO statistics = getAIStatisticsDTO(keywords, STATISTICS_AI_SEARCH_CNT).getData();
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
-        news.setSummary(aiNewsResponse.getSummary());
+        String summary = aiNewsResponse.getSummary();
+        if (summary != null && summary.length() > NEWS_SUMMARY_LIMIT) {
+            summary = summary.substring(0, NEWS_SUMMARY_LIMIT);
+        }
+        news.setSummary(summary);
+
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNegative());
@@ -427,7 +451,13 @@ public class NewsServiceImpl implements NewsService {
     private void saveTimelineCards (List<TimelineCardDTO> timeline, LocalDate startAt, LocalDate endAt, News news) {
         for (TimelineCardDTO timelineCardDTO : timeline) {
             TimelineCard tc = new TimelineCard();
-            tc.setTitle(timelineCardDTO.getTitle());
+
+            String title = timelineCardDTO.getTitle();
+            if (title != null && title.length() > TIMELINE_CARD_TITLE_LIMIT) {
+                title = title.substring(0, TIMELINE_CARD_TITLE_LIMIT);
+            }
+            tc.setTitle(title);
+
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
             tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
