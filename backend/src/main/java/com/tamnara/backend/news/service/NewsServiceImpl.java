@@ -1,5 +1,8 @@
 package com.tamnara.backend.news.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.news.domain.Category;
@@ -13,6 +16,7 @@ import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeReqeust;
@@ -29,11 +33,13 @@ import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -44,6 +50,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -66,6 +73,7 @@ public class NewsServiceImpl implements NewsService {
     private final String MERGE_AI_ENDPOINT = "/merge";
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
     private final String STATISTIC_AI_ENDPOINT = "/comment";
+
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -131,20 +139,21 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusMonths(3);
-        AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt);
+        LocalDate startAt = endAt.minusDays(3);
+        AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeAITimelineCards(aiNewsResponse.getTimeline());
 
         // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), 100);
+        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), 10).getData();
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
@@ -155,7 +164,7 @@ public class NewsServiceImpl implements NewsService {
         news.setSummary(aiNewsResponse.getSummary());
         news.setIsHotissue(isHotissue);
         news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNeut(statistics.getNeutral());
         news.setRatioNeut(statistics.getNegative());
         news.setUser(user);
         news.setCategory(category.get());
@@ -200,6 +209,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsDetailResponse update(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
@@ -233,21 +243,20 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 2. AI에게 요청하여 가장 최신 타임라인 카드의 startAt 이후 시점에 대한 뉴스를 생성한다.
+        LocalDate startAt = timelineCards.getFirst().getEndAt();
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusMonths(3);
-        AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt);
+        AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt).getData();
 
         // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
         List<TimelineCardDTO> newTimeline = mergeAITimelineCards(oldTimeline);
 
         // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(keywords, 100);
+        StatisticsDTO statistics = getAIStatisticsDTO(keywords, 10).getData();
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         news.setSummary(aiNewsResponse.getSummary());
-        news.setViewCount(news.getViewCount() + 1);
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNegative());
@@ -302,18 +311,22 @@ public class NewsServiceImpl implements NewsService {
         AI 통신용
      */
 
-    private AINewsResponse createAINews(List<String> keywords, LocalDate startAt, LocalDate endAt) {
+    private WrappedDTO<AINewsResponse> createAINews(List<String> keywords, LocalDate startAt, LocalDate endAt) {
         AINewsRequest aiNewsRequest = new AINewsRequest(
                 keywords,
                 startAt,
                 endAt
         );
 
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
         return aiWebClient.post()
                 .uri(TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
-                .bodyToMono(AINewsResponse.class)
+                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AINewsResponse>>() {})
                 .block();
     }
 
@@ -328,7 +341,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 3. 1달카드: 3개월 지남 -> 삭제
         timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getDuration()) == TimelineCardType.MONTH)
-                && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
+                && (tc.getStartAt().isAfter(LocalDate.now().minusDays(3))));
 
         return timeline;
     }
@@ -352,14 +365,14 @@ public class NewsServiceImpl implements NewsService {
 
             if (count == countNum) {
                 AITimelineMergeReqeust mergeRequest = new AITimelineMergeReqeust(temp);
-                TimelineCardDTO merged = aiWebClient.post()
+                WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
                         .uri(MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
-                        .bodyToMono(TimelineCardDTO.class)
+                        .bodyToMono(new ParameterizedTypeReference<WrappedDTO<TimelineCardDTO>>() {})
                         .block();
 
-                mergedList.add(merged);
+                mergedList.add(Objects.requireNonNull(merged).getData());
 
                 temp.clear();
                 count = 0;
@@ -375,7 +388,7 @@ public class NewsServiceImpl implements NewsService {
         return timeline;
     }
 
-    private StatisticsDTO getAIStatisticsDTO(List<String> keywords, Integer num) {
+    private WrappedDTO<StatisticsDTO> getAIStatisticsDTO(List<String> keywords, Integer num) {
         AIStatisticsRequest aiStatisticsRequest = new AIStatisticsRequest(
                 keywords,
                 num
@@ -385,7 +398,7 @@ public class NewsServiceImpl implements NewsService {
                 .uri(STATISTIC_AI_ENDPOINT)
                 .bodyValue(aiStatisticsRequest)
                 .retrieve()
-                .bodyToMono(StatisticsDTO.class)
+                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
                 .block();
     }
 
