@@ -189,7 +189,7 @@ public class NewsServiceImpl implements NewsService {
         news.setIsHotissue(isHotissue);
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNeutral());
-        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNega(statistics.getNegative());
         news.setUser(user);
         news.setCategory(category);
         newsRepository.save(news);
