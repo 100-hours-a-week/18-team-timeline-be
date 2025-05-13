@@ -186,7 +186,7 @@ public class NewsServiceImpl implements NewsService {
         newsRepository.save(news);
 
         // 4-2. 타임라인 카드들을 저장한다.
-        saveTimelineCards(timeline, startAt, endAt, news);
+        saveTimelineCards(timeline, news);
 
         // 4-3. 뉴스 이미지를 저장한다.
         NewsImage newsImage = new NewsImage();
@@ -288,7 +288,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 4-2. 타임라인 카드들을 저장한다.
         timelineCardRepository.deleteAllByNewsId(news.getId());
-        saveTimelineCards(newTimeline, startAt, endAt, news);
+        saveTimelineCards(newTimeline, news);
 
         // 4-3. 기존 뉴스 이미지를 삭제하고 새로운 뉴스 이미지를 저장한다.
         if (newsImageRepository.findByNewsId(news.getId()) != null) {
@@ -449,7 +449,7 @@ public class NewsServiceImpl implements NewsService {
         );
     }
 
-    private void saveTimelineCards (List<TimelineCardDTO> timeline, LocalDate startAt, LocalDate endAt, News news) {
+    private void saveTimelineCards (List<TimelineCardDTO> timeline, News news) {
         for (TimelineCardDTO timelineCardDTO : timeline) {
             TimelineCard tc = new TimelineCard();
             tc.setTitle(timelineCardDTO.getTitle());
@@ -457,8 +457,8 @@ public class NewsServiceImpl implements NewsService {
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
             tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
-            tc.setStartAt(startAt);
-            tc.setEndAt(endAt);
+            tc.setStartAt(timelineCardDTO.getStartAt());
+            tc.setEndAt(timelineCardDTO.getEndAt());
             tc.setNews(news);
             timelineCardRepository.save(tc);
         }
