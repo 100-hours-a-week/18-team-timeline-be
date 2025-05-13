@@ -127,11 +127,16 @@ public class NewsServiceImpl implements NewsService {
         }
 
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
+
+        NewsImage newsImage = newsImageRepository.findByNewsId(news.getId());
+        String image = (newsImage != null) ? newsImage.getUrl() : null;
+
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
 
         return new NewsDetailResponse(
                 news.getTitle(),
+                image,
                 news.getUpdatedAt(),
                 bookmarked,
                 timelineCardDTOList,
@@ -183,6 +188,12 @@ public class NewsServiceImpl implements NewsService {
         // 4-2. 타임라인 카드들을 저장한다.
         saveTimelineCards(timeline, startAt, endAt, news);
 
+        // 4-3. 뉴스 이미지를 저장한다.
+        NewsImage newsImage = new NewsImage();
+        newsImage.setNews(news);
+        newsImage.setUrl(aiNewsResponse.getImage());
+        newsImageRepository.save(newsImage);
+
         // 5. 뉴스 태그들을 저장하고, DB에 없는 태그를 저장한다.
         req.getKeywords().forEach(keyword -> {
             NewsTag newsTag = new NewsTag();
@@ -211,6 +222,7 @@ public class NewsServiceImpl implements NewsService {
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailResponse(
                 news.getTitle(),
+                newsImage.getUrl(),
                 news.getUpdatedAt(),
                 true,
                 timeline,
@@ -278,6 +290,16 @@ public class NewsServiceImpl implements NewsService {
         timelineCardRepository.deleteAllByNewsId(news.getId());
         saveTimelineCards(newTimeline, startAt, endAt, news);
 
+        // 4-3. 기존 뉴스 이미지를 삭제하고 새로운 뉴스 이미지를 저장한다.
+        if (newsImageRepository.findByNewsId(news.getId()) != null) {
+            NewsImage oldNewsImage = newsImageRepository.findByNewsId(news.getId());
+            newsImageRepository.delete(oldNewsImage);
+        }
+        NewsImage updatedNewsImage = new NewsImage();
+        updatedNewsImage.setNews(news);
+        updatedNewsImage.setUrl(aiNewsResponse.getImage());
+        newsImageRepository.save(updatedNewsImage);
+
         // 5. 생성된 뉴스에 대해 북마크 설정한다.
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isEmpty()) {
@@ -290,6 +312,7 @@ public class NewsServiceImpl implements NewsService {
         // 6. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailResponse(
                 news.getTitle(),
+                updatedNewsImage.getUrl(),
                 news.getUpdatedAt(),
                 true,
                 newTimeline,
@@ -452,8 +475,8 @@ public class NewsServiceImpl implements NewsService {
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
         newsPage.forEach(news -> {
-            Optional<NewsImage> image = newsImageRepository.findByNewsId(news.getId());
-            String imageUrl = image.map(NewsImage::getUrl).orElse(null);
+            NewsImage newsImage = newsImageRepository.findByNewsId(news.getId());
+            String image = (newsImage != null) ? newsImage.getUrl() : null;
 
             String categoryName = news.getCategory() != null ? news.getCategory().getName().toString() : null;
 
@@ -465,7 +488,7 @@ public class NewsServiceImpl implements NewsService {
                     news.getId(),
                     news.getTitle(),
                     news.getSummary(),
-                    imageUrl,
+                    image,
                     categoryName,
                     news.getUpdatedAt(),
                     bookmarked,
