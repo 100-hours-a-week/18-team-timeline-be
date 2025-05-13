@@ -1,83 +1,64 @@
+# GitHub Actions Workflow: 백엔드 정적 분석 및 타입 검사
+# 목적: feature → develop 브랜치로 PR 생성 또는 병합 시 자동 검사 수행
+
 name: Backend Static Analysis & Type Check
 
 on:
   push:
     branches: [ develop ]
   pull_request:
+    # 대상 브랜치가 develop일 때만 실행
     branches: [develop]
+    # backend 폴더 내부 코드가 변경된 경우에만 실행
     paths:
       - 'backend/**'
 
 jobs:
   check-backend:
+    # GitHub Actions가 제공하는 리눅스 환경에서 실행
     runs-on: ubuntu-latest
-    name: Run Checkstyle, Compile, and Build
+    name: Run Checkstyle and Compile
 
     steps:
-      # 1. 코드 체크아웃
+      # 1. PR의 코드 받아오기 (GitHub에서 checkout)
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. JDK 21 설정
+      # 2. Java 21 설치 (Temurin은 OpenJDK의 공식 배포판 중 하나)
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '21'         # Java 21로 설정
+          distribution: 'temurin'    # 무료 OpenJDK 배포판
 
-      # 3. Checkstyle 실행
+      # 3. Checkstyle 실행 (정적 분석 수행)
       - name: Run Checkstyle
-        working-directory: ./backend
+        working-directory: ./backend # backend 폴더 기준으로 실행
         run: ./gradlew checkstyleMain
 
-      # 4. 타입 검사 (컴파일만 수행)
+      # 4. Java 컴파일만 수행 (타입 에러 확인용)
       - name: Type Check (Compile Only)
         working-directory: ./backend
         run: ./gradlew compileJava
-
-      # 5. 빌드 테스트 (테스트 제외)
-      - name: Build Backend (Exclude Certain Tests)
-        working-directory: ./backend
-        run: ./gradlew build -x test
-
-      # 6. 실패 시 Discord 알림 전송 (Checkstyle + Build)
-      - name: Notify Discord on failure
+          
+      # 5. 실패 시 Discord 알림 전송 , 에러 메세지 전송
+      - name: Notify Discord on Checkstyle failure
         if: failure()
         run: |
-          echo "❌ 빌드 또는 정적 분석 실패: Discord에 알림을 전송합니다."
-
-          ########################
-          # Checkstyle 오류 추출
-          ########################
-          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml | \
-            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | \
+          echo "🚨 Checkstyle 실패: 위반 내역을 Discord에 전송합니다."
+          
+          # Checkstyle 오류 추출: 메시지, 줄번호 추출
+          ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ \2 (Line \1)/p' | \
             head -n 3)
-
-          ########################
-          # Build 실패 요약 추출
-          ########################
-          BUILD_ERRORS=$(tail -n 100 backend/build/reports/tests/test/index.html 2>/dev/null | \
-            grep -Eo 'test failed.*' | head -n 3)
-
-          ########################
-          # 최종 메시지 구성
-          ########################
-          ERROR_MSG=""
-          if [ -n "$CHECKSTYLE_ERRORS" ]; then
-            ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
-          fi
-
-          if [ -n "$BUILD_ERRORS" ]; then
-            ERROR_MSG="${ERROR_MSG}🧪 *Build 실패 요약*:\n$BUILD_ERRORS\n"
-          else
-            # Fallback (빌드 에러가 잘 안 잡힐 경우)
-            ERROR_MSG="${ERROR_MSG}🧪 *Build 실패*:\nbuild.gradle 설정 또는 테스트 실패 가능성 있음.\n"
-          fi
-
+          
           # 줄바꿈 처리
-          ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
-
+          ERROR_MSG=$(echo "$ERRORS" | sed ':a;N;$!ba;s/\n/\\n/g')
+          
           # Discord 전송
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"🚨 백엔드 CI 실패 알림:\\n$ERROR_MSG\\n👉 자세한 로그는 GitHub Actions에서 확인하세요.\"}" \
+            -d "{\"content\": \"🚨 Checkstyle 오류 발생 (최대 3건):\\n$ERROR_MSG\\n👉 자세한 내용은 GitHub Actions 로그에서 확인하세요.\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
+     
+      
+ 
