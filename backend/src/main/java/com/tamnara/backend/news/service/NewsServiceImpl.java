@@ -71,14 +71,10 @@ public class NewsServiceImpl implements NewsService {
 
     private final String TIMELINE_AI_ENDPOINT = "/timeline";
     private final String MERGE_AI_ENDPOINT = "/merge";
-    private final String HOTISSUE_AI_ENDPOINT = "/hot";
     private final String STATISTIC_AI_ENDPOINT = "/comment";
+    private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
-    private final Integer NEWS_TITLE_LIMIT = 24;
-    private final Integer NEWS_SUMMARY_LIMIT = 36;
-    private final Integer TIMELINE_CARD_TITLE_LIMIT = 18;
-    private final Integer TAG_NAME_LIMIT = 10;
-    private final Integer STATISTICS_AI_SEARCH_CNT = 1;
+    private final Integer STATISTICS_AI_SEARCH_CNT = 10;
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -174,18 +170,8 @@ public class NewsServiceImpl implements NewsService {
         }
 
         News news = new News();
-        String title = aiNewsResponse.getTitle();
-        if (title != null && title.length() > NEWS_TITLE_LIMIT) {
-            title = title.substring(0, NEWS_TITLE_LIMIT);
-        }
-        news.setTitle(title);
-
-        String summary = aiNewsResponse.getSummary();
-        if (summary != null && summary.length() > NEWS_SUMMARY_LIMIT) {
-            summary = summary.substring(0, NEWS_SUMMARY_LIMIT);
-        }
-        news.setSummary(summary);
-
+        news.setTitle(aiNewsResponse.getTitle());
+        news.setSummary(aiNewsResponse.getSummary());
         news.setIsHotissue(isHotissue);
         news.setRatioPosi(statistics.getPositive());
         news.setRatioNeut(statistics.getNeutral());
@@ -201,10 +187,6 @@ public class NewsServiceImpl implements NewsService {
         req.getKeywords().forEach(keyword -> {
             NewsTag newsTag = new NewsTag();
             newsTag.setNews(news);
-
-            if (keyword != null && keyword.length() > TAG_NAME_LIMIT) {
-                keyword = keyword.substring(0, TAG_NAME_LIMIT);
-            }
 
             Optional<Tag> tag = tagRepository.findByName(keyword);
             if (tag.isPresent()) {
@@ -284,11 +266,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
-        String summary = aiNewsResponse.getSummary();
-        if (summary != null && summary.length() > NEWS_SUMMARY_LIMIT) {
-            summary = summary.substring(0, NEWS_SUMMARY_LIMIT);
-        }
-        news.setSummary(summary);
+        news.setSummary(aiNewsResponse.getSummary());
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
@@ -451,12 +429,7 @@ public class NewsServiceImpl implements NewsService {
     private void saveTimelineCards (List<TimelineCardDTO> timeline, LocalDate startAt, LocalDate endAt, News news) {
         for (TimelineCardDTO timelineCardDTO : timeline) {
             TimelineCard tc = new TimelineCard();
-
-            String title = timelineCardDTO.getTitle();
-            if (title != null && title.length() > TIMELINE_CARD_TITLE_LIMIT) {
-                title = title.substring(0, TIMELINE_CARD_TITLE_LIMIT);
-            }
-            tc.setTitle(title);
+            tc.setTitle(timelineCardDTO.getTitle());
 
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
