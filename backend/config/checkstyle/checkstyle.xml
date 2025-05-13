@@ -17,17 +17,17 @@
   -->
   <module name="TreeWalker">
 
-    <!--
-      지역 변수에 final 선언이 가능한데도 하지 않으면 경고
-      ➜ 불변 변수 강조 → 안정적인 코드
-    -->
-    <module name="FinalLocalVariable"/>
+<!--    &lt;!&ndash;-->
+<!--      지역 변수에 final 선언이 가능한데도 하지 않으면 경고-->
+<!--      ➜ 불변 변수 강조 → 안정적인 코드-->
+<!--    &ndash;&gt;-->
+<!--    <module name="FinalLocalVariable"/>-->
 
-    <!--
-      사용되지 않는 import 문이 있을 경우 경고
-      ➜ 불필요한 코드 제거 유도
-    -->
-    <module name="UnusedImports"/>
+<!--    &lt;!&ndash;-->
+<!--      사용되지 않는 import 문이 있을 경우 경고-->
+<!--      ➜ 불필요한 코드 제거 유도-->
+<!--    &ndash;&gt;-->
+<!--    <module name="UnusedImports"/>-->
 
     <!--
       import java.util.*; 이런 와일드카드 import를 경고
