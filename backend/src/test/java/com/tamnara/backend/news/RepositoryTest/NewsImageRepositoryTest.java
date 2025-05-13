@@ -15,8 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -90,10 +88,10 @@ public class NewsImageRepositoryTest {
         em.clear();
 
         // when
-        Optional<NewsImage> findNewsImage = newsImageRepository.findByNewsId(news.getId());
+        NewsImage findNewsImage = newsImageRepository.findByNewsId(news.getId());
 
         // then
-        assertEquals(newsImage1.getNews().getId(), findNewsImage.get().getNews().getId());
+        assertEquals(newsImage1.getNews().getId(), findNewsImage.getNews().getId());
     }
 
     @Test

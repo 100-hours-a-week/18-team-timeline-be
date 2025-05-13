@@ -19,7 +19,7 @@ public class AINewsResponse {
 //    @Length(max = 36, message = "뉴스의 미리보기 내용은 36자까지만 가능합니다.")
     private String summary;
     @Length(max = 255, message = "이미지 링크의 길이가 너무 깁니다.")
-    private String imageUrl;
+    private String image;
     @ValueOfEnum(enumClass = CategoryType.class, message = "카테고리 값이 올바르지 않습니다.")
     private String category;
     @NotNull(message = "타임라인 카드는 비어 있을 수 없습니다.")

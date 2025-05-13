@@ -1,5 +1,6 @@
 package com.tamnara.backend.global.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -9,12 +10,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-    private final String AI_BASE_URL = "http://35.216.120.155:8000/api";
-
     @Bean
-    public WebClient aiWebClient() {
+    public WebClient aiWebClient(@Value("${ai.base-url}") String aiBaseUrl) {
         return WebClient.builder()
-                .baseUrl(AI_BASE_URL)
+                .baseUrl(aiBaseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
