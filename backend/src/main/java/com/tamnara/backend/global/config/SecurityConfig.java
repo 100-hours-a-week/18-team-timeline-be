@@ -30,6 +30,9 @@ public class SecurityConfig {
 
     private final String FRONTEND_BASE_URL_LOCAL = "http://localhost:5173";
     @Value("${FE_BASE_URL}") private String FRONTEND_BASE_URL_PROD;
+    @Value("${EC2_PUBLIC_URL_1}") private String EC2_PUBLIC_URL_1;
+    @Value("${EC2_PUBLIC_URL_2}") private String EC2_PUBLIC_URL_2;
+    @Value("${EC2_PUBLIC_URL_3}") private String EC2_PUBLIC_URL_3;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -64,7 +67,10 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 FRONTEND_BASE_URL_LOCAL,
-                FRONTEND_BASE_URL_PROD
+                FRONTEND_BASE_URL_PROD,
+                EC2_PUBLIC_URL_1,
+                EC2_PUBLIC_URL_2,
+                EC2_PUBLIC_URL_3
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
