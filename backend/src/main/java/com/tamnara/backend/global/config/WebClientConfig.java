@@ -11,7 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
     @Bean
-    public WebClient aiWebClient(@Value("${ai.base-url}") String aiBaseUrl) {
+    public WebClient aiWebClient(@Value("${AI_BASE_URL}") String aiBaseUrl) {
         return WebClient.builder()
                 .baseUrl(aiBaseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
