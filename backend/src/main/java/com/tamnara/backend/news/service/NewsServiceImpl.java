@@ -365,7 +365,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline) {
-        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         // 1. 1일카드 -> 1주카드
         timeline = mergeTimelineCards(timeline, TimelineCardType.DAY, 7);
@@ -381,7 +381,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
-        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         List<TimelineCardDTO> mergedList = new ArrayList<>();
         List<TimelineCardDTO> temp = new ArrayList<>();
@@ -417,7 +417,7 @@ public class NewsServiceImpl implements NewsService {
         temp.clear();
 
         timeline = mergedList;
-        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         return timeline;
     }
@@ -453,7 +453,6 @@ public class NewsServiceImpl implements NewsService {
         for (TimelineCardDTO timelineCardDTO : timeline) {
             TimelineCard tc = new TimelineCard();
             tc.setTitle(timelineCardDTO.getTitle());
-
             tc.setContent(timelineCardDTO.getContent());
             tc.setSource(timelineCardDTO.getSource());
             tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
