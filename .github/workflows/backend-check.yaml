@@ -1,11 +1,11 @@
-name: Backend CI - Static Analysis & Type Check Only
+name: Backend CI - Static Analysis & Type Check
 
 on:
   push:
-    branches: [ 'release/**' ]
+    branches: [ 'develop', 'release/**' ]
     paths: [ 'backend/**' ]
   pull_request:
-    branches: [ 'release/**' ]
+    branches: [ 'develop', 'release/**' ]
     paths: [ 'backend/**' ]
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. GitHub 코드 체크아웃
+      # 1. 코드 체크아웃
       - name: Checkout source code
         uses: actions/checkout@v3
 
@@ -25,31 +25,33 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3. Checkstyle 정적 분석 수행 (테스트 제외)
+      # 3. Checkstyle 실행
       - name: Run Checkstyle
         working-directory: ./backend
         run: ./gradlew checkstyleMain
 
-      # 4. 컴파일 및 빌드 (Checkstyle + 테스트 모두 제외)
-      - name: Type Check & Build (Exclude Tests & Checkstyle)
+      # 4. 빌드 테스트 (단위 테스트 및 Checkstyle 제외)
+      - name: Build without Tests
         working-directory: ./backend
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
-      # 5. 실패 시 Discord 알림 전송
+      # 5. 실패 시 Discord 알림 전송 (develop, release 공통)
       - name: Notify Discord on Failure
         if: failure()
         run: |
-          echo "❌ 빌드 실패! Discord 알림 전송 중..."
+          echo "❌ CI 실패! Discord 알림 전송 중..."
 
-          # Checkstyle 에러 요약
           CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
             sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
 
-          # 빌드 로그 에러 요약
           GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
             grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
 
-          # 메시지 조립
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
           ERROR_MSG=""
           if [ -n "$CHECKSTYLE_ERRORS" ]; then
             ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
@@ -60,13 +62,13 @@ jobs:
           fi
 
           if [ -z "$ERROR_MSG" ]; then
-            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*\nbuild.gradle 설정이나 컴파일 오류 확인 필요."
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*"
           fi
 
-          # 줄바꿈 처리
           ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # Discord Webhook 전송 (링크 포함)
+          TITLE="🚨 *백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"🚨 *백엔드 CI 실패 알림*\\n$ERROR_MSG\\n👉 [자세한 로그 확인하기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
+            -d "{\"content\": \"$TITLE\\n$ERROR_MSG\\n👉 [자세한 로그 확인하기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
