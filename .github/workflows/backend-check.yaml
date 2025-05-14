@@ -38,8 +38,7 @@ jobs:
       # 5. 빌드 테스트 (테스트 제외)
       - name: Build Backend (Exclude Certain Tests)
         working-directory: ./backend
-        run: ./gradlew build -x test
-
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
       # 6. 실패 시 Discord 알림 전송 (Checkstyle + Build)
       - name: Notify Discord on failure
         if: failure()
