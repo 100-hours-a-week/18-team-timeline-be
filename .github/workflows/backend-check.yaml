@@ -1,88 +1,72 @@
-name: Backend Static Analysis & Type Check
+name: Backend CI - Static Analysis & Type Check Only
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ 'release/**' ]
+    paths: [ 'backend/**' ]
   pull_request:
-    branches: [develop]
-    paths:
-      - 'backend/**'
+    branches: [ 'release/**' ]
+    paths: [ 'backend/**' ]
 
 jobs:
-  check-backend:
+  backend-ci:
+    name: Run Static Analysis and Type Check
     runs-on: ubuntu-latest
-    name: Run Checkstyle, Compile, and Build
 
     steps:
-      # 1. 코드 체크아웃
-      - name: Checkout code
+      # 1. GitHub 코드 체크아웃
+      - name: Checkout source code
         uses: actions/checkout@v3
 
-      # 2. JDK 21 설정
+      # 2. Java 21 설치
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3. Checkstyle 실행
+      # 3. Checkstyle 정적 분석 수행 (테스트 제외)
       - name: Run Checkstyle
         working-directory: ./backend
         run: ./gradlew checkstyleMain
 
-      # 4. 타입 검사 (컴파일만 수행)
-      - name: Type Check (Compile Only)
-        working-directory: ./backend
-        run: ./gradlew compileJava
-
-      # 5. 빌드 테스트 (테스트 제외)
-      - name: Build Backend (Exclude Certain Tests)
+      # 4. 컴파일 및 빌드 (Checkstyle + 테스트 모두 제외)
+      - name: Type Check & Build (Exclude Tests & Checkstyle)
         working-directory: ./backend
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
-      # 6. 실패 시 Discord 알림 전송 (Checkstyle + Build)
-      - name: Notify Discord on failure
+
+      # 5. 실패 시 Discord 알림 전송
+      - name: Notify Discord on Failure
         if: failure()
         run: |
-          echo "❌ 빌드 또는 정적 분석 실패: Discord에 알림을 전송합니다."
+          echo "❌ 빌드 실패! Discord 알림 전송 중..."
 
-          ########################
-          # Checkstyle 오류 추출
-          ########################
-          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml | \
-            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | \
-            head -n 3)
+          # Checkstyle 에러 요약
+          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
 
-          ########################
-          # Gradle 빌드 에러 요약 추출 (build.log에서)
-          ########################
-          GRADLE_ERRORS=$(tail -n 1000 backend/build/tmp/*.log 2>/dev/null | \
-            grep -E "FAILURE|error|Exception" | \
-            grep -v "deprecated" | \
-            head -n 5)
+          # 빌드 로그 에러 요약
+          GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
+            grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
 
-          ########################
-          # 최종 메시지 구성
-          ########################
+          # 메시지 조립
           ERROR_MSG=""
           if [ -n "$CHECKSTYLE_ERRORS" ]; then
             ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
           fi
 
           if [ -n "$GRADLE_ERRORS" ]; then
-            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패 요약*:\n$GRADLE_ERRORS\n"
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패*:\n$GRADLE_ERRORS\n"
           fi
 
           if [ -z "$ERROR_MSG" ]; then
-            ERROR_MSG="❓ *원인을 특정할 수 없는 빌드 실패*\n- build.gradle 설정 오류 또는 미처리된 예외일 수 있습니다."
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*\nbuild.gradle 설정이나 컴파일 오류 확인 필요."
           fi
 
           # 줄바꿈 처리
           ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # Discord 전송
+          # Discord Webhook 전송 (링크 포함)
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"🚨 백엔드 CI 실패 알림:\\n$ERROR_MSG\\n👉 자세한 로그는 GitHub Actions에서 확인하세요.\"}" \
+            -d "{\"content\": \"🚨 *백엔드 CI 실패 알림*\\n$ERROR_MSG\\n👉 [자세한 로그 확인하기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-     
-          
