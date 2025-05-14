@@ -53,10 +53,12 @@ jobs:
             head -n 3)
 
           ########################
-          # Build 실패 요약 추출
+          # Gradle 빌드 에러 요약 추출 (build.log에서)
           ########################
-          BUILD_ERRORS=$(tail -n 100 backend/build/reports/tests/test/index.html 2>/dev/null | \
-            grep -Eo 'test failed.*' | head -n 3)
+          GRADLE_ERRORS=$(tail -n 1000 backend/build/tmp/*.log 2>/dev/null | \
+            grep -E "FAILURE|error|Exception" | \
+            grep -v "deprecated" | \
+            head -n 5)
 
           ########################
           # 최종 메시지 구성
@@ -66,11 +68,12 @@ jobs:
             ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
           fi
 
-          if [ -n "$BUILD_ERRORS" ]; then
-            ERROR_MSG="${ERROR_MSG}🧪 *Build 실패 요약*:\n$BUILD_ERRORS\n"
-          else
-            # Fallback (빌드 에러가 잘 안 잡힐 경우)
-            ERROR_MSG="${ERROR_MSG}🧪 *Build 실패*:\nbuild.gradle 설정 또는 테스트 실패 가능성 있음.\n"
+          if [ -n "$GRADLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패 요약*:\n$GRADLE_ERRORS\n"
+          fi
+
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="❓ *원인을 특정할 수 없는 빌드 실패*\n- build.gradle 설정 오류 또는 미처리된 예외일 수 있습니다."
           fi
 
           # 줄바꿈 처리
@@ -80,3 +83,6 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
             -d "{\"content\": \"🚨 백엔드 CI 실패 알림:\\n$ERROR_MSG\\n👉 자세한 로그는 GitHub Actions에서 확인하세요.\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+     
+          
