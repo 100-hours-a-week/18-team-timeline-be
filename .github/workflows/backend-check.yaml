@@ -4,6 +4,9 @@ on:
   push:
     branches: [ 'develop', 'release/**' ]
     paths: [ 'backend/**' ]
+  create:
+   branches:
+      - 'release/**'
   pull_request:
     branches: [ 'develop', 'release/**' ]
     paths: [ 'backend/**' ]
