@@ -19,7 +19,7 @@ import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
-import com.tamnara.backend.news.dto.request.AITimelineMergeReqeust;
+import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
@@ -153,7 +153,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusDays(3);
+        LocalDate startAt = endAt.minusDays(7);
         AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
@@ -165,7 +165,7 @@ public class NewsServiceImpl implements NewsService {
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         Category category = null;
-        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty()) {
+        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty() || !aiNewsResponse.getCategory().equals("")) {
             try {
                 CategoryType categoryType = CategoryType.valueOf(aiNewsResponse.getCategory());
                 category = categoryRepository.findByName(categoryType)
@@ -265,7 +265,7 @@ public class NewsServiceImpl implements NewsService {
             keywords.add(tag.getTag().getName());
         }
 
-        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 startAt 이후 시점에 대한 뉴스를 생성한다.
+        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         LocalDate startAt = timelineCards.getFirst().getEndAt();
         LocalDate endAt = LocalDate.now();
         AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt).getData();
@@ -399,7 +399,8 @@ public class NewsServiceImpl implements NewsService {
             count++;
 
             if (count == countNum) {
-                AITimelineMergeReqeust mergeRequest = new AITimelineMergeReqeust(temp);
+                AITimelineMergeRequest mergeRequest = new AITimelineMergeRequest(temp);
+
                 WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
                         .uri(MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
@@ -451,14 +452,14 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private void saveTimelineCards (List<TimelineCardDTO> timeline, News news) {
-        for (TimelineCardDTO timelineCardDTO : timeline) {
+        for (TimelineCardDTO dto : timeline) {
             TimelineCard tc = new TimelineCard();
-            tc.setTitle(timelineCardDTO.getTitle());
-            tc.setContent(timelineCardDTO.getContent());
-            tc.setSource(timelineCardDTO.getSource());
-            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
-            tc.setStartAt(timelineCardDTO.getStartAt());
-            tc.setEndAt(timelineCardDTO.getEndAt());
+            tc.setTitle(dto.getTitle());
+            tc.setContent(dto.getContent());
+            tc.setSource(dto.getSource());
+            tc.setDuration(TimelineCardType.valueOf(dto.getDuration()));
+            tc.setStartAt(dto.getStartAt());
+            tc.setEndAt(dto.getEndAt());
             tc.setNews(news);
             timelineCardRepository.save(tc);
         }
@@ -503,14 +504,14 @@ public class NewsServiceImpl implements NewsService {
     private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
         List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
         List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
-        timeline.forEach(t -> {
+        timeline.forEach(tc -> {
             TimelineCardDTO dto = new TimelineCardDTO(
-                    t.getTitle(),
-                    t.getContent(),
-                    t.getSource(),
-                    t.getDuration().toString(),
-                    t.getStartAt(),
-                    t.getEndAt()
+                    tc.getTitle(),
+                    tc.getContent(),
+                    tc.getSource(),
+                    tc.getDuration().toString(),
+                    tc.getStartAt(),
+                    tc.getEndAt()
             );
             timelineCardDTOList.add(dto);
         });
