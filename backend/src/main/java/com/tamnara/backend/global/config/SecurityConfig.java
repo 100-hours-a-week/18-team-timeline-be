@@ -4,6 +4,7 @@ import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.global.security.JwtAuthenticationFilter;
 import com.tamnara.backend.user.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,7 +29,10 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
 
     private final String FRONTEND_BASE_URL_LOCAL = "http://localhost:5173";
-    private final String FRONTEND_BASE_URL_PROD = "";
+    @Value("${FE_BASE_URL}") private String FRONTEND_BASE_URL_PROD;
+    @Value("${EC2_PUBLIC_URL_1}") private String EC2_PUBLIC_URL_1;
+    @Value("${EC2_PUBLIC_URL_2}") private String EC2_PUBLIC_URL_2;
+    @Value("${EC2_PUBLIC_URL_3}") private String EC2_PUBLIC_URL_3;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -62,8 +66,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-                FRONTEND_BASE_URL_LOCAL
-//                FRONTEND_BASE_URL_PROD
+                FRONTEND_BASE_URL_LOCAL,
+                FRONTEND_BASE_URL_PROD,
+                EC2_PUBLIC_URL_1,
+                EC2_PUBLIC_URL_2,
+                EC2_PUBLIC_URL_3
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
