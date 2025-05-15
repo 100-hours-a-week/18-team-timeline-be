@@ -285,7 +285,7 @@ public class NewsServiceImpl implements NewsService {
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNeut(statistics.getNeutral());
         news.setRatioNega(statistics.getNegative());
         newsRepository.save(news);
 
