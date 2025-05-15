@@ -1,0 +1,74 @@
+name: Backend CI - Static Analysis & Type Check
+
+on:
+  push:
+    branches: [ 'develop', 'release/**' ]
+    paths: [ 'backend/**' ]
+  pull_request:
+    branches: [ 'develop', 'release/**' ]
+    paths: [ 'backend/**' ]
+
+jobs:
+  backend-ci:
+    name: Run Static Analysis and Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 2. Java 21 설치
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 3. Checkstyle 실행
+      - name: Run Checkstyle
+        working-directory: ./backend
+        run: ./gradlew checkstyleMain
+
+      # 4. 빌드 테스트 (단위 테스트 및 Checkstyle 제외)
+      - name: Build without Tests
+        working-directory: ./backend
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
+
+      # 5. 실패 시 Discord 알림 전송 (develop, release 공통)
+      - name: Notify Discord on Failure
+        if: failure()
+        run: |
+          echo "❌ CI 실패! Discord 알림 전송 중..."
+
+          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
+
+          GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
+            grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
+
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          ERROR_MSG=""
+          if [ -n "$CHECKSTYLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
+          fi
+
+          if [ -n "$GRADLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패*:\n$GRADLE_ERRORS\n"
+          fi
+
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*"
+          fi
+
+          ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          TITLE="🚨 *백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"$TITLE\\n$ERROR_MSG\\n👉 [자세한 로그 확인하기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
