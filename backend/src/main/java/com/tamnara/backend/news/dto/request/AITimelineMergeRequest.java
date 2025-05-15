@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AITimelineMergeReqeust {
+public class AITimelineMergeRequest {
     @NotNull(message = "타임라인 카드는 비어 있을 수 없습니다.")
     @Size(min = 1, message = "최소 1개 이상의 카드가 포함되어야 합니다.")
     private List<TimelineCardDTO> timeline;
