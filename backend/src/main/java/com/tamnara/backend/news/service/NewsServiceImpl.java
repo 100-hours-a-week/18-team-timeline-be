@@ -75,6 +75,7 @@ public class NewsServiceImpl implements NewsService {
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
     private final Integer STATISTICS_AI_SEARCH_CNT = 10;
+    private final Integer NEWS_DELETE_MONTHS = 3;
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -156,7 +157,7 @@ public class NewsServiceImpl implements NewsService {
         AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
-        List<TimelineCardDTO> timeline = mergeAITimelineCards(aiNewsResponse.getTimeline());
+        List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
 
         // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
         StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), STATISTICS_AI_SEARCH_CNT).getData();
@@ -271,7 +272,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
-        List<TimelineCardDTO> newTimeline = mergeAITimelineCards(oldTimeline);
+        List<TimelineCardDTO> newTimeline = mergeTimelineCards(oldTimeline);
 
         // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
         StatisticsDTO statistics = getAIStatisticsDTO(keywords, STATISTICS_AI_SEARCH_CNT).getData();
@@ -332,7 +333,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMonths(3))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMonths(NEWS_DELETE_MONTHS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
         }
 
@@ -364,23 +365,23 @@ public class NewsServiceImpl implements NewsService {
                 .block();
     }
 
-    private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline) {
+    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline) {
         timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         // 1. 1일카드 -> 1주카드
-        timeline = mergeTimelineCards(timeline, TimelineCardType.DAY, 7);
+        timeline = mergeAITimelineCards(timeline, TimelineCardType.DAY, 7);
 
         // 2. 1주카드 -> 1달카드
-        timeline = mergeTimelineCards(timeline, TimelineCardType.WEEK, 4);
+        timeline = mergeAITimelineCards(timeline, TimelineCardType.WEEK, 4);
 
         // 3. 1달카드: 3개월 지남 -> 삭제
         timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getDuration()) == TimelineCardType.MONTH)
-                && (tc.getStartAt().isAfter(LocalDate.now().minusDays(3))));
+                && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
 
         return timeline;
     }
 
-    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
+    private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
         timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         List<TimelineCardDTO> mergedList = new ArrayList<>();
