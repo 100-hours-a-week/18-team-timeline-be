@@ -121,7 +121,7 @@ public class KakaoService {
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
 
             // 콘솔에 access token 출력 (로컬 디버깅용)
-            System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
+//            System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
