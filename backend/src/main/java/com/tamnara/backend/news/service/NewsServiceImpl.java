@@ -75,7 +75,9 @@ public class NewsServiceImpl implements NewsService {
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
     private final Integer STATISTICS_AI_SEARCH_CNT = 10;
-    private final Integer NEWS_DELETE_MONTHS = 3;
+    private final Integer NEWS_CREATE_DAYS = 30;
+    private final Integer NEWS_UPDATE_HOURS = 24;
+    private final Integer NEWS_DELETE_DAYS = 90;
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -85,16 +87,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsCardDTO> getNormalNewsCardPage(Long userId, Integer page, Integer size) {
-        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
+        Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
         return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public List<NewsCardDTO> getNormalNewsCardPage(Long userId, String category, Integer page, Integer size) {
-        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
-
-        Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+    public List<NewsCardDTO> getNormalNewsCardPageByCategory(Long userId, String category, Integer page, Integer size) {
+        Page<News> newsPage;
+        if (category != null) {
+            Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+        } else {
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(null, PageRequest.of(page, size));
+        }
         return getNewsCardDTOList(userId, newsPage);
     }
 
@@ -153,7 +159,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusDays(7);
+        LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
         AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
@@ -241,7 +247,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
         }
 
@@ -283,7 +289,7 @@ public class NewsServiceImpl implements NewsService {
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNeut(statistics.getNeutral());
         news.setRatioNega(statistics.getNegative());
         newsRepository.save(news);
 
@@ -333,7 +339,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMonths(NEWS_DELETE_MONTHS))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
         }
 
