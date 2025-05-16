@@ -153,7 +153,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusDays(3);
+        LocalDate startAt = endAt.minusDays(7);
         AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
@@ -241,8 +241,8 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 2분이 지나지 않았습니다.");
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
         }
 
         List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndDuration(newsId, null);
