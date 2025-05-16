@@ -87,7 +87,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsCardDTO> getNormalNewsCardPage(Long userId, Integer page, Integer size) {
-        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
+        Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
         return getNewsCardDTOList(userId, newsPage);
     }
 
