@@ -87,16 +87,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsCardDTO> getNormalNewsCardPage(Long userId, Integer page, Integer size) {
-        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
+        Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
         return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public List<NewsCardDTO> getNormalNewsCardPage(Long userId, String category, Integer page, Integer size) {
-        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
-
-        Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+    public List<NewsCardDTO> getNormalNewsCardPageByCategory(Long userId, String category, Integer page, Integer size) {
+        Page<News> newsPage;
+        if (category != null) {
+            Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+        } else {
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(null, PageRequest.of(page, size));
+        }
         return getNewsCardDTOList(userId, newsPage);
     }
 

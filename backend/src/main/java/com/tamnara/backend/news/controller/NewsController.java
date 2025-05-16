@@ -68,21 +68,24 @@ public class NewsController {
                 userId = userDetails.getUser().getId();
             }
 
-            if (category != null) {
+            if (offset > 0) {
                 // 추가 로딩
-                if (offset < 0) {
-                    throw new IllegalArgumentException();
-                }
-
                 int pageNum = offset / PAGE_SIZE;
                 int nextOffset = (pageNum + 1) * PAGE_SIZE;
 
-                List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPage(userId, category, pageNum, PAGE_SIZE);
+                List<NewsCardDTO> newsCards;
+                boolean hasNext;
 
-                boolean hasNext = !newsService.getNormalNewsCardPage(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
+                if (category == "ALL") {
+                    newsCards = newsService.getNormalNewsCardPage(userId, pageNum, PAGE_SIZE);
+                    hasNext = !newsService.getNormalNewsCardPage(userId,pageNum + 1, PAGE_SIZE).isEmpty();
+                } else {
+                    newsCards = newsService.getNormalNewsCardPageByCategory(userId, category, pageNum, PAGE_SIZE);
+                    hasNext = !newsService.getNormalNewsCardPageByCategory(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
+                }
 
                 Map<String, Object> data = Map.of(
-                        category, newsCards,
+                        (category == null ? "ECT" : category), newsCards,
                         "offset", nextOffset,
                         "hasNext", hasNext
                 );
@@ -103,9 +106,9 @@ public class NewsController {
 
                     boolean hasNext;
                     if (Objects.equals(categoryName, "ALL")) {
-                        hasNext = newsService.getNormalNewsCardPage(null,1, PAGE_SIZE).isEmpty();
+                        hasNext = !newsService.getNormalNewsCardPage(null,1, PAGE_SIZE).isEmpty();
                     } else {
-                        hasNext = !newsService.getNormalNewsCardPage(null, categoryName, 1, PAGE_SIZE).isEmpty();
+                        hasNext = !newsService.getNormalNewsCardPageByCategory(null, categoryName, 1, PAGE_SIZE).isEmpty();
                     }
 
                     Map<String, Object> categoryNewsData = new HashMap<>();
