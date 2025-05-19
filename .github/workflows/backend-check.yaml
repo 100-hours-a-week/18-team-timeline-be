@@ -23,12 +23,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # 2. Configure AWS credentials (for ECR if needed)
-      - name: Configure AWS credentials
+      # 2. Configure AWS credentials (OIDC)
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
           aws-region: ap-northeast-2
 
       # 3. Setup JDK
@@ -108,25 +107,27 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      # ✅ OIDC 인증 추가 (이전에는 누락됨)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
       - name: Get short commit SHA
         id: meta
         run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
-      - name: Login to ECR
-        env:
-          AWS_REGION: ap-northeast-2
-          ECR_REPO: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-        run: |
-          echo "🔐 ECR 로그인"
-          aws ecr get-login-password --region $AWS_REGION \
-            | docker login --username AWS --password-stdin $ECR_REPO
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and Push Docker Image
         working-directory: ./backend
         env:
           TAG: ${{ steps.meta.outputs.tag }}
-          ECR_REPO: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
         run: |
+          ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+
           echo "🐳 Docker 이미지 빌드 (태그: $TAG)"
           docker build \
             --build-arg DB_URL=${{ secrets.DB_URL }} \
