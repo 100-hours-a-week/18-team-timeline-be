@@ -1,7 +1,7 @@
 ---
 name: "\U0001F9EA Test"
 about: 테스트 코드 작성
-title: "[DEPLOY]"
+title: "[풀스택] [DEPLOY]"
 labels: test
 assignees: ''
 

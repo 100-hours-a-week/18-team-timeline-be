@@ -1,7 +1,7 @@
 ---
 name: "\U0001F41E Bug"
 about: 버그 제보
-title: "[BUG]"
+title: "[풀스택] [BUG]"
 labels: critical bug
 assignees: ''
 
