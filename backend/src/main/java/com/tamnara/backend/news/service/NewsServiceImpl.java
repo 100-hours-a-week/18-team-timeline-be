@@ -96,7 +96,7 @@ public class NewsServiceImpl implements NewsService {
         Page<News> newsPage;
         if (category != null) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
             newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
         } else {
             newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(null, PageRequest.of(page, size));
