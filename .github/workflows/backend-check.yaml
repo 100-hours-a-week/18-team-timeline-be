@@ -23,6 +23,14 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      # ✅ [디버깅용] 저장소 이름 출력
+      - name: Debug GitHub Context
+        run: |
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo "GITHUB_REF: $GITHUB_REF"
+          echo "github.repository: ${{ github.repository }}"
+          echo "github.ref: ${{ github.ref }}"
+
       # 2. Configure AWS credentials (OIDC)
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
