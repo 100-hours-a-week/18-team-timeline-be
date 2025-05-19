@@ -1,4 +1,4 @@
-name: Backend CI - Static Analysis, Build & Docker Push
+name:  Run Static Analysis and Type Check
 
 on:
   push:
