@@ -19,7 +19,7 @@ import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
-import com.tamnara.backend.news.dto.request.AITimelineMergeReqeust;
+import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
@@ -75,6 +75,9 @@ public class NewsServiceImpl implements NewsService {
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
     private final Integer STATISTICS_AI_SEARCH_CNT = 10;
+    private final Integer NEWS_CREATE_DAYS = 30;
+    private final Integer NEWS_UPDATE_HOURS = 24;
+    private final Integer NEWS_DELETE_DAYS = 90;
 
     @Override
     public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
@@ -84,16 +87,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsCardDTO> getNormalNewsCardPage(Long userId, Integer page, Integer size) {
-        Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
+        Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
         return getNewsCardDTOList(userId, newsPage);
     }
 
     @Override
-    public List<NewsCardDTO> getNormalNewsCardPage(Long userId, String category, Integer page, Integer size) {
-        Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
-
-        Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+    public List<NewsCardDTO> getNormalNewsCardPageByCategory(Long userId, String category, Integer page, Integer size) {
+        Page<News> newsPage;
+        if (category != null) {
+            Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."));
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
+        } else {
+            newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(null, PageRequest.of(page, size));
+        }
         return getNewsCardDTOList(userId, newsPage);
     }
 
@@ -152,11 +159,11 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusDays(3);
+        LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
         AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
-        List<TimelineCardDTO> timeline = mergeAITimelineCards(aiNewsResponse.getTimeline());
+        List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
 
         // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
         StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), STATISTICS_AI_SEARCH_CNT).getData();
@@ -164,7 +171,7 @@ public class NewsServiceImpl implements NewsService {
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         Category category = null;
-        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty()) {
+        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty() || !aiNewsResponse.getCategory().equals("")) {
             try {
                 CategoryType categoryType = CategoryType.valueOf(aiNewsResponse.getCategory());
                 category = categoryRepository.findByName(categoryType)
@@ -240,7 +247,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(24))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
         }
 
@@ -264,14 +271,14 @@ public class NewsServiceImpl implements NewsService {
             keywords.add(tag.getTag().getName());
         }
 
-        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 startAt 이후 시점에 대한 뉴스를 생성한다.
+        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         LocalDate startAt = timelineCards.getFirst().getEndAt();
         LocalDate endAt = LocalDate.now();
         AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt).getData();
 
         // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
-        List<TimelineCardDTO> newTimeline = mergeAITimelineCards(oldTimeline);
+        List<TimelineCardDTO> newTimeline = mergeTimelineCards(oldTimeline);
 
         // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
         StatisticsDTO statistics = getAIStatisticsDTO(keywords, STATISTICS_AI_SEARCH_CNT).getData();
@@ -282,7 +289,7 @@ public class NewsServiceImpl implements NewsService {
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNegative());
+        news.setRatioNeut(statistics.getNeutral());
         news.setRatioNega(statistics.getNegative());
         newsRepository.save(news);
 
@@ -332,7 +339,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsRepository.findById(newsId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusMonths(3))) {
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
         }
 
@@ -364,23 +371,21 @@ public class NewsServiceImpl implements NewsService {
                 .block();
     }
 
-    private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline) {
-        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
-
+    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline) {
         // 1. 1일카드 -> 1주카드
-        timeline = mergeTimelineCards(timeline, TimelineCardType.DAY, 7);
+        timeline = mergeAITimelineCards(timeline, TimelineCardType.DAY, 7);
 
         // 2. 1주카드 -> 1달카드
-        timeline = mergeTimelineCards(timeline, TimelineCardType.WEEK, 4);
+        timeline = mergeAITimelineCards(timeline, TimelineCardType.WEEK, 4);
 
         // 3. 1달카드: 3개월 지남 -> 삭제
         timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getDuration()) == TimelineCardType.MONTH)
-                && (tc.getStartAt().isAfter(LocalDate.now().minusDays(3))));
+                && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
 
         return timeline;
     }
 
-    private List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
+    private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {
         timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
 
         List<TimelineCardDTO> mergedList = new ArrayList<>();
@@ -398,7 +403,8 @@ public class NewsServiceImpl implements NewsService {
             count++;
 
             if (count == countNum) {
-                AITimelineMergeReqeust mergeRequest = new AITimelineMergeReqeust(temp);
+                AITimelineMergeRequest mergeRequest = new AITimelineMergeRequest(temp);
+
                 WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
                         .uri(MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
@@ -417,7 +423,7 @@ public class NewsServiceImpl implements NewsService {
         temp.clear();
 
         timeline = mergedList;
-        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt));
+        timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         return timeline;
     }
@@ -450,15 +456,14 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private void saveTimelineCards (List<TimelineCardDTO> timeline, News news) {
-        for (TimelineCardDTO timelineCardDTO : timeline) {
+        for (TimelineCardDTO dto : timeline) {
             TimelineCard tc = new TimelineCard();
-            tc.setTitle(timelineCardDTO.getTitle());
-
-            tc.setContent(timelineCardDTO.getContent());
-            tc.setSource(timelineCardDTO.getSource());
-            tc.setDuration(TimelineCardType.valueOf(timelineCardDTO.getDuration()));
-            tc.setStartAt(timelineCardDTO.getStartAt());
-            tc.setEndAt(timelineCardDTO.getEndAt());
+            tc.setTitle(dto.getTitle());
+            tc.setContent(dto.getContent());
+            tc.setSource(dto.getSource());
+            tc.setDuration(TimelineCardType.valueOf(dto.getDuration()));
+            tc.setStartAt(dto.getStartAt());
+            tc.setEndAt(dto.getEndAt());
             tc.setNews(news);
             timelineCardRepository.save(tc);
         }
@@ -503,14 +508,14 @@ public class NewsServiceImpl implements NewsService {
     private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
         List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
         List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
-        timeline.forEach(t -> {
+        timeline.forEach(tc -> {
             TimelineCardDTO dto = new TimelineCardDTO(
-                    t.getTitle(),
-                    t.getContent(),
-                    t.getSource(),
-                    t.getDuration().toString(),
-                    t.getStartAt(),
-                    t.getEndAt()
+                    tc.getTitle(),
+                    tc.getContent(),
+                    tc.getSource(),
+                    tc.getDuration().toString(),
+                    tc.getStartAt(),
+                    tc.getEndAt()
             );
             timelineCardDTOList.add(dto);
         });
