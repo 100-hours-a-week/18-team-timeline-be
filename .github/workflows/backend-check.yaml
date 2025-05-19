@@ -133,30 +133,26 @@ jobs:
 
       - name: Build and Push Docker Image
         working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
         run: |
-          ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-          TAG=${{ steps.meta.outputs.tag }}
-          
-          echo "🐳 Docker 이미지 빌드 (태그: $TAG)"
-          
-          docker build \
-            --build-arg DB_URL=${{ secrets.DB_URL }} \
-            --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} \
-            --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            --build-arg KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
-            --build-arg KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }} \
-            --build-arg JWT_SECRET_CODE=${{ secrets.JWT_SECRET_CODE }} \
-            --build-arg FE_BASE_URL=${{ secrets.FE_BASE_URL }} \
-            --build-arg BE_BASE_URL=${{ secrets.BE_BASE_URL }} \
-            --build-arg AI_BASE_URL=${{ secrets.AI_BASE_URL }} \
-            --build-arg EC2_PUBLIC_URL_1=${{ secrets.EC2_PUBLIC_URL_1 }} \
-            --build-arg EC2_PUBLIC_URL_2=${{ secrets.EC2_PUBLIC_URL_2 }} \
-            --build-arg EC2_PUBLIC_URL_3=${{ secrets.EC2_PUBLIC_URL_3 }} \
-            -t "$ECR_REPO:$TAG" .
+          chmod +x ../.github/scripts/build.sh
+          ../.github/scripts/build.sh 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
           
           echo "🚀 Docker 이미지 ECR 푸시"
-          docker push "$ECR_REPO:$TAG"
-
+          docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
 
       - name: Notify Discord on Success
         run: |
