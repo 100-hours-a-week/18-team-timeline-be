@@ -109,6 +109,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
+    permissions: # ✅ 요게 없어서 인증 실패하는 거였음
+      id-token: write      # OIDC 토큰 발급 허용
+      contents: read       # 리포지토리 읽기 허용
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
