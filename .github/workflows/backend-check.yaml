@@ -150,7 +150,6 @@ jobs:
         run: |
           chmod +x ../scripts/build.sh
           ../scripts/build.sh 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
-          ㄴ
           echo "🚀 Docker 이미지 ECR 푸시"
           docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
 
