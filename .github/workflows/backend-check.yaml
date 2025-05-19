@@ -154,3 +154,5 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
             -d "{\"content\": \"✅ *ECR Push 완료!*\\n📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+
