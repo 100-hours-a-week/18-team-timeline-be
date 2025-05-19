@@ -135,8 +135,8 @@ public class NewsServiceImpl implements NewsService {
 
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
 
-        NewsImage newsImage = newsImageRepository.findByNewsId(news.getId());
-        String image = (newsImage != null) ? newsImage.getUrl() : null;
+        Optional<NewsImage> newsImage = newsImageRepository.findByNewsId(news.getId());
+        String image = newsImage.map(NewsImage::getUrl).orElse(null);
 
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
@@ -301,9 +301,9 @@ public class NewsServiceImpl implements NewsService {
         saveTimelineCards(newTimeline, news);
 
         // 4-3. 기존 뉴스 이미지를 삭제하고 새로운 뉴스 이미지를 저장한다.
-        if (newsImageRepository.findByNewsId(news.getId()) != null) {
-            NewsImage oldNewsImage = newsImageRepository.findByNewsId(news.getId());
-            newsImageRepository.delete(oldNewsImage);
+        if (newsImageRepository.findByNewsId(news.getId()).isPresent()) {
+            Optional<NewsImage> oldNewsImage = newsImageRepository.findByNewsId(news.getId());
+            newsImageRepository.delete(oldNewsImage.get());
         }
         NewsImage updatedNewsImage = new NewsImage();
         updatedNewsImage.setNews(news);
@@ -483,8 +483,8 @@ public class NewsServiceImpl implements NewsService {
         List<NewsCardDTO> newsCardDTOList = new ArrayList<>();
 
         newsPage.forEach(news -> {
-            NewsImage newsImage = newsImageRepository.findByNewsId(news.getId());
-            String image = (newsImage != null) ? newsImage.getUrl() : null;
+            Optional<NewsImage> newsImage = newsImageRepository.findByNewsId(news.getId());
+            String image = newsImage.map(NewsImage::getUrl).orElse(null);
 
             String categoryName = news.getCategory() != null ? news.getCategory().getName().toString() : null;
 
