@@ -133,12 +133,12 @@ jobs:
 
       - name: Build and Push Docker Image
         working-directory: ./backend
-        env:
-          TAG: ${{ steps.meta.outputs.tag }}
         run: |
           ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-
+          TAG=${{ steps.meta.outputs.tag }}
+          
           echo "🐳 Docker 이미지 빌드 (태그: $TAG)"
+          
           docker build \
             --build-arg DB_URL=${{ secrets.DB_URL }} \
             --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} \
@@ -152,10 +152,11 @@ jobs:
             --build-arg EC2_PUBLIC_URL_1=${{ secrets.EC2_PUBLIC_URL_1 }} \
             --build-arg EC2_PUBLIC_URL_2=${{ secrets.EC2_PUBLIC_URL_2 }} \
             --build-arg EC2_PUBLIC_URL_3=${{ secrets.EC2_PUBLIC_URL_3 }} \
-            -t $ECR_REPO:$TAG .
-
+            -t "$ECR_REPO:$TAG" .
+          
           echo "🚀 Docker 이미지 ECR 푸시"
-          docker push $ECR_REPO:$TAG
+          docker push "$ECR_REPO:$TAG"
+
 
       - name: Notify Discord on Success
         run: |
