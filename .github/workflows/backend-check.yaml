@@ -18,6 +18,12 @@ jobs:
     name: Run Static Analysis and Build
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
     steps:
       # 1. Checkout source
       - name: Checkout source code
