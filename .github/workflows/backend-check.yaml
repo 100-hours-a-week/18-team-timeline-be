@@ -18,18 +18,16 @@ jobs:
     name: Run Static Analysis and Build
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
     steps:
       # 1. Checkout source
       - name: Checkout source code
         uses: actions/checkout@v3
-
-      # ✅ [디버깅용] 저장소 이름 출력
-      - name: Debug GitHub Context
-        run: |
-          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-          echo "GITHUB_REF: $GITHUB_REF"
-          echo "github.repository: ${{ github.repository }}"
-          echo "github.ref: ${{ github.ref }}"
 
       # 2. Configure AWS credentials (OIDC)
       - name: Configure AWS credentials (OIDC)
