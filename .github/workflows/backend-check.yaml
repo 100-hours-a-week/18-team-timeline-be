@@ -152,7 +152,7 @@ jobs:
           ../scripts/build.sh 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
           ㄴ
           echo "🚀 Docker 이미지 ECR 푸시"
-          docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
+          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
 
       - name: Notify Discord on Success
         run: |
