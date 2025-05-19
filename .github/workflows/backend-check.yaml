@@ -1,0 +1,164 @@
+name: Backend CI - Static Analysis, Build & Docker Push
+
+on:
+  push:
+    branches: [ 'develop', 'release/**', 'main' ]
+    paths: [ 'backend/**' ]
+
+  pull_request:
+    branches: [ 'develop', 'release/**' ]
+    paths: [ 'backend/**' ]
+
+  create:
+    branches:
+      - 'release/**'
+
+jobs:
+  backend-ci:
+    name: Run Static Analysis and Type Check
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      # 1. Checkout source
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 2. Configure AWS credentials (OIDC)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      # 3. Setup JDK
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 4. Checkstyle
+      - name: Run Checkstyle
+        working-directory: ./backend
+        run: ./gradlew checkstyleMain
+
+      # 5. Build without Tests
+      - name: Build without Tests
+        working-directory: ./backend
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
+
+      # 6. Notify Discord if Failure
+      - name: Notify Discord on Failure
+        if: failure()
+        run: |
+          echo "❌ CI 실패! Discord 알림 전송 중..."
+
+          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
+
+          GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
+            grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
+
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          ERROR_MSG=""
+          if [ -n "$CHECKSTYLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
+          fi
+
+          if [ -n "$GRADLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패*:\n$GRADLE_ERRORS\n"
+          fi
+
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*"
+          fi
+
+          ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
+          TITLE="🚨 *백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"$TITLE\\n$ERROR_MSG\\n👉 [자세한 로그 보기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  build-and-push:
+    name: Docker Build & ECR Push (main only)
+    needs: backend-ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # ✅ OIDC 인증 추가 (이전에는 누락됨)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      - name: Get short commit SHA
+        id: meta
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Image
+        working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+
+          echo "🐳 Docker 이미지 빌드 (태그: $TAG)"
+          docker build \
+            --build-arg DB_URL=${{ secrets.DB_URL }} \
+            --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} \
+            --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --build-arg KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
+            --build-arg KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }} \
+            --build-arg JWT_SECRET_CODE=${{ secrets.JWT_SECRET_CODE }} \
+            --build-arg FE_BASE_URL=${{ secrets.FE_BASE_URL }} \
+            --build-arg BE_BASE_URL=${{ secrets.BE_BASE_URL }} \
+            --build-arg AI_BASE_URL=${{ secrets.AI_BASE_URL }} \
+            --build-arg EC2_PUBLIC_URL_1=${{ secrets.EC2_PUBLIC_URL_1 }} \
+            --build-arg EC2_PUBLIC_URL_2=${{ secrets.EC2_PUBLIC_URL_2 }} \
+            --build-arg EC2_PUBLIC_URL_3=${{ secrets.EC2_PUBLIC_URL_3 }} \
+            -t $ECR_REPO:$TAG .
+
+          echo "🚀 Docker 이미지 ECR 푸시"
+          docker push $ECR_REPO:$TAG
+
+      - name: Notify Discord on Success
+        run: |
+          TAG=${{ steps.meta.outputs.tag }}
+          ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ *ECR Push 완료!*\\n📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+
