@@ -1,7 +1,7 @@
 ---
 name: "✨ Feature"
 about: 새로운 기능 추가
-title: "[FEAT]"
+title: "[풀스택] [FEAT]"
 labels: feat
 assignees: ''
 

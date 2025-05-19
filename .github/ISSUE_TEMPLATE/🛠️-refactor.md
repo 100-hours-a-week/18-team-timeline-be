@@ -1,7 +1,7 @@
 ---
 name: "\U0001F6E0️ Refactor"
 about: 리팩터링
-title: "[REFACTOR]"
+title: "[풀스택] [REFACTOR]"
 labels: refactor
 assignees: ''
 
