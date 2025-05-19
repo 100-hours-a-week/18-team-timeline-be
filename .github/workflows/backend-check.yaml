@@ -15,7 +15,7 @@ on:
 
 jobs:
   backend-ci:
-    name: Run Static Analysis and Build
+    name: Run Static Analysis and Type Check
     runs-on: ubuntu-latest
 
     permissions:
