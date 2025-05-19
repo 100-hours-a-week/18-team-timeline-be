@@ -148,8 +148,8 @@ jobs:
           EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
           EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
         run: |
-          chmod +x ../.github/scripts/build.sh
-          ../.github/scripts/build.sh 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
+          chmod +x ../scripts/build.sh
+          ../scripts/build.sh 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
           
           echo "🚀 Docker 이미지 ECR 푸시"
           docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG

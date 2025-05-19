@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 ECR_REPO=$1
