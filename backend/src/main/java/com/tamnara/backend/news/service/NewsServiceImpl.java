@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -38,10 +39,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -370,6 +373,12 @@ public class NewsServiceImpl implements NewsService {
                 .uri(TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
+                .onStatus(
+                        HttpStatusCode::isError,
+                        clientResponse -> clientResponse
+                                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AINewsResponse>>() {})
+                                .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                )
                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AINewsResponse>>() {})
                 .block();
     }
@@ -412,6 +421,12 @@ public class NewsServiceImpl implements NewsService {
                         .uri(MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
+                        .onStatus(
+                                HttpStatusCode::isError,
+                                clientResponse -> clientResponse
+                                        .bodyToMono(new ParameterizedTypeReference<WrappedDTO<TimelineCardDTO>>() {})
+                                        .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                        )
                         .bodyToMono(new ParameterizedTypeReference<WrappedDTO<TimelineCardDTO>>() {})
                         .block();
 
@@ -441,6 +456,12 @@ public class NewsServiceImpl implements NewsService {
                 .uri(STATISTIC_AI_ENDPOINT)
                 .bodyValue(aiStatisticsRequest)
                 .retrieve()
+                .onStatus(
+                        HttpStatusCode::isError,
+                        clientResponse -> clientResponse
+                                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
+                                .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                )
                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
                 .block();
     }
