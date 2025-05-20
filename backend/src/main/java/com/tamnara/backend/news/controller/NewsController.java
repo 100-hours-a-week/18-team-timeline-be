@@ -231,11 +231,7 @@ public class NewsController {
             Long resNewsId = newsService.delete(newsId, userDetails.getUser().getId());
 
             Map<String, Object> data = Map.of("newsId", resNewsId);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
-                    "success", true,
-                    "message", "데이터가 성공적으로 삭제되었습니다.",
-                    "data", data
-            ));
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
