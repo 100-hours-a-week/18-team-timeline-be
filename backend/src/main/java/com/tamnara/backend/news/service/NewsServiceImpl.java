@@ -248,7 +248,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
