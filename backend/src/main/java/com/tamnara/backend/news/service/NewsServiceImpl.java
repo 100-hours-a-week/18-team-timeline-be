@@ -392,7 +392,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 3. 1달카드: 3개월 지남 -> 삭제
         timeline.removeIf(tc -> (TimelineCardType.valueOf(tc.getDuration()) == TimelineCardType.MONTH)
-                && (tc.getStartAt().isAfter(LocalDate.now().minusMonths(3))));
+                && (tc.getStartAt().isBefore(LocalDate.now().minusMonths(3))));
 
         return timeline;
     }
