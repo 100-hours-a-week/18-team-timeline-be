@@ -228,7 +228,7 @@ public class NewsController {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "뉴스를 삭제할 권한이 없습니다.");
             }
 
-            Long resNewsId = newsService.delete(newsId, null);
+            Long resNewsId = newsService.delete(newsId, userDetails.getUser().getId());
 
             Map<String, Object> data = Map.of("newsId", resNewsId);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
