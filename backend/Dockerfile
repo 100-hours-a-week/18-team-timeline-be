@@ -32,7 +32,5 @@ ENV DB_URL=$DB_URL \
     EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3
 
 # 3. 빌드
-RUN
-./gradlew build -x test -x compileTestJava -x processTestResources
+RUN ./gradlew build -x test -x compileTestJava -x processTestResources
 CMD ["java", "-jar", "build/libs/backend-0.0.1-SNAPSHOT.jar"]
-
