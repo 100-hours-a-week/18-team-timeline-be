@@ -342,7 +342,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public Long delete(Long newsId, Long userId) {
+    public void delete(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -358,7 +358,6 @@ public class NewsServiceImpl implements NewsService {
         }
 
         newsRepository.delete(news);
-        return newsId;
     }
 
 
