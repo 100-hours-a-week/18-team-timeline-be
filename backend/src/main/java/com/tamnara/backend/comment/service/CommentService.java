@@ -8,5 +8,5 @@ import java.util.List;
 public interface CommentService {
     List<CommentDTO> getComments(Long newsId, Integer page, Integer size);
     Long save(Long userId, Long newsId, CommentCreateRequest commentCreateRequest);
-    Long delete(Long userId, Long newsId, Long commentId);
+    void delete(Long userId, Long newsId, Long commentId);
 }
