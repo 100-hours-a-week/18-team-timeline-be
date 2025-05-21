@@ -174,6 +174,10 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
             NewsDetailResponse res = newsService.save(userId, false, req);
+            if (res == null) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 생성되었습니다.",
@@ -200,6 +204,10 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
             NewsDetailResponse res = newsService.update(newsId, userId);
+            if (res == null) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
             return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 업데이트되었습니다.",

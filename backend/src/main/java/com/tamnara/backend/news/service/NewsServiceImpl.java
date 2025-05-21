@@ -166,7 +166,11 @@ public class NewsServiceImpl implements NewsService {
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
         LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
-        AINewsResponse aiNewsResponse = createAINews(req.getKeywords(), startAt, endAt).getData();
+        WrappedDTO<AINewsResponse> res = createAINews(req.getKeywords(), startAt, endAt);
+        if (res == null || res.getData() == null) {
+            return null;
+        }
+        AINewsResponse aiNewsResponse = res.getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
@@ -280,7 +284,11 @@ public class NewsServiceImpl implements NewsService {
         // 2. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         LocalDate startAt = timelineCards.getFirst().getEndAt();
         LocalDate endAt = LocalDate.now();
-        AINewsResponse aiNewsResponse = createAINews(keywords, startAt, endAt).getData();
+        WrappedDTO<AINewsResponse> res = createAINews(keywords, startAt, endAt);
+        if (res == null || res.getData() == null) {
+            return null;
+        }
+        AINewsResponse aiNewsResponse = res.getData();
 
         // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
@@ -373,6 +381,10 @@ public class NewsServiceImpl implements NewsService {
                 .uri(TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
+                .onStatus(
+                        status -> status == HttpStatus.NOT_FOUND,
+                        clientResponse -> Mono.empty()
+                )
                 .onStatus(
                         HttpStatusCode::isError,
                         clientResponse -> clientResponse
