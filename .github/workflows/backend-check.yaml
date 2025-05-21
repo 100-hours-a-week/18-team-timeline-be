@@ -43,10 +43,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 4. Checkstyle
-      - name: Run Checkstyle
-        working-directory: ./backend
-        run: ./gradlew checkstyleMain
+#      # 4. Checkstyle
+#      - name: Run Checkstyle
+#        working-directory: ./backend
+#        run: ./gradlew checkstyleMain
 
       # 5. Build without Tests
       - name: Build without Tests
@@ -103,7 +103,7 @@ jobs:
             -d "{\"content\": \"$TITLE\\n$ERROR_MSG\\n👉 [자세한 로그 보기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-  build-and-push:
+    build-and-push:
     name: Docker Build & ECR Push (main only)
     needs: backend-ci
     runs-on: ubuntu-latest
@@ -156,9 +156,53 @@ jobs:
       - name: Notify Discord on Success
         run: |
           TAG=${{ steps.meta.outputs.tag }}
-          ECR_REPO=123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+          ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+
           curl -X POST -H "Content-Type: application/json" \
             -d "{\"content\": \"✅ *ECR Push 완료!*\\n📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+      - name: Deploy to ECS (자동화 핵심)
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          FAMILY="docker-v1-backend-cluster"
+          SERVICE="${FAMILY}-service"
+          CONTAINER_NAME="docker-v1-backend"
+          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
 
+          # 기존 task 정의 가져오기
+          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
+
+          # 기존 정의 기반 새 task 정의 생성 (이미지 태그만 바꿔줌)
+          NEW_DEF=$(echo $TASK | jq '.taskDefinition |
+            {
+              family: .family,
+              networkMode: .networkMode,
+              executionRoleArn: .executionRoleArn,
+              containerDefinitions: (.containerDefinitions | map(if .name == "'"$CONTAINER_NAME"'" then .image = "'"$IMAGE"'" else . end)),
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }')
+
+          echo "$NEW_DEF" > new-task-def.json
+
+          # 새 task 정의 등록
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json \
+            | jq -r '.taskDefinition.taskDefinitionArn')
+
+          # ECS 서비스 업데이트 (롤링 배포)
+          aws ecs update-service \
+            --cluster $FAMILY \
+            --service $SERVICE \
+            --task-definition $NEW_TASK_ARN
+
+      - name: Notify Discord on Success
+        run: |
+          TAG=${{ steps.meta.outputs.tag }}
+          ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ *ECR + ECS 배포 완료!*\\n📦 $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}

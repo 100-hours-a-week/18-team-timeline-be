@@ -106,17 +106,8 @@ public class CommentController {
             }
 
             Long userId = userDetails.getUser().getId();
-            Long deletedCommentId = commentService.delete(userId, newsId, commentId);
-
-            Map<String, Object> data = Map.of(
-                    "commendId", deletedCommentId
-            );
-
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
-                    "success", true,
-                    "message", "댓글이 성공적으로 삭제되었습니다.",
-                    "data", data
-            ));
+            commentService.delete(userId, newsId, commentId);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
