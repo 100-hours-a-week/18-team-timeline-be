@@ -1,9 +1,7 @@
-package com.tamnara.backend.user.DomainTest;
+package com.tamnara.backend.user.domain;
 
-import com.tamnara.backend.user.domain.Role;
-import com.tamnara.backend.user.domain.State;
-import com.tamnara.backend.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -28,7 +26,8 @@ public class UserTest {
     }
 
     @Test
-    void username을_변경할_수_있다() {
+    @DisplayName("username을 업데이트할 수 있다")
+    void updateUsername_테스트() {
         // given
         String newUsername = "새로운탐라";
 
@@ -40,7 +39,8 @@ public class UserTest {
     }
 
     @Test
-    void 마지막_활동시간을_지금으로_업데이트할_수_있다() {
+    @DisplayName("마지막 활동시간을 지금으로 업데이트할 수 있다")
+    void updateLastActiveAtNow_테스트() {
         // given
         user.prePersist();  // 생성 시간 초기화
         LocalDateTime beforeUpdate = user.getLastActiveAt();
@@ -53,7 +53,8 @@ public class UserTest {
     }
 
     @Test
-    void prePersist_호출시_생성시간_갱신된다() {
+    @DisplayName("prePersist 호출 시 생성 시각, 업데이트 시각, 마지막 활동 시각이 갱신된다")
+    void call_prePersist_테스트() {
         // when
         user.prePersist();
 
@@ -64,7 +65,8 @@ public class UserTest {
     }
 
     @Test
-    void preUpdate_호출시_수정시간이_갱신된다() throws InterruptedException {
+    @DisplayName("preUpdate 호출 시 업데이트 시각이 갱신된다")
+    void call_preUpdate_테스트() throws InterruptedException {
         // given
         user.prePersist(); // 초기화
         LocalDateTime beforeUpdate = user.getUpdatedAt();
