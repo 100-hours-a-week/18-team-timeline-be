@@ -1,4 +1,4 @@
-package com.tamnara.backend.news.dto;
+package com.tamnara.backend.global.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
