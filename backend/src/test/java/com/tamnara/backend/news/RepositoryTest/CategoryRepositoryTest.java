@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -105,5 +106,18 @@ public class CategoryRepositoryTest {
         Category third = categoryList.get(2);
         assertTrue(first.getNum() < second.getNum());
         assertTrue(second.getNum() < third.getNum());
+    }
+
+    @Test
+    void 카테고리_이름으로_단일_조회_테스트() {
+        // given
+        categoryRepository.save(ktb);
+
+        // when
+        String name = "KTB";
+        Optional<Category> category = categoryRepository.findByName(CategoryType.valueOf(name));
+
+        // then
+        assertEquals(ktb.getName(), category.get().getName());
     }
 }
