@@ -174,6 +174,10 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
             NewsDetailResponse res = newsService.save(userId, false, req);
+            if (res == null) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 생성되었습니다.",
@@ -200,6 +204,10 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
             NewsDetailResponse res = newsService.update(newsId, userId);
+            if (res == null) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
             return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                     "success", true,
                     "message", "데이터가 성공적으로 업데이트되었습니다.",
@@ -228,14 +236,8 @@ public class NewsController {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "뉴스를 삭제할 권한이 없습니다.");
             }
 
-            Long resNewsId = newsService.delete(newsId, null);
-
-            Map<String, Object> data = Map.of("newsId", resNewsId);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of(
-                    "success", true,
-                    "message", "데이터가 성공적으로 삭제되었습니다.",
-                    "data", data
-            ));
+            newsService.delete(newsId, userDetails.getUser().getId());
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {

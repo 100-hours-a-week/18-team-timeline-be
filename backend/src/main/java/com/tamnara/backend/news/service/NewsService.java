@@ -15,5 +15,5 @@ public interface NewsService {
     NewsDetailResponse getNewsDetail(Long newsId, Long userId);
     NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req);
     NewsDetailResponse update(Long newsId, Long userId);
-    Long delete(Long newsId, Long userId);
+    void delete(Long newsId, Long userId);
 }
