@@ -59,15 +59,8 @@ public class BookmarkController {
             }
 
             Long userId = userDetails.getUser().getId();
-            Long bookmarkId = bookmarkService.deleteBookmark(userId, newsId);
-
-            Map<String, Object> data = Map.of("bookmarkId", bookmarkId);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "북마크가 성공적으로 해제되었습니다.",
-                    "data", data
-            ));
+            bookmarkService.deleteBookmark(userId, newsId);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
