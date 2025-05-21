@@ -31,7 +31,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "뉴스에 이미 북마크가 등록되어 있습니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 북마크가 추가된 상태입니다.");
         }
 
         Bookmark savedBookmark = new Bookmark();
@@ -42,7 +42,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
-    public Long deleteBookmark(Long userId, Long newsId) {
+    public void deleteBookmark(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -51,10 +51,9 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스에 북마크가 등록되어 있지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "북마크가 존재하지 않습니다.");
         }
 
         bookmarkRepository.delete(bookmark.get());
-        return bookmark.get().getId();
     }
 }
