@@ -17,7 +17,7 @@ import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
-import com.tamnara.backend.news.dto.WrappedDTO;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
