@@ -9,10 +9,12 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class CommentDTO {
-    Long id;
-    Long userId;
+    private Long id;
+    private Long userId;
+
     @Length(min = 1, message = "댓글란은 비어 있을 수 없습니다.")
     @Length(max = 150, message = "댓글 최대 길이를 초과하였습니다.")
-    String content;
-    LocalDateTime createdAt;
+    private String content;
+
+    private LocalDateTime createdAt;
 }
