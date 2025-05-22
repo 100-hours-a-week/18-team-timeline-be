@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class CommentListResponse {
-    List<CommentDTO> comments;
-    int offset;
-    boolean hasNext;
+    private List<CommentDTO> comments;
+    private int offset;
+    private boolean hasNext;
 }
