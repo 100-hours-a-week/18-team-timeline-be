@@ -186,13 +186,12 @@ public class NewsServiceImpl implements NewsService {
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         Category category = null;
-        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty() || !aiNewsResponse.getCategory().equals("")) {
+        if (aiNewsResponse.getCategory() != null && !aiNewsResponse.getCategory().isBlank()) {
             try {
                 CategoryType categoryType = CategoryType.valueOf(aiNewsResponse.getCategory());
-                category = categoryRepository.findByName(categoryType)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바르지 않은 카테고리 형식입니다.");
+                category = categoryRepository.findByName(categoryType).orElse(null);
+            } catch (IllegalArgumentException ignored) {
+                // 유효하지 않은 카테고리는 기타(null)로 처리한다.
             }
         }
 
