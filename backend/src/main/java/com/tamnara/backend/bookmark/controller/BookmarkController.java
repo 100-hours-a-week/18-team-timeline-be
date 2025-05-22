@@ -1,5 +1,6 @@
 package com.tamnara.backend.bookmark.controller;
 
+import com.tamnara.backend.bookmark.dto.response.BookmarkAddResponse;
 import com.tamnara.backend.bookmark.service.BookmarkService;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
@@ -15,8 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news/{newsId}/bookmark")
@@ -25,7 +24,7 @@ public class BookmarkController {
     private final BookmarkService bookmarkService;
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<Map<String, Long>>> addBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<BookmarkAddResponse>> addBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인된 사용자가 아닙니다.");
@@ -34,7 +33,7 @@ public class BookmarkController {
             Long userId = userDetails.getUser().getId();
             Long bookmarkId = bookmarkService.addBookmark(userId, newsId);
 
-            Map<String, Long> data = Map.of("bookmarkId", bookmarkId);
+            BookmarkAddResponse data = new BookmarkAddResponse(bookmarkId);
 
             return ResponseEntity.status(HttpStatus.OK).body(
                     new WrappedDTO<>(
