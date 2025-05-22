@@ -1,5 +1,6 @@
-package com.tamnara.backend.news.dto;
+package com.tamnara.backend.global.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,5 +11,7 @@ import lombok.NoArgsConstructor;
 public class WrappedDTO<T> {
     private boolean success;
     private String message;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private T data;
 }
