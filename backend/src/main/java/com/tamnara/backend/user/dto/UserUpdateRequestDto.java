@@ -1,9 +1,11 @@
 package com.tamnara.backend.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
+@AllArgsConstructor
 public class UserUpdateRequestDto {
 
     @NotBlank(message = "닉네임은 필수 입력 항목입니다.")
