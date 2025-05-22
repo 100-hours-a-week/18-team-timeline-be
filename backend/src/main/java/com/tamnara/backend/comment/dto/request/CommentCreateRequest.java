@@ -1,4 +1,4 @@
-package com.tamnara.backend.comment.dto;
+package com.tamnara.backend.comment.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,6 +1,6 @@
 package com.tamnara.backend.comment.service;
 
-import com.tamnara.backend.comment.dto.CommentCreateRequest;
+import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
 
 import java.util.List;

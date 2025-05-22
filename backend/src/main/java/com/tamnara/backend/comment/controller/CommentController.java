@@ -1,8 +1,11 @@
 package com.tamnara.backend.comment.controller;
 
-import com.tamnara.backend.comment.dto.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
+import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
+import com.tamnara.backend.comment.dto.response.CommentCreateResponse;
+import com.tamnara.backend.comment.dto.response.CommentListResponse;
 import com.tamnara.backend.comment.service.CommentService;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,7 +33,7 @@ public class CommentController {
     private final Integer PAGE_SIZE = 20;
 
     @GetMapping
-    public ResponseEntity<?> getComments(
+    public ResponseEntity<WrappedDTO<CommentListResponse>> getComments(
             @PathVariable Long newsId,
             @RequestParam(defaultValue = "0") Integer offset) {
 
@@ -42,17 +44,18 @@ public class CommentController {
             List<CommentDTO> comments = commentService.getComments(newsId, page, PAGE_SIZE);
             boolean hasNext = !commentService.getComments(newsId, nextOffset, PAGE_SIZE).isEmpty();
 
-            Map<String, Object> data = Map.of(
-                    "comments", comments,
-                    "offset", nextOffset,
-                    "hasNext", hasNext
+            CommentListResponse data = new CommentListResponse(
+                    comments,
+                    nextOffset,
+                    hasNext
             );
 
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
-                    "success", true,
-                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", data
-            ));
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new WrappedDTO<> (
+                        true,
+                        "요청하신 댓글 목록을 성공적으로 불러왔습니다.",
+                        data
+                    ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -64,9 +67,9 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createComment(@PathVariable Long newsId,
-                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
-                                           @RequestBody CommentCreateRequest req
+    public ResponseEntity<WrappedDTO<CommentCreateResponse>> createComment(@PathVariable Long newsId,
+                                                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                                           @RequestBody CommentCreateRequest req
     ) {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
@@ -76,15 +79,14 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             Long commentId = commentService.save(userId, newsId, req);
 
-            Map<String, Object> data = Map.of(
-                    "commendId", commentId
-            );
+            CommentCreateResponse data = new CommentCreateResponse(commentId);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "success", true,
-                    "message", "댓글이 성공적으로 생성되었습니다.",
-                    "data", data
-            ));
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new WrappedDTO<> (
+                        true,
+                        "댓글이 성공적으로 생성되었습니다.",
+                        data
+                    ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -96,7 +98,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long newsId,
+    public ResponseEntity<Void> deleteComment(@PathVariable Long newsId,
                                            @AuthenticationPrincipal UserDetailsImpl userDetails,
                                            @RequestParam Long commentId
     ) {
@@ -107,6 +109,7 @@ public class CommentController {
 
             Long userId = userDetails.getUser().getId();
             commentService.delete(userId, newsId, commentId);
+
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
