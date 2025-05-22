@@ -1,6 +1,6 @@
 package com.tamnara.backend.global.exception;
 
-import com.tamnara.backend.news.dto.WrappedDTO;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import lombok.Getter;
 
 @Getter

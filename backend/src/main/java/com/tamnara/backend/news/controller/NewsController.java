@@ -1,9 +1,20 @@
 package com.tamnara.backend.news.controller;
 
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
+import com.tamnara.backend.news.dto.response.NewsListResponse;
+import com.tamnara.backend.news.dto.response.category.AllResponse;
+import com.tamnara.backend.news.dto.response.category.EconomyResponse;
+import com.tamnara.backend.news.dto.response.category.EntertainmentResponse;
+import com.tamnara.backend.news.dto.response.category.KtbResponse;
+import com.tamnara.backend.news.dto.response.category.MultiCategoryResponse;
+import com.tamnara.backend.news.dto.response.category.SportsResponse;
 import com.tamnara.backend.news.service.NewsService;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.security.UserDetailsImpl;
@@ -22,9 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @RestController
@@ -37,16 +46,18 @@ public class NewsController {
     private final Integer PAGE_SIZE = 20;
 
     @GetMapping("/hotissue")
-    public ResponseEntity<?> findHotissueNews() {
+    public ResponseEntity<WrappedDTO<HotissueNewsListResponse>> findHotissueNews() {
         try {
             List<NewsCardDTO> newsCards = newsService.getHotissueNewsCardPage(null);
 
-            Map<String, Object> newsList = Map.of("newsList", newsCards);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", newsList
-            ));
+            HotissueNewsListResponse newsList = new HotissueNewsListResponse(newsCards);
+
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new WrappedDTO<>(
+                            true,
+                            "요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                            newsList
+                    ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -58,72 +69,143 @@ public class NewsController {
     }
 
     @GetMapping
-    public ResponseEntity<?> findNormalNews(
+    public ResponseEntity<WrappedDTO<?>> findNormalNews(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam(required = false) String category,
-            @RequestParam(defaultValue = "0") Integer offset) {
+            @RequestParam(defaultValue = "0") Integer offset
+    ) {
         try {
-            Long userId = null;
-            if (!(userDetails == null || userDetails.getUser() == null)) {
-                userId = userDetails.getUser().getId();
-            }
+            if (offset == 0) {
+                Long userId = (userDetails != null && userDetails.getUser() != null)
+                        ? userDetails.getUser().getId()
+                        : null;
 
-            if (offset > 0) {
-                // 추가 로딩
+                MultiCategoryResponse data = new MultiCategoryResponse();
+
+                data.setAll(
+                        new NewsListResponse(
+                                newsService.getNormalNewsCardPage(userId, 0, PAGE_SIZE),
+                                PAGE_SIZE,
+                                !newsService.getNormalNewsCardPage(userId, 1, PAGE_SIZE).isEmpty()
+                        )
+                );
+
+                data.setEconomy(
+                        new NewsListResponse(
+                                newsService.getNormalNewsCardPageByCategory(userId, CategoryType.ECONOMY.name(), 0, PAGE_SIZE),
+                                PAGE_SIZE,
+                                !newsService.getNormalNewsCardPageByCategory(userId, CategoryType.ECONOMY.name(), 1, PAGE_SIZE).isEmpty()
+                        )
+                );
+
+                data.setEntertainment(
+                        new NewsListResponse(
+                                newsService.getNormalNewsCardPageByCategory(userId, CategoryType.ENTERTAINMENT.name(), 0, PAGE_SIZE),
+                                PAGE_SIZE,
+                                !newsService.getNormalNewsCardPageByCategory(userId, CategoryType.ENTERTAINMENT.name(), 1, PAGE_SIZE).isEmpty()
+                        )
+                );
+
+                data.setSports(
+                        new NewsListResponse(
+                                newsService.getNormalNewsCardPageByCategory(userId, CategoryType.SPORTS.name(), 0, PAGE_SIZE),
+                                PAGE_SIZE,
+                                !newsService.getNormalNewsCardPageByCategory(userId, CategoryType.SPORTS.name(), 1, PAGE_SIZE).isEmpty()
+                        )
+                );
+
+                data.setKtb(
+                        new NewsListResponse(
+                                newsService.getNormalNewsCardPageByCategory(userId, CategoryType.KTB.name(), 0, PAGE_SIZE),
+                                PAGE_SIZE,
+                                !newsService.getNormalNewsCardPageByCategory(userId, CategoryType.KTB.name(), 1, PAGE_SIZE).isEmpty()
+                        )
+                );
+
+                return ResponseEntity.ok(new WrappedDTO<>(
+                        true,
+                        "요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                        data
+                ));
+            } else {
+                Long userId = (userDetails != null && userDetails.getUser() != null)
+                        ? userDetails.getUser().getId()
+                        : null;
+
                 int pageNum = offset / PAGE_SIZE;
                 int nextOffset = (pageNum + 1) * PAGE_SIZE;
 
-                List<NewsCardDTO> newsCards;
-                boolean hasNext;
+                if (Objects.equals(category, "ALL")) {
+                    List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPage(userId, pageNum, PAGE_SIZE);
+                    boolean hasNext = !newsService.getNormalNewsCardPage(userId, pageNum + 1, PAGE_SIZE).isEmpty();
 
-                if (category == "ALL") {
-                    newsCards = newsService.getNormalNewsCardPage(userId, pageNum, PAGE_SIZE);
-                    hasNext = !newsService.getNormalNewsCardPage(userId,pageNum + 1, PAGE_SIZE).isEmpty();
+                    return ResponseEntity.status(HttpStatus.OK).body(
+                            new WrappedDTO<>(
+                                    true,
+                                    "요청하신 전체 카테고리의 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                                    new AllResponse(
+                                            new NewsListResponse(
+                                                    newsCards,
+                                                    nextOffset,
+                                                    hasNext
+                                            )
+                                    )));
                 } else {
-                    newsCards = newsService.getNormalNewsCardPageByCategory(userId, category, pageNum, PAGE_SIZE);
-                    hasNext = !newsService.getNormalNewsCardPageByCategory(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
-                }
+                    List<NewsCardDTO> newsCards = newsService.getNormalNewsCardPageByCategory(userId, category, pageNum, PAGE_SIZE);
+                    boolean hasNext = !newsService.getNormalNewsCardPageByCategory(userId, category, pageNum + 1, PAGE_SIZE).isEmpty();
 
-                Map<String, Object> data = Map.of(
-                        (category == null ? "ECT" : category), newsCards,
-                        "offset", nextOffset,
-                        "hasNext", hasNext
-                );
-
-                return ResponseEntity.status(HttpStatus.OK).body(Map.of(
-                        "success", true,
-                        "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                        "data", data
-                ));
-            } else {
-                // 최초 요청
-                Map<String, List<NewsCardDTO>> newsCardsMap = newsService.getNormalNewsCardPages(userId, 0, PAGE_SIZE);
-                Map<String, Object> data = new HashMap<>();
-
-                for (Map.Entry<String, List<NewsCardDTO>> entry : newsCardsMap.entrySet()) {
-                    String categoryName = entry.getKey();
-                    List<NewsCardDTO> newsList = entry.getValue();
-
-                    boolean hasNext;
-                    if (Objects.equals(categoryName, "ALL")) {
-                        hasNext = !newsService.getNormalNewsCardPage(null,1, PAGE_SIZE).isEmpty();
+                    if (Objects.equals(category, CategoryType.ECONOMY.name())) {
+                        return ResponseEntity.status(HttpStatus.OK).body(
+                                new WrappedDTO<>(
+                                        true,
+                                        "요청하신 경제 카테고리의 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                                        new EconomyResponse(
+                                                new NewsListResponse(
+                                                        newsCards,
+                                                        nextOffset,
+                                                        hasNext
+                                                )
+                                        )));
+                    } else if (Objects.equals(category, CategoryType.ENTERTAINMENT.name())) {
+                        return ResponseEntity.status(HttpStatus.OK).body(
+                                new WrappedDTO<>(
+                                        true,
+                                        "요청하신 연예 카테고리의 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                                        new EntertainmentResponse(
+                                                new NewsListResponse(
+                                                        newsCards,
+                                                        nextOffset,
+                                                        hasNext
+                                                )
+                                        )));
+                    } else if (Objects.equals(category, CategoryType.SPORTS.name())) {
+                        return ResponseEntity.status(HttpStatus.OK).body(
+                                new WrappedDTO<>(
+                                        true,
+                                        "요청하신 스포츠 카테고리의 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                                        new SportsResponse(
+                                                new NewsListResponse(
+                                                        newsCards,
+                                                        nextOffset,
+                                                        hasNext
+                                                )
+                                        )));
+                    } else if (Objects.equals(category, CategoryType.KTB.name())) {
+                        return ResponseEntity.status(HttpStatus.OK).body(
+                                new WrappedDTO<>(
+                                        true,
+                                        "요청하신 KTB 카테고리의 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                                        new KtbResponse(
+                                                new NewsListResponse(
+                                                        newsCards,
+                                                        nextOffset,
+                                                        hasNext
+                                                )
+                                        )));
                     } else {
-                        hasNext = !newsService.getNormalNewsCardPageByCategory(null, categoryName, 1, PAGE_SIZE).isEmpty();
+                        throw new IllegalArgumentException();
                     }
-
-                    Map<String, Object> categoryNewsData = new HashMap<>();
-                    categoryNewsData.put("newsList", newsList);
-                    categoryNewsData.put("offset", PAGE_SIZE);
-                    categoryNewsData.put("hasNext", hasNext);
-
-                    data.put(categoryName, categoryNewsData);
                 }
-
-                return ResponseEntity.status(HttpStatus.OK).body(Map.of(
-                        "success", true,
-                        "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                        "data", data
-                ));
             }
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
@@ -136,8 +218,8 @@ public class NewsController {
     }
 
     @GetMapping("/{newsId}")
-    public ResponseEntity<?> findNewsDetail(@PathVariable("newsId") Long newsId,
-                                            @AuthenticationPrincipal UserDetailsImpl userDetails
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> findNewsDetail(@PathVariable("newsId") Long newsId,
+                                                                         @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             Long userId = null;
@@ -145,14 +227,18 @@ public class NewsController {
                 userId = userDetails.getUser().getId();
             }
 
-            NewsDetailResponse res = newsService.getNewsDetail(newsId, userId);
+            NewsDetailDTO res = newsService.getNewsDetail(newsId, userId);
+            NewsDetailResponse data = new NewsDetailResponse(res);
 
-            Map<String, Object> data = Map.of("news", res);
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
-                    "success", true,
-                    "message", "요청하신 데이터를 성공적으로 불러왔습니다.",
-                    "data", data
-            ));
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(
+                            new WrappedDTO<>(
+                                    true,
+                                    "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.",
+                                    data
+                            )
+                    );
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -164,8 +250,8 @@ public class NewsController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createNews(@AuthenticationPrincipal UserDetailsImpl userDetails,
-                                        @RequestBody NewsCreateRequest req
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> createNews(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                                             @RequestBody NewsCreateRequest req
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
@@ -173,16 +259,19 @@ public class NewsController {
             }
 
             Long userId = userDetails.getUser().getId();
-            NewsDetailResponse res = newsService.save(userId, false, req);
+
+            NewsDetailDTO res = newsService.save(userId, false, req);
             if (res == null) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "success", true,
-                    "message", "데이터가 성공적으로 생성되었습니다.",
-                    "data", res
-            ));
+            NewsDetailResponse data = new NewsDetailResponse(res);
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new WrappedDTO<>(
+                            true,
+                            "뉴스가 성공적으로 생성되었습니다.",
+                            data
+                    ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -194,8 +283,8 @@ public class NewsController {
     }
 
     @PatchMapping("/{newsId}")
-    public ResponseEntity<?> updateNews(@PathVariable Long newsId,
-                                        @AuthenticationPrincipal UserDetailsImpl userDetails
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> updateNews(@PathVariable Long newsId,
+                                                                             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
@@ -203,16 +292,20 @@ public class NewsController {
             }
 
             Long userId = userDetails.getUser().getId();
-            NewsDetailResponse res = newsService.update(newsId, userId);
+
+            NewsDetailDTO res = newsService.update(newsId, userId);
             if (res == null) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            return ResponseEntity.status(HttpStatus.OK).body(Map.of(
-                    "success", true,
-                    "message", "데이터가 성공적으로 업데이트되었습니다.",
-                    "data", res
-            ));
+            NewsDetailResponse data = new NewsDetailResponse(res);
+
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new WrappedDTO<>(
+                            true,
+                            "데이터가 성공적으로 업데이트되었습니다.",
+                            data
+                    ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -224,7 +317,7 @@ public class NewsController {
     }
 
     @DeleteMapping("/{newsId}")
-    public ResponseEntity<?> deleteNews(@PathVariable Long newsId,
+    public ResponseEntity<Void> deleteNews(@PathVariable Long newsId,
                                         @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
@@ -237,6 +330,7 @@ public class NewsController {
             }
 
             newsService.delete(newsId, userDetails.getUser().getId());
+
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());

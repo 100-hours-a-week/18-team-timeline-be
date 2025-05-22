@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
@@ -15,15 +16,13 @@ import com.tamnara.backend.news.domain.Tag;
 import com.tamnara.backend.news.domain.TimelineCard;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
-import com.tamnara.backend.news.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
-import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
-import com.tamnara.backend.news.dto.response.NewsDetailResponse;
 import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsImageRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
@@ -50,17 +49,17 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
 public class NewsServiceImpl implements NewsService {
 
     private final WebClient aiWebClient;
+    private final AsyncAIService asyncAiService;
 
     private final NewsRepository newsRepository;
     private final TimelineCardRepository timelineCardRepository;
@@ -108,24 +107,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, Integer page, Integer size) {
-        List<Category> categories = categoryRepository.findAll();
-        Map<String, List<NewsCardDTO>> newsCardDTOS = new HashMap<>();
-
-        // 전체
-        Page<News> allNewsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
-        newsCardDTOS.put("ALL", getNewsCardDTOList(userId, allNewsPage));
-
-        // 카테고리별
-        for (Category c : categories) {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
-            newsCardDTOS.put(c.getName().toString(), getNewsCardDTOList(userId, newsPage));
-        }
-        return newsCardDTOS;
-    }
-
-    @Override
-    public NewsDetailResponse getNewsDetail(Long newsId, Long userId) {
+    public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
@@ -147,7 +129,7 @@ public class NewsServiceImpl implements NewsService {
         news.setViewCount(news.getViewCount() + 1);
         newsRepository.save(news);
 
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 image,
                 news.getUpdatedAt(),
@@ -159,9 +141,12 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req) {
+    public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+
+        // 0. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatisticsDTO(STATISTIC_AI_ENDPOINT, req.getKeywords(), STATISTICS_AI_SEARCH_CNT);
 
         // 1. AI에 요청하여 뉴스를 생성한다.
         LocalDate endAt = LocalDate.now();
@@ -175,19 +160,19 @@ public class NewsServiceImpl implements NewsService {
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
 
-        // 3. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(req.getKeywords(), STATISTICS_AI_SEARCH_CNT).getData();
+        // 3. 뉴스의 여론 통계 생성 응답을 기다린다.
+        WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
+        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? statsAsync.join().getData() : null;
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         Category category = null;
-        if (aiNewsResponse.getCategory() != null || !aiNewsResponse.getCategory().isEmpty() || !aiNewsResponse.getCategory().equals("")) {
+        if (aiNewsResponse.getCategory() != null && !aiNewsResponse.getCategory().isBlank()) {
             try {
                 CategoryType categoryType = CategoryType.valueOf(aiNewsResponse.getCategory());
-                category = categoryRepository.findByName(categoryType)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바르지 않은 카테고리 형식입니다.");
+                category = categoryRepository.findByName(categoryType).orElse(null);
+            } catch (IllegalArgumentException ignored) {
+                // 유효하지 않은 카테고리는 기타(null)로 처리한다.
             }
         }
 
@@ -195,9 +180,11 @@ public class NewsServiceImpl implements NewsService {
         news.setTitle(aiNewsResponse.getTitle());
         news.setSummary(aiNewsResponse.getSummary());
         news.setIsHotissue(isHotissue);
-        news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNeutral());
-        news.setRatioNega(statistics.getNegative());
+        if (statistics != null) {
+            news.setRatioPosi(statistics.getPositive());
+            news.setRatioNeut(statistics.getNeutral());
+            news.setRatioNega(statistics.getNegative());
+        }
         news.setUser(user);
         news.setCategory(category);
         newsRepository.save(news);
@@ -237,7 +224,7 @@ public class NewsServiceImpl implements NewsService {
         bookmarkRepository.save(bookmark);
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 newsImage.getUrl(),
                 news.getUpdatedAt(),
@@ -249,7 +236,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailResponse update(Long newsId, Long userId) {
+    public NewsDetailDTO update(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -281,7 +268,10 @@ public class NewsServiceImpl implements NewsService {
             keywords.add(tag.getTag().getName());
         }
 
-        // 2. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
+        // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatisticsDTO(STATISTIC_AI_ENDPOINT, keywords, STATISTICS_AI_SEARCH_CNT);
+
+        // 3. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         LocalDate startAt = timelineCards.getFirst().getEndAt();
         LocalDate endAt = LocalDate.now();
         WrappedDTO<AINewsResponse> res = createAINews(keywords, startAt, endAt);
@@ -290,21 +280,24 @@ public class NewsServiceImpl implements NewsService {
         }
         AINewsResponse aiNewsResponse = res.getData();
 
-        // 3. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
+        // 4. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
         List<TimelineCardDTO> newTimeline = mergeTimelineCards(oldTimeline);
 
-        // 4. AI에 요청하여 뉴스의 여론 통계를 생성한다.
-        StatisticsDTO statistics = getAIStatisticsDTO(keywords, STATISTICS_AI_SEARCH_CNT).getData();
+        // 2-2. 뉴스의 여론 통계 생성 응답을 기다린다.
+        WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
+        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? statsAsync.join().getData() : null;
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         news.setSummary(aiNewsResponse.getSummary());
 
         news.setUpdateCount(news.getUpdateCount() + 1);
-        news.setRatioPosi(statistics.getPositive());
-        news.setRatioNeut(statistics.getNeutral());
-        news.setRatioNega(statistics.getNegative());
+        if (statistics != null) {
+            news.setRatioPosi(statistics.getPositive());
+            news.setRatioNeut(statistics.getNeutral());
+            news.setRatioNega(statistics.getNegative());
+        }
         newsRepository.save(news);
 
         // 4-2. 타임라인 카드들을 저장한다.
@@ -331,7 +324,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 6. 뉴스의 상세 페이지 데이터를 반환한다.
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 updatedNewsImage.getUrl(),
                 news.getUpdatedAt(),
@@ -351,7 +344,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         News news = newsRepository.findById(newsId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
@@ -455,26 +448,6 @@ public class NewsServiceImpl implements NewsService {
         timeline.sort(Comparator.comparing(TimelineCardDTO::getStartAt).reversed());
 
         return timeline;
-    }
-
-    private WrappedDTO<StatisticsDTO> getAIStatisticsDTO(List<String> keywords, Integer num) {
-        AIStatisticsRequest aiStatisticsRequest = new AIStatisticsRequest(
-                keywords,
-                num
-        );
-
-        return aiWebClient.post()
-                .uri(STATISTIC_AI_ENDPOINT)
-                .bodyValue(aiStatisticsRequest)
-                .retrieve()
-                .onStatus(
-                        HttpStatusCode::isError,
-                        clientResponse -> clientResponse
-                                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
-                                .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
-                )
-                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
-                .block();
     }
 
 
