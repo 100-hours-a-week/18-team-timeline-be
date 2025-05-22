@@ -189,6 +189,7 @@ public class NewsServiceImpl implements NewsService {
             }
             throw ex;
         }
+        AINewsResponse aiNewsResponse = res.getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
@@ -318,6 +319,7 @@ public class NewsServiceImpl implements NewsService {
             }
             throw ex;
         }
+        AINewsResponse aiNewsResponse = res.getData();
 
         // 4. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
@@ -412,6 +414,10 @@ public class NewsServiceImpl implements NewsService {
                 .uri(TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
+                .onStatus(
+                        status -> status == HttpStatus.NOT_FOUND,
+                        clientResponse -> Mono.empty()
+                )
                 .onStatus(
                         HttpStatusCode::isError,
                         clientResponse -> clientResponse
