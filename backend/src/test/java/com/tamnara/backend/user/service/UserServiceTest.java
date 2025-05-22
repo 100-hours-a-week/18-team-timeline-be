@@ -2,7 +2,7 @@ package com.tamnara.backend.user.service;
 
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.UserInfoDto;
+import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
@@ -65,7 +65,7 @@ class UserServiceTest {
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when
-        UserInfoDto data = userService.getCurrentUserInfo(1L);
+        UserInfo data = userService.getCurrentUserInfo(1L);
 
         // then
         assertThat(data.email()).isEqualTo("test@example.com");
