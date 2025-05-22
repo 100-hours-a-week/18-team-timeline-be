@@ -2,14 +2,11 @@ package com.tamnara.backend.user.controller;
 
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.SignupRequestDto;
-import com.tamnara.backend.user.dto.UserInfoDto;
-import com.tamnara.backend.user.dto.UserUpdateRequestDto;
+import com.tamnara.backend.user.dto.*;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import com.tamnara.backend.user.service.UserService;
-import com.tamnara.backend.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -40,7 +37,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "잘못된 이메일 형식"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    public ResponseEntity<WrappedDTO<Map<String, Boolean>>> checkEmail(@RequestParam("email") String email) {
+    public ResponseEntity<WrappedDTO<EmailAvailabilityResponse>> checkEmail(@RequestParam("email") String email) {
         try {
             if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
                 return ResponseEntity.badRequest().body(
@@ -52,7 +49,7 @@ public class UserController {
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
                             available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다.",
-                            Map.of("available", available))
+                            new EmailAvailabilityResponse(available))
             );
 
         } catch (Exception e) {
@@ -72,7 +69,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "잘못된 닉네임 형식"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    public ResponseEntity<WrappedDTO<Map<String, Boolean>>> checkNickname(@RequestParam("nickname") String nickname) {
+    public ResponseEntity<WrappedDTO<NicknameAvailabilityResponse>> checkNickname(@RequestParam("nickname") String nickname) {
         try {
             if (nickname == null || nickname.isBlank() || nickname.length() > 10) {
                 return ResponseEntity.badRequest().body(
@@ -84,7 +81,7 @@ public class UserController {
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
                             available ? "사용 가능한 닉네임입니다." : "이미 사용 중인 닉네임입니다.",
-                            Map.of("available", available))
+                            new NicknameAvailabilityResponse(available))
             );
 
         } catch (Exception e) {
@@ -106,7 +103,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<Object>> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<UserInfo>> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
@@ -115,7 +112,7 @@ public class UserController {
             }
 
             Long userId = userDetails.getUser().getId();
-            UserInfoDto data = userService.getCurrentUserInfo(userId);
+            UserInfo data = userService.getCurrentUserInfo(userId);
 
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, "요청하신 정보를 성공적으로 불러왔습니다.", data)
@@ -144,7 +141,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<Map<String, Object>>> updateUsername(
+    public ResponseEntity<WrappedDTO<UserUpdateResponse>> updateUsername(
             @RequestBody @Valid UserUpdateRequestDto dto,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
@@ -154,7 +151,7 @@ public class UserController {
 
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, "회원 정보가 성공적으로 수정되었습니다.",
-                            Map.of("user", Map.of("userId", updatedUser.getId())))
+                            new UserUpdateResponse(updatedUser.getId()))
             );
 
         } catch (DuplicateUsernameException e) {
