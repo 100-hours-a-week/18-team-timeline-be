@@ -16,13 +16,13 @@ import com.tamnara.backend.news.domain.Tag;
 import com.tamnara.backend.news.domain.TimelineCard;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
-import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsImageRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
@@ -49,9 +49,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -107,23 +105,6 @@ public class NewsServiceImpl implements NewsService {
             newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(null, PageRequest.of(page, size));
         }
         return getNewsCardDTOList(userId, newsPage);
-    }
-
-    @Override
-    public Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, Integer page, Integer size) {
-        List<Category> categories = categoryRepository.findAll();
-        Map<String, List<NewsCardDTO>> newsCardDTOS = new HashMap<>();
-
-        // 전체
-        Page<News> allNewsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
-        newsCardDTOS.put("ALL", getNewsCardDTOList(userId, allNewsPage));
-
-        // 카테고리별
-        for (Category c : categories) {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(c.getId(), PageRequest.of(page, size));
-            newsCardDTOS.put(c.getName().toString(), getNewsCardDTOList(userId, newsPage));
-        }
-        return newsCardDTOS;
     }
 
     @Override
