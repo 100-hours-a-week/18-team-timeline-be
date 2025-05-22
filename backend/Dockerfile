@@ -33,4 +33,4 @@ ENV DB_URL=$DB_URL \
 
 # 3. 빌드
 RUN ./gradlew build -x test -x compileTestJava -x processTestResources
-CMD ["java", "-jar", "build/libs/backend-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-Dspring.datasource.url=$DB_URL", "-Dspring.datasource.username=$DB_USERNAME", "-Dspring.datasource.password=$DB_PASSWORD", "-jar", "build/libs/backend-0.0.1-SNAPSHOT.jar"]
