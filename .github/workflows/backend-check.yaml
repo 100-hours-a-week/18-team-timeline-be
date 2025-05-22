@@ -173,8 +173,8 @@ jobs:
               executionRoleArn: .executionRoleArn,
               containerDefinitions: (.containerDefinitions | map(if .name == "'"$CONTAINER_NAME"'" then .image = "'"$IMAGE"'" else . end)),
               requiresCompatibilities: .requiresCompatibilities,
-              cpu: .cpu,
-              memory: .memory
+              cpu: "256",
+              memory: "256"
             }')
 
           echo "$NEW_DEF" > new-task-def.json
