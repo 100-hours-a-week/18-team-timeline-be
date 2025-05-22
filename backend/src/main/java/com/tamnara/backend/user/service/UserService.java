@@ -5,7 +5,7 @@ import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.SignupRequestDto;
 import com.tamnara.backend.user.dto.SignupResponseDto;
-import com.tamnara.backend.user.dto.UserInfoResponseDto;
+import com.tamnara.backend.user.dto.UserInfoDto;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -62,7 +62,7 @@ public class UserService {
         return !userRepository.existsByUsername(username);
     }
 
-    public UserInfoResponseDto getCurrentUserInfo(Long userId) {
+    public UserInfoDto getCurrentUserInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
@@ -70,17 +70,7 @@ public class UserService {
             throw new UserNotFoundException(); // DELETED나 INACTIVE는 허용하지 않음
         }
 
-        return UserInfoResponseDto.builder()
-                .success(true)
-                .message("요청하신 정보를 성공적으로 불러왔습니다.")
-                .data(UserInfoResponseDto.Data.builder()
-                        .user(UserInfoResponseDto.UserData.builder()
-                                .userId(user.getId())
-                                .email(user.getEmail())
-                                .username(user.getUsername())
-                                .build())
-                        .build())
-                .build();
+        return new UserInfoDto(user.getId(), user.getEmail(), user.getUsername());
     }
 
     @Transactional
