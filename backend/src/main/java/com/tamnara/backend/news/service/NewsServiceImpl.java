@@ -22,7 +22,7 @@ import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
-import com.tamnara.backend.news.dto.response.NewsDetailResponse;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsImageRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
@@ -127,7 +127,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public NewsDetailResponse getNewsDetail(Long newsId, Long userId) {
+    public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
@@ -149,7 +149,7 @@ public class NewsServiceImpl implements NewsService {
         news.setViewCount(news.getViewCount() + 1);
         newsRepository.save(news);
 
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 image,
                 news.getUpdatedAt(),
@@ -161,7 +161,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req) {
+    public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -258,7 +258,7 @@ public class NewsServiceImpl implements NewsService {
         bookmarkRepository.save(bookmark);
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 newsImage.getUrl(),
                 news.getUpdatedAt(),
@@ -270,7 +270,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailResponse update(Long newsId, Long userId) {
+    public NewsDetailDTO update(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -364,7 +364,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 6. 뉴스의 상세 페이지 데이터를 반환한다.
-        return new NewsDetailResponse(
+        return new NewsDetailDTO(
                 news.getTitle(),
                 updatedNewsImage.getUrl(),
                 news.getUpdatedAt(),
@@ -384,7 +384,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         News news = newsRepository.findById(newsId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
