@@ -17,7 +17,7 @@ ARG EC2_PUBLIC_URL_1
 ARG EC2_PUBLIC_URL_2
 ARG EC2_PUBLIC_URL_3
 
-# 2. ENV로 굽기
+# 2. ENV로 굽기 (선택적으로 유지)
 ENV DB_URL=$DB_URL \
     DB_USERNAME=$DB_USERNAME \
     DB_PASSWORD=$DB_PASSWORD \
@@ -33,4 +33,19 @@ ENV DB_URL=$DB_URL \
 
 # 3. 빌드
 RUN ./gradlew build -x test -x compileTestJava -x processTestResources
-CMD ["java", "-Dspring.datasource.url=$DB_URL", "-Dspring.datasource.username=$DB_USERNAME", "-Dspring.datasource.password=$DB_PASSWORD", "-jar", "build/libs/backend-0.0.1-SNAPSHOT.jar"]
+
+# 4. 실행 시 JVM 시스템 속성으로 명시적으로 전달
+CMD ["java",
+     "-Dspring.datasource.url=${DB_URL}",
+     "-Dspring.datasource.username=${DB_USERNAME}",
+     "-Dspring.datasource.password=${DB_PASSWORD}",
+     "-Dkakao.client-id=${KAKAO_CLIENT_ID}",
+     "-Dkakao.redirect-uri=${KAKAO_REDIRECT_URI}",
+     "-Djwt.secret=${JWT_SECRET_CODE}",
+     "-Dfe.base_url=${FE_BASE_URL}",
+     "-Dbe.base_url=${BE_BASE_URL}",
+     "-Dai.base-url=${AI_BASE_URL}",
+     "-Dec2.public_url_1=${EC2_PUBLIC_URL_1}",
+     "-Dec2.public_url_2=${EC2_PUBLIC_URL_2}",
+     "-Dec2.public_url_3=${EC2_PUBLIC_URL_3}",
+     "-jar", "build/libs/backend-0.0.1-SNAPSHOT.jar"]
