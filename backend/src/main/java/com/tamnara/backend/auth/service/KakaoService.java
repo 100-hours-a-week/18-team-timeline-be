@@ -2,7 +2,7 @@ package com.tamnara.backend.auth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tamnara.backend.auth.dto.KakaoLoginResponseDto;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -43,7 +43,7 @@ public class KakaoService {
                 .toUriString();
     }
 
-    public ResponseEntity<KakaoLoginResponseDto> kakaoLogin(String code) {
+    public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
@@ -126,17 +126,17 @@ public class KakaoService {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
-                    .body(new KakaoLoginResponseDto(true, "카카오 로그인이 성공적으로 완료되었습니다."));
+                    .body(new WrappedDTO<>(true, "카카오 로그인이 성공적으로 완료되었습니다.", null));
 
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new KakaoLoginResponseDto(false, "❌ JSON 파싱 오류: " + e.getMessage()));
+                    .body(new WrappedDTO<>(false, "❌ JSON 파싱 오류: " + e.getMessage(), null));
         } catch (RestClientException e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body(new KakaoLoginResponseDto(false, "❌ 카카오 서버 요청 실패: " + e.getMessage()));
+                    .body(new WrappedDTO<>(false, "❌ 카카오 서버 요청 실패: " + e.getMessage(), null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new KakaoLoginResponseDto(false, "❌ 예상치 못한 오류 발생: " + e.getMessage()));
+                    .body(new WrappedDTO<>(false, "❌ 예상치 못한 오류 발생: " + e.getMessage(), null));
         }
     }
 }
