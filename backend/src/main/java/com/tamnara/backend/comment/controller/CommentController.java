@@ -1,8 +1,9 @@
 package com.tamnara.backend.comment.controller;
 
-import com.tamnara.backend.comment.dto.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
-import com.tamnara.backend.comment.dto.CommentListResponse;
+import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
+import com.tamnara.backend.comment.dto.response.CommentCreateResponse;
+import com.tamnara.backend.comment.dto.response.CommentListResponse;
 import com.tamnara.backend.comment.service.CommentService;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -67,9 +67,9 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<Map<String, Long>>> createComment(@PathVariable Long newsId,
-                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
-                                           @RequestBody CommentCreateRequest req
+    public ResponseEntity<WrappedDTO<CommentCreateResponse>> createComment(@PathVariable Long newsId,
+                                                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                                           @RequestBody CommentCreateRequest req
     ) {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
@@ -79,7 +79,7 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             Long commentId = commentService.save(userId, newsId, req);
 
-            Map<String, Long> data = Map.of("commendId", commentId);
+            CommentCreateResponse data = new CommentCreateResponse(commentId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<> (

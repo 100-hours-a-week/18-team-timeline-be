@@ -1,7 +1,7 @@
 package com.tamnara.backend.comment.service;
 
 import com.tamnara.backend.comment.domain.Comment;
-import com.tamnara.backend.comment.dto.CommentCreateRequest;
+import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
 import com.tamnara.backend.comment.repository.CommentRepository;
 import com.tamnara.backend.news.domain.News;
