@@ -5,7 +5,7 @@ import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.UserUpdateRequestDto;
+import com.tamnara.backend.user.dto.UserUpdateRequest;
 import com.tamnara.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,7 +130,7 @@ public class UserControllerIntegrationTest {
     @DisplayName("닉네임 수정 통합 테스트")
     void updateNickname_success() throws Exception {
         // given
-        UserUpdateRequestDto dto = new UserUpdateRequestDto("newnick");
+        UserUpdateRequest dto = new UserUpdateRequest("newnick");
 
         // when & then
         mockMvc.perform(patch("/users/me")
@@ -159,7 +159,7 @@ public class UserControllerIntegrationTest {
                 .state(State.ACTIVE)
                 .build());
 
-        UserUpdateRequestDto dto = new UserUpdateRequestDto("dupeNick");
+        UserUpdateRequest dto = new UserUpdateRequest("dupeNick");
 
         // when & then
         mockMvc.perform(patch("/users/me")
