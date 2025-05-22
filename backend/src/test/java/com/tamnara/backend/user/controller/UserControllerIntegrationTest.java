@@ -54,8 +54,71 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("이메일 중복 조회 - available")
+    void checkEmail_available() throws Exception {
+        // when & then
+        mockMvc.perform(get("/users/check-email")
+                        .param("email", "new@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(true))
+                .andExpect(jsonPath("$.message").value("사용 가능한 이메일입니다."));
+    }
+
+    @Test
+    @DisplayName("이메일 중복 조회 - conflict")
+    void checkEmail_conflict() throws Exception {
+        // given
+        userRepository.save(User.builder()
+                .email("duplicate@example.com")
+                .username("dupeUser")
+                .provider("LOCAL")
+                .role(Role.USER)
+                .state(State.ACTIVE)
+                .build());
+
+        // when & then
+        mockMvc.perform(get("/users/check-email")
+                        .param("email", "duplicate@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(false))
+                .andExpect(jsonPath("$.message").value("이미 사용 중인 이메일입니다."));
+    }
+
+    @Test
+    @DisplayName("닉네임 중복 조회 - available")
+    void checkNickname_available() throws Exception {
+        // when & then
+        mockMvc.perform(get("/users/check-nickname")
+                        .param("nickname", "uniqueNick"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(true))
+                .andExpect(jsonPath("$.message").value("사용 가능한 닉네임입니다."));
+    }
+
+    @Test
+    @DisplayName("닉네임 중복 조회 - conflict")
+    void checkNickname_conflict() throws Exception {
+        // given
+        userRepository.save(User.builder()
+                .email("another@example.com")
+                .username("dupeNick")
+                .provider("KAKAO")
+                .role(Role.USER)
+                .state(State.ACTIVE)
+                .build());
+
+        // when & then
+        mockMvc.perform(get("/users/check-nickname")
+                        .param("nickname", "dupeNick"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(false))
+                .andExpect(jsonPath("$.message").value("이미 사용 중인 닉네임입니다."));
+    }
+
+    @Test
     @DisplayName("회원 정보 조회 통합 테스트")
     void getCurrentUser_success() throws Exception {
+        // when & then
         mockMvc.perform(get("/users/me")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isOk())
@@ -66,8 +129,10 @@ public class UserControllerIntegrationTest {
     @Test
     @DisplayName("닉네임 수정 통합 테스트")
     void updateNickname_success() throws Exception {
+        // given
         UserUpdateRequestDto dto = new UserUpdateRequestDto("newnick");
 
+        // when & then
         mockMvc.perform(patch("/users/me")
                         .header("Authorization", getAccessToken(user))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,14 +140,17 @@ public class UserControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
+        // when
         User updated = userRepository.findById(user.getId()).orElseThrow();
+
+        // then
         assert updated.getUsername().equals("newnick");
     }
 
     @Test
     @DisplayName("닉네임 중복 수정 실패")
     void updateNickname_conflict() throws Exception {
-        // 이미 존재하는 닉네임으로 저장
+        // given
         userRepository.save(User.builder()
                 .email("another@example.com")
                 .username("dupeNick")
@@ -93,6 +161,7 @@ public class UserControllerIntegrationTest {
 
         UserUpdateRequestDto dto = new UserUpdateRequestDto("dupeNick");
 
+        // when & then
         mockMvc.perform(patch("/users/me")
                         .header("Authorization", getAccessToken(user))
                         .contentType(MediaType.APPLICATION_JSON)
