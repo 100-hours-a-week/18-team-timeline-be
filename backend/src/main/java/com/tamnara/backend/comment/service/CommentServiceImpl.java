@@ -66,7 +66,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public Long delete(Long userId, Long newsId, Long commentId) {
+    public void delete(Long userId, Long newsId, Long commentId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -81,6 +81,5 @@ public class CommentServiceImpl implements CommentService {
         } else {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "댓글을 삭제할 권한이 없습니다.");
         }
-        return commentId;
     }
 }
