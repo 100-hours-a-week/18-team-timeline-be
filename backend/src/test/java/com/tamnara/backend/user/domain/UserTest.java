@@ -27,7 +27,7 @@ public class UserTest {
 
     @Test
     @DisplayName("username을 업데이트할 수 있다")
-    void updateUsername_테스트() {
+    void updateUsername_success() {
         // given
         String newUsername = "새로운탐라";
 
@@ -40,7 +40,7 @@ public class UserTest {
 
     @Test
     @DisplayName("마지막 활동시간을 지금으로 업데이트할 수 있다")
-    void updateLastActiveAtNow_테스트() {
+    void updateLastActiveAtNow_success() {
         // given
         user.prePersist();  // 생성 시간 초기화
         LocalDateTime beforeUpdate = user.getLastActiveAt();
@@ -54,7 +54,7 @@ public class UserTest {
 
     @Test
     @DisplayName("prePersist 호출 시 생성 시각, 업데이트 시각, 마지막 활동 시각이 갱신된다")
-    void call_prePersist_테스트() {
+    void call_prePersist_success() {
         // when
         user.prePersist();
 
@@ -66,7 +66,7 @@ public class UserTest {
 
     @Test
     @DisplayName("preUpdate 호출 시 업데이트 시각이 갱신된다")
-    void call_preUpdate_테스트() throws InterruptedException {
+    void call_preUpdate_success() throws InterruptedException {
         // given
         user.prePersist(); // 초기화
         LocalDateTime beforeUpdate = user.getUpdatedAt();
