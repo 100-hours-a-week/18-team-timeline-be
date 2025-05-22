@@ -1,5 +1,6 @@
 package com.tamnara.backend.global.exception;
 
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.response.ErrorResponse;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
@@ -14,11 +15,13 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<?> handleCustomException(CustomException e) {
-        return ResponseEntity.status(e.getStatus()).body(Map.of(
-                "success", false,
-                "message", e.getMessage()
-        ));
+    public ResponseEntity<WrappedDTO<Void>> handleCustomException(CustomException e) {
+        return ResponseEntity.status(e.getStatus()).body(
+                new WrappedDTO<>(
+                    false,
+                    e.getMessage(),
+                    null
+                ));
     }
 
     @ExceptionHandler(DuplicateUsernameException.class)
