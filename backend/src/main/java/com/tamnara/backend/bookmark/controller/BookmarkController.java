@@ -35,7 +35,7 @@ public class BookmarkController {
 
             BookmarkAddResponse data = new BookmarkAddResponse(bookmarkId);
 
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
                             true,
                             "북마크가 성공적으로 추가되었습니다.",
