@@ -16,9 +16,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<WrappedDTO<Void>> handleCustomException(CustomException e) {
-        return ResponseEntity
-                .status(e.getStatus())
-                .body(new WrappedDTO<>(
+        return ResponseEntity.status(e.getStatus()).body(
+                new WrappedDTO<>(
                         false,
                         e.getMessage(),
                         null
