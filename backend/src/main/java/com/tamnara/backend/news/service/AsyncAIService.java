@@ -7,5 +7,5 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface AsyncAIService {
-    CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatisticsDTO(String endpoint, List<String> keywords, Integer num);
+    CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatistics(String endpoint, List<String> keywords, Integer num);
 }
