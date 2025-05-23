@@ -6,7 +6,6 @@ import com.tamnara.backend.news.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -29,23 +28,17 @@ public class AsyncAIServiceImpl implements AsyncAIService {
                 num
         );
 
-        WrappedDTO<StatisticsDTO> res = aiWebClient.post()
+        return aiWebClient.post()
                 .uri(endpoint)
                 .bodyValue(req)
                 .retrieve()
                 .onStatus(
-                        status -> status == HttpStatus.NOT_FOUND,
-                        clientResponse -> Mono.empty()
-                )
-                .onStatus(
                         HttpStatusCode::isError,
                         clientResponse -> clientResponse
                                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
-                                .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                                .flatMap(errorBody -> Mono.error(new AIException(clientResponse.statusCode(), errorBody)))
                 )
                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
-                .block();
-
-        return CompletableFuture.completedFuture(res);
+                .toFuture();
     }
 }

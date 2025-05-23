@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Service
 @RequiredArgsConstructor
@@ -165,23 +166,36 @@ public class NewsServiceImpl implements NewsService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
         // 0. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatisticsDTO(STATISTIC_AI_ENDPOINT, req.getKeywords(), STATISTICS_AI_SEARCH_CNT);
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
+                .getAIStatistics(STATISTIC_AI_ENDPOINT, req.getKeywords(), STATISTICS_AI_SEARCH_CNT)
+                .exceptionally(ex -> {
+                    Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
+                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
+                        return null;
+                    }
+                    throw new CompletionException(cause);
+                });
 
         // 1. AI에 요청하여 뉴스를 생성한다.
-        LocalDate endAt = LocalDate.now();
-        LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
-        WrappedDTO<AINewsResponse> res = createAINews(req.getKeywords(), startAt, endAt);
-        if (res == null || res.getData() == null) {
-            return null;
+        AINewsResponse aiNewsResponse;
+        try {
+            LocalDate endAt = LocalDate.now();
+            LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
+            WrappedDTO<AINewsResponse> res = createAINews(req.getKeywords(), startAt, endAt);
+            aiNewsResponse = res.getData();
+        } catch (AIException ex) {
+            if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+                return null;
+            }
+            throw ex;
         }
-        AINewsResponse aiNewsResponse = res.getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
 
         // 3. 뉴스의 여론 통계 생성 응답을 기다린다.
         WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
-        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? statsAsync.join().getData() : null;
+        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? resStats.getData() : null;
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
@@ -289,16 +303,21 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatisticsDTO(STATISTIC_AI_ENDPOINT, keywords, STATISTICS_AI_SEARCH_CNT);
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, keywords, STATISTICS_AI_SEARCH_CNT);
 
         // 3. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
-        LocalDate startAt = timelineCards.getFirst().getEndAt();
-        LocalDate endAt = LocalDate.now();
-        WrappedDTO<AINewsResponse> res = createAINews(keywords, startAt, endAt);
-        if (res == null || res.getData() == null) {
-            return null;
+        AINewsResponse aiNewsResponse;
+        try {
+            LocalDate startAt = timelineCards.getFirst().getEndAt().plusDays(1);
+            LocalDate endAt = LocalDate.now();
+            WrappedDTO<AINewsResponse> res = createAINews(keywords, startAt, endAt);
+            aiNewsResponse = res.getData();
+        } catch (AIException ex) {
+            if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+                return null;
+            }
+            throw ex;
         }
-        AINewsResponse aiNewsResponse = res.getData();
 
         // 4. 기존 타임라인 카드들과 합친 뒤, AI에게 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
@@ -306,7 +325,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 2-2. 뉴스의 여론 통계 생성 응답을 기다린다.
         WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
-        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? statsAsync.join().getData() : null;
+        StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? resStats.getData() : null;
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
@@ -394,14 +413,10 @@ public class NewsServiceImpl implements NewsService {
                 .bodyValue(aiNewsRequest)
                 .retrieve()
                 .onStatus(
-                        status -> status == HttpStatus.NOT_FOUND,
-                        clientResponse -> Mono.empty()
-                )
-                .onStatus(
                         HttpStatusCode::isError,
                         clientResponse -> clientResponse
                                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AINewsResponse>>() {})
-                                .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                                .flatMap(errorBody -> Mono.error(new AIException(clientResponse.statusCode(), errorBody)))
                 )
                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AINewsResponse>>() {})
                 .block();
@@ -449,7 +464,7 @@ public class NewsServiceImpl implements NewsService {
                                 HttpStatusCode::isError,
                                 clientResponse -> clientResponse
                                         .bodyToMono(new ParameterizedTypeReference<WrappedDTO<TimelineCardDTO>>() {})
-                                        .flatMap(errorBody -> Mono.error(new AIException(errorBody)))
+                                        .flatMap(errorBody -> Mono.error(new AIException(clientResponse.statusCode(), errorBody)))
                         )
                         .bodyToMono(new ParameterizedTypeReference<WrappedDTO<TimelineCardDTO>>() {})
                         .block();
