@@ -23,7 +23,7 @@ public class AsyncAIServiceImpl implements AsyncAIService {
     private final WebClient aiWebClient;
 
     @Async
-    public CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatisticsDTO(String endpoint, List<String> keywords, Integer num) {
+    public CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatistics(String endpoint, List<String> keywords, Integer num) {
         AIStatisticsRequest req = new AIStatisticsRequest(
                 keywords,
                 num
