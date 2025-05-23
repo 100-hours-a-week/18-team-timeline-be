@@ -1,9 +1,12 @@
 FROM eclipse-temurin:21-jdk
 
+# 작업 디렉토리 설정
 WORKDIR /app
+
+# 프로젝트 복사
 COPY . .
 
-# 1. GitHub Actions에서 전달받을 ARG 정의
+# GitHub Actions에서 전달받을 ARG 정의
 ARG DB_URL
 ARG DB_USERNAME
 ARG DB_PASSWORD
@@ -17,7 +20,7 @@ ARG EC2_PUBLIC_URL_1
 ARG EC2_PUBLIC_URL_2
 ARG EC2_PUBLIC_URL_3
 
-# 2. ENV로 굽기
+# 환경 변수 설정 (Java 실행 시 사용됨)
 ENV DB_URL=$DB_URL \
     DB_USERNAME=$DB_USERNAME \
     DB_PASSWORD=$DB_PASSWORD \
@@ -31,7 +34,13 @@ ENV DB_URL=$DB_URL \
     EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
     EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3
 
-# 3. 빌드
+# 빌드 (테스트 생략)
 RUN ./gradlew build -x test -x compileTestJava -x processTestResources
 
-CMD ["java", "-jar", "build/libs/backend.jar"]
+# Spring Boot 실행 - shell form (환경변수 치환 가능)
+CMD java \
+  -Dspring.datasource.url="$DB_URL" \
+  -Dspring.datasource.username="$DB_USERNAME" \
+  -Dspring.datasource.password="$DB_PASSWORD" \
+  -Dspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver \
+  -jar build/libs/backend-0.0.1-SNAPSHOT.jar
