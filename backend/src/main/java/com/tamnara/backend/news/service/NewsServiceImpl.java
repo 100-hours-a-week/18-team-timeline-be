@@ -84,6 +84,7 @@ public class NewsServiceImpl implements NewsService {
     private final String STATISTIC_AI_ENDPOINT = "/comment";
     private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
+    private final Integer PAGE_SIZE = 20;
     private final Integer STATISTICS_AI_SEARCH_CNT = 10;
     private final Integer NEWS_CREATE_DAYS = 30;
     private final Integer NEWS_UPDATE_HOURS = 24;
@@ -97,13 +98,14 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public Object getSingleCategoryPage(Long userId, String category, Integer page, Integer size) {
+    public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
         }
 
-        NewsListResponse newsListResponse = getNewsListResponse(userId, category, page, size);
+        Integer page = offset / PAGE_SIZE;
+        NewsListResponse newsListResponse = getNewsListResponse(userId, category, page);
 
         return switch (category != null ? category.toUpperCase() : "ALL") {
             case "ALL" -> new AllResponse(newsListResponse);
@@ -116,54 +118,55 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public MultiCategoryResponse getMultiCategoryPage(Long userId, Integer page, Integer size) {
-        int nextOffset = (page + 1) * size;
+    public MultiCategoryResponse getMultiCategoryPage(Long userId, Integer offset) {
+        int page = offset / PAGE_SIZE;
+        int nextOffset = (page + 1) * PAGE_SIZE;
 
         Page<News> newsPage;
         MultiCategoryResponse res = new MultiCategoryResponse();
 
-        newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
+        newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, PAGE_SIZE));
         res.setAll(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, size)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page, size));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page, PAGE_SIZE));
         res.setEconomy(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page + 1, size)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page, size));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page, PAGE_SIZE));
         res.setEntertainment(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page + 1, size)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page, size));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page, PAGE_SIZE));
         res.setSports(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page + 1, size)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page, size));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page, PAGE_SIZE));
         res.setKtb(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page + 1, size)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
                 )
         );
 
@@ -577,7 +580,7 @@ public class NewsServiceImpl implements NewsService {
         return newsCardDTOList;
     }
 
-    private NewsListResponse getNewsListResponse(Long userId, String category, Integer page, Integer size) {
+    private NewsListResponse getNewsListResponse(Long userId, String category, Integer page) {
         Long categoryId = null;
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category))
@@ -585,19 +588,19 @@ public class NewsServiceImpl implements NewsService {
             categoryId = c.getId();
         }
 
-        int nextOffset = (page + 1) * size;
+        int nextOffset = (page + 1) * PAGE_SIZE;
         NewsListResponse newsListResponse;
 
         if (category == null || category.equalsIgnoreCase("ALL")) {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
+            Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, PAGE_SIZE));
             List<NewsCardDTO> newsCardDTOList = getNewsCardDTOList(userId, newsPage);
-            boolean hasNext = !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, size)).isEmpty();
+            boolean hasNext = !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
 
             newsListResponse = new NewsListResponse(newsCardDTOList, nextOffset, hasNext);
         } else {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page, size));
+            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page, PAGE_SIZE));
             List<NewsCardDTO> newsCardDTOList = getNewsCardDTOList(userId, newsPage);
-            boolean hasNext = !newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page + 1, size)).isEmpty();
+            boolean hasNext = !newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
 
             newsListResponse = new NewsListResponse(newsCardDTOList, nextOffset, hasNext);
         }
