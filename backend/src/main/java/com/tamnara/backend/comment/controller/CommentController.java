@@ -1,6 +1,5 @@
 package com.tamnara.backend.comment.controller;
 
-import com.tamnara.backend.comment.dto.CommentDTO;
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.response.CommentCreateResponse;
 import com.tamnara.backend.comment.dto.response.CommentListResponse;
@@ -22,15 +21,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news/{newsId}/comments")
 public class CommentController {
 
     private final CommentService commentService;
-    private final Integer PAGE_SIZE = 20;
 
     @GetMapping
     public ResponseEntity<WrappedDTO<CommentListResponse>> getComments(
@@ -38,17 +34,7 @@ public class CommentController {
             @RequestParam(defaultValue = "0") Integer offset) {
 
         try {
-            int page = offset / PAGE_SIZE;
-            int nextOffset = (page + 1) * PAGE_SIZE;
-
-            List<CommentDTO> comments = commentService.getComments(newsId, page, PAGE_SIZE);
-            boolean hasNext = !commentService.getComments(newsId, nextOffset, PAGE_SIZE).isEmpty();
-
-            CommentListResponse commentListResponse = new CommentListResponse(
-                    comments,
-                    nextOffset,
-                    hasNext
-            );
+            CommentListResponse commentListResponse = commentService.getComments(newsId, offset);
 
             return ResponseEntity.ok().body(
                     new WrappedDTO<> (

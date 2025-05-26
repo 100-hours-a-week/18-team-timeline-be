@@ -1,12 +1,10 @@
 package com.tamnara.backend.comment.service;
 
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
-import com.tamnara.backend.comment.dto.CommentDTO;
-
-import java.util.List;
+import com.tamnara.backend.comment.dto.response.CommentListResponse;
 
 public interface CommentService {
-    List<CommentDTO> getComments(Long newsId, Integer page, Integer size);
+    CommentListResponse getComments(Long newsId, Integer offset);
     Long save(Long userId, Long newsId, CommentCreateRequest commentCreateRequest);
     void delete(Long userId, Long newsId, Long commentId);
 }
