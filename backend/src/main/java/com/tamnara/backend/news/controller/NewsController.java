@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news")
@@ -37,7 +39,7 @@ public class NewsController {
         try {
             HotissueNewsListResponse hotissueNewsListResponse = newsService.getHotissueNewsCardPage();
 
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
                             "요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다.",
@@ -77,13 +79,14 @@ public class NewsController {
 
                 Object singleCategoryResponse = newsService.getSingleCategoryPage(userId, category, offset);
 
-                return ResponseEntity.status(HttpStatus.OK).body(
+                return ResponseEntity.ok().body(
                         new WrappedDTO<> (
                                 true,
                                 "요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다.",
                                 singleCategoryResponse
                         ));
             }
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -104,15 +107,13 @@ public class NewsController {
             NewsDetailDTO newsDetailDTO = newsService.getNewsDetail(newsId, userId);
             NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
 
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(
-                            new WrappedDTO<>(
-                                    true,
-                                    "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.",
-                                    newsDetailResponse
-                            )
-                    );
+            return ResponseEntity.ok().body(
+                    new WrappedDTO<>(
+                            true,
+                            "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.",
+                            newsDetailResponse
+                    ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -136,16 +137,18 @@ public class NewsController {
 
             NewsDetailDTO newsDetailDTO = newsService.save(userId, false, req);
             if (newsDetailDTO == null) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+                return ResponseEntity.noContent().build();
             }
 
+            URI location = URI.create("/news/" + newsDetailDTO.getId());
             NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(
+            return ResponseEntity.created(location).body(
                     new WrappedDTO<>(
                             true,
                             "뉴스가 성공적으로 생성되었습니다.",
                             newsDetailResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -169,17 +172,18 @@ public class NewsController {
 
             NewsDetailDTO newsDetailDTO = newsService.update(newsId, userId);
             if (newsDetailDTO == null) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+                return ResponseEntity.noContent().build();
             }
 
             NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
 
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
                             "데이터가 성공적으로 업데이트되었습니다.",
                             newsDetailResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -205,7 +209,8 @@ public class NewsController {
 
             newsService.delete(newsId, userDetails.getUser().getId());
 
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            return ResponseEntity.noContent().build();
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
