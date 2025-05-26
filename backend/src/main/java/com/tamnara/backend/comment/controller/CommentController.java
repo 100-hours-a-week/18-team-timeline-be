@@ -44,18 +44,19 @@ public class CommentController {
             List<CommentDTO> comments = commentService.getComments(newsId, page, PAGE_SIZE);
             boolean hasNext = !commentService.getComments(newsId, nextOffset, PAGE_SIZE).isEmpty();
 
-            CommentListResponse data = new CommentListResponse(
+            CommentListResponse commentListResponse = new CommentListResponse(
                     comments,
                     nextOffset,
                     hasNext
             );
 
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.ok().body(
                     new WrappedDTO<> (
                         true,
                         "요청하신 댓글 목록을 성공적으로 불러왔습니다.",
-                        data
+                        commentListResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -79,14 +80,15 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             Long commentId = commentService.save(userId, newsId, req);
 
-            CommentCreateResponse data = new CommentCreateResponse(commentId);
+            CommentCreateResponse commentCreateResponse = new CommentCreateResponse(commentId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<> (
                         true,
                         "댓글이 성공적으로 생성되었습니다.",
-                        data
+                        commentCreateResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -110,7 +112,8 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             commentService.delete(userId, newsId, commentId);
 
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            return ResponseEntity.noContent().build();
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
