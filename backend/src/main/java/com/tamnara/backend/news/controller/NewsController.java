@@ -48,7 +48,7 @@ public class NewsController {
     @GetMapping("/hotissue")
     public ResponseEntity<WrappedDTO<HotissueNewsListResponse>> findHotissueNews() {
         try {
-            List<NewsCardDTO> newsCards = newsService.getHotissueNewsCardPage(null);
+            List<NewsCardDTO> newsCards = newsService.getHotissueNewsCardPage();
 
             HotissueNewsListResponse newsList = new HotissueNewsListResponse(newsCards);
 
