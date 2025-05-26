@@ -3,6 +3,7 @@ package com.tamnara.backend.comment.service;
 import com.tamnara.backend.comment.domain.Comment;
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
+import com.tamnara.backend.comment.dto.response.CommentListResponse;
 import com.tamnara.backend.comment.repository.CommentRepository;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
@@ -26,13 +27,19 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final NewsRepository newsRepository;
 
+    private final Integer PAGE_SIZE = 20;
+
     @Override
-    public List<CommentDTO> getComments(Long newsId, Integer page, Integer size) {
+    public CommentListResponse getComments(Long newsId, Integer offset) {
         if (!newsRepository.existsById(newsId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
         }
 
-        Page<Comment> comments = commentRepository.findAllByNewsId(newsId, PageRequest.of(page, size));
+        int page = offset / PAGE_SIZE;
+        int nextOffset = (page + 1) * PAGE_SIZE;
+
+        Page<Comment> comments = commentRepository.findAllByNewsId(newsId, PageRequest.of(page, PAGE_SIZE));
+        boolean hasNext = !commentRepository.findAllByNewsId(newsId, PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
 
         List<CommentDTO> commentDTOS = new ArrayList<>();
         for (Comment c : comments.getContent()) {
@@ -45,7 +52,11 @@ public class CommentServiceImpl implements CommentService {
             commentDTOS.add(dto);
         }
 
-        return commentDTOS;
+        return new CommentListResponse(
+                commentDTOS,
+                nextOffset,
+                hasNext
+        );
     }
 
     @Override
