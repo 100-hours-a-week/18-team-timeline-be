@@ -62,9 +62,7 @@ public class NewsController {
         try {
             if (offset == 0) {
                 // 최초 요청
-                Long userId = (userDetails != null && userDetails.getUser() != null)
-                        ? userDetails.getUser().getId()
-                        : null;
+                Long userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
 
                 MultiCategoryResponse multiCategoryResponse = newsService.getMultiCategoryPage(userId, offset);
 
@@ -75,11 +73,10 @@ public class NewsController {
                 ));
             } else {
                 // 추가 요청
-                Long userId = (userDetails != null && userDetails.getUser() != null)
-                        ? userDetails.getUser().getId()
-                        : null;
+                Long userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
 
                 Object singleCategoryResponse = newsService.getSingleCategoryPage(userId, category, offset);
+
                 return ResponseEntity.status(HttpStatus.OK).body(
                         new WrappedDTO<> (
                                 true,
@@ -102,10 +99,7 @@ public class NewsController {
                                                                          @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
-            Long userId = null;
-            if (!(userDetails == null || userDetails.getUser() == null)) {
-                userId = userDetails.getUser().getId();
-            }
+            Long userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
 
             NewsDetailDTO newsDetailDTO = newsService.getNewsDetail(newsId, userId);
             NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
