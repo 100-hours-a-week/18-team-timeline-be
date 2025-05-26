@@ -107,8 +107,8 @@ public class NewsController {
                 userId = userDetails.getUser().getId();
             }
 
-            NewsDetailDTO res = newsService.getNewsDetail(newsId, userId);
-            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
+            NewsDetailDTO newsDetailDTO = newsService.getNewsDetail(newsId, userId);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
 
             return ResponseEntity
                     .status(HttpStatus.OK)
@@ -140,12 +140,12 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
 
-            NewsDetailDTO res = newsService.save(userId, false, req);
-            if (res == null) {
+            NewsDetailDTO newsDetailDTO = newsService.save(userId, false, req);
+            if (newsDetailDTO == null) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
                             true,
@@ -173,12 +173,12 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
 
-            NewsDetailDTO res = newsService.update(newsId, userId);
-            if (res == null) {
+            NewsDetailDTO newsDetailDTO = newsService.update(newsId, userId);
+            if (newsDetailDTO == null) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
 
             return ResponseEntity.status(HttpStatus.OK).body(
                     new WrappedDTO<>(
