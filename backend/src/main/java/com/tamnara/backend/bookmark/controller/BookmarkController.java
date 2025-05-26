@@ -62,7 +62,7 @@ public class BookmarkController {
             Long userId = userDetails.getUser().getId();
             bookmarkService.deleteBookmark(userId, newsId);
 
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
