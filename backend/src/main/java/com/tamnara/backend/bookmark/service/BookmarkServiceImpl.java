@@ -1,6 +1,7 @@
 package com.tamnara.backend.bookmark.service;
 
 import com.tamnara.backend.bookmark.domain.Bookmark;
+import com.tamnara.backend.bookmark.dto.response.BookmarkAddResponse;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
@@ -22,7 +23,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     private final NewsRepository newsRepository;
 
     @Override
-    public Long addBookmark(Long userId, Long newsId) {
+    public BookmarkAddResponse addBookmark(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
@@ -38,7 +39,8 @@ public class BookmarkServiceImpl implements BookmarkService {
         savedBookmark.setUser(user);
         savedBookmark.setNews(news);
         bookmarkRepository.save(savedBookmark);
-        return savedBookmark.getId();
+
+        return new BookmarkAddResponse(savedBookmark.getId());
     }
 
     @Override

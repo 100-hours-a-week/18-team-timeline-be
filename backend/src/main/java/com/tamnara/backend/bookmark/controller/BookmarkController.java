@@ -31,15 +31,14 @@ public class BookmarkController {
             }
 
             Long userId = userDetails.getUser().getId();
-            Long bookmarkId = bookmarkService.addBookmark(userId, newsId);
 
-            BookmarkAddResponse data = new BookmarkAddResponse(bookmarkId);
+            BookmarkAddResponse bookmarkAddResponse = bookmarkService.addBookmark(userId, newsId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
                             true,
                             "북마크가 성공적으로 추가되었습니다.",
-                            data
+                            bookmarkAddResponse
                     ));
 
         } catch (ResponseStatusException e) {
@@ -63,6 +62,7 @@ public class BookmarkController {
             bookmarkService.deleteBookmark(userId, newsId);
 
             return ResponseEntity.noContent().build();
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
