@@ -41,7 +41,7 @@ public class CommentServiceImpl implements CommentService {
         Page<Comment> comments = commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page, PAGE_SIZE));
         boolean hasNext = !commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
 
-        List<CommentDTO> commentDTOS = new ArrayList<>();
+        List<CommentDTO> commentDTOList = new ArrayList<>();
         for (Comment c : comments.getContent()) {
             CommentDTO dto = new CommentDTO(
                     c.getId(),
@@ -49,11 +49,11 @@ public class CommentServiceImpl implements CommentService {
                     c.getContent(),
                     c.getCreatedAt()
             );
-            commentDTOS.add(dto);
+            commentDTOList.add(dto);
         }
 
         return new CommentListResponse(
-                commentDTOS,
+                commentDTOList,
                 nextOffset,
                 hasNext
         );
