@@ -112,7 +112,7 @@ public class NewsController {
             }
 
             NewsDetailDTO res = newsService.getNewsDetail(newsId, userId);
-            NewsDetailResponse data = new NewsDetailResponse(res);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
 
             return ResponseEntity
                     .status(HttpStatus.OK)
@@ -120,7 +120,7 @@ public class NewsController {
                             new WrappedDTO<>(
                                     true,
                                     "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.",
-                                    data
+                                    newsDetailResponse
                             )
                     );
         } catch (ResponseStatusException e) {
@@ -149,12 +149,12 @@ public class NewsController {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            NewsDetailResponse data = new NewsDetailResponse(res);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
                             true,
                             "뉴스가 성공적으로 생성되었습니다.",
-                            data
+                            newsDetailResponse
                     ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
@@ -182,13 +182,13 @@ public class NewsController {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
 
-            NewsDetailResponse data = new NewsDetailResponse(res);
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(res);
 
             return ResponseEntity.status(HttpStatus.OK).body(
                     new WrappedDTO<>(
                             true,
                             "데이터가 성공적으로 업데이트되었습니다.",
-                            data
+                            newsDetailResponse
                     ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
