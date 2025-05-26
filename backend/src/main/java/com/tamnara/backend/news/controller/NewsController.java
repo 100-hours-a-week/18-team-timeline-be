@@ -32,8 +32,6 @@ public class NewsController {
 
     private final NewsService newsService;
 
-    private final Integer PAGE_SIZE = 20;
-
     @GetMapping("/hotissue")
     public ResponseEntity<WrappedDTO<HotissueNewsListResponse>> findHotissueNews() {
         try {
@@ -68,7 +66,7 @@ public class NewsController {
                         ? userDetails.getUser().getId()
                         : null;
 
-                MultiCategoryResponse multiCategoryResponse = newsService.getMultiCategoryPage(userId, 0, PAGE_SIZE);
+                MultiCategoryResponse multiCategoryResponse = newsService.getMultiCategoryPage(userId, offset);
 
                 return ResponseEntity.ok(new WrappedDTO<>(
                         true,
@@ -81,9 +79,7 @@ public class NewsController {
                         ? userDetails.getUser().getId()
                         : null;
 
-                int pageNum = offset / PAGE_SIZE;
-
-                Object singleCategoryResponse = newsService.getSingleCategoryPage(userId, category, pageNum, PAGE_SIZE);
+                Object singleCategoryResponse = newsService.getSingleCategoryPage(userId, category, offset);
                 return ResponseEntity.status(HttpStatus.OK).body(
                         new WrappedDTO<> (
                                 true,
