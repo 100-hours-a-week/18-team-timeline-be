@@ -1,6 +1,5 @@
 package com.tamnara.backend.comment.controller;
 
-import com.tamnara.backend.comment.dto.CommentDTO;
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.response.CommentCreateResponse;
 import com.tamnara.backend.comment.dto.response.CommentListResponse;
@@ -22,15 +21,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news/{newsId}/comments")
 public class CommentController {
 
     private final CommentService commentService;
-    private final Integer PAGE_SIZE = 20;
 
     @GetMapping
     public ResponseEntity<WrappedDTO<CommentListResponse>> getComments(
@@ -38,24 +34,15 @@ public class CommentController {
             @RequestParam(defaultValue = "0") Integer offset) {
 
         try {
-            int page = offset / PAGE_SIZE;
-            int nextOffset = (page + 1) * PAGE_SIZE;
+            CommentListResponse commentListResponse = commentService.getComments(newsId, offset);
 
-            List<CommentDTO> comments = commentService.getComments(newsId, page, PAGE_SIZE);
-            boolean hasNext = !commentService.getComments(newsId, nextOffset, PAGE_SIZE).isEmpty();
-
-            CommentListResponse data = new CommentListResponse(
-                    comments,
-                    nextOffset,
-                    hasNext
-            );
-
-            return ResponseEntity.status(HttpStatus.OK).body(
+            return ResponseEntity.ok().body(
                     new WrappedDTO<> (
                         true,
                         "요청하신 댓글 목록을 성공적으로 불러왔습니다.",
-                        data
+                        commentListResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -79,14 +66,15 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             Long commentId = commentService.save(userId, newsId, req);
 
-            CommentCreateResponse data = new CommentCreateResponse(commentId);
+            CommentCreateResponse commentCreateResponse = new CommentCreateResponse(commentId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<> (
                         true,
                         "댓글이 성공적으로 생성되었습니다.",
-                        data
+                        commentCreateResponse
                     ));
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -110,7 +98,8 @@ public class CommentController {
             Long userId = userDetails.getUser().getId();
             commentService.delete(userId, newsId, commentId);
 
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            return ResponseEntity.noContent().build();
+
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
