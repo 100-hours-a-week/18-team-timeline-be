@@ -83,9 +83,9 @@ public class NewsServiceImpl implements NewsService {
     private final Integer NEWS_DELETE_DAYS = 90;
 
     @Override
-    public List<NewsCardDTO> getHotissueNewsCardPage(Long userId) {
+    public List<NewsCardDTO> getHotissueNewsCardPage() {
         Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
-        return getNewsCardDTOList(userId, newsPage);
+        return getNewsCardDTOList(null, newsPage);
     }
 
     @Override
