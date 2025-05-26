@@ -198,6 +198,7 @@ public class NewsServiceImpl implements NewsService {
         newsRepository.save(news);
 
         return new NewsDetailDTO(
+                news.getId(),
                 news.getTitle(),
                 image,
                 news.getUpdatedAt(),
@@ -307,6 +308,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
+                news.getId(),
                 news.getTitle(),
                 newsImage.getUrl(),
                 news.getUpdatedAt(),
@@ -413,6 +415,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 6. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
+                news.getId(),
                 news.getTitle(),
                 updatedNewsImage.getUrl(),
                 news.getUpdatedAt(),

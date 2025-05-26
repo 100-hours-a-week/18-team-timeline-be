@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class NewsDetailDTO {
+    private Long id;
 //    @Length(max = 18, message = "타임라인 카드의 제목은 18자까지만 가능합니다.")
     private String title;
     @Length(max = 255, message = "이미지 링크의 길이가 너무 깁니다.")
