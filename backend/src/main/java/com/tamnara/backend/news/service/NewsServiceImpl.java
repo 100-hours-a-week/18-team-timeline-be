@@ -98,26 +98,6 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
-        if (category != null && !category.equalsIgnoreCase("ALL")) {
-            categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
-        }
-
-        Integer page = offset / PAGE_SIZE;
-        NewsListResponse newsListResponse = getNewsListResponse(userId, category, page);
-
-        return switch (category != null ? category.toUpperCase() : "ALL") {
-            case "ALL" -> new AllResponse(newsListResponse);
-            case "ECONOMY" -> new EconomyResponse(newsListResponse);
-            case "ENTERTAINMENT" -> new EntertainmentResponse(newsListResponse);
-            case "SPORTS" -> new SportsResponse(newsListResponse);
-            case "KTB" -> new KtbResponse(newsListResponse);
-            default -> throw new IllegalArgumentException();
-        };
-    }
-
-    @Override
     public MultiCategoryResponse getMultiCategoryPage(Long userId, Integer offset) {
         int page = offset / PAGE_SIZE;
         int nextOffset = (page + 1) * PAGE_SIZE;
@@ -171,6 +151,26 @@ public class NewsServiceImpl implements NewsService {
         );
 
         return res;
+    }
+
+    @Override
+    public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
+        if (category != null && !category.equalsIgnoreCase("ALL")) {
+            categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+        }
+
+        Integer page = offset / PAGE_SIZE;
+        NewsListResponse newsListResponse = getNewsListResponse(userId, category, page);
+
+        return switch (category != null ? category.toUpperCase() : "ALL") {
+            case "ALL" -> new AllResponse(newsListResponse);
+            case "ECONOMY" -> new EconomyResponse(newsListResponse);
+            case "ENTERTAINMENT" -> new EntertainmentResponse(newsListResponse);
+            case "SPORTS" -> new SportsResponse(newsListResponse);
+            case "KTB" -> new KtbResponse(newsListResponse);
+            default -> throw new IllegalArgumentException();
+        };
     }
 
     @Override
