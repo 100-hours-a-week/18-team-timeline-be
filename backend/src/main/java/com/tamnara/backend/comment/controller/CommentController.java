@@ -93,7 +93,7 @@ public class CommentController {
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long newsId,
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam Long commentId
+            @PathVariable Long commentId
     ) {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
