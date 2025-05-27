@@ -23,4 +23,3 @@ public class ValueOfEnumValidator implements ConstraintValidator<ValueOfEnum, St
         return value == null || acceptedValues.contains(value.toUpperCase());
     }
 }
-

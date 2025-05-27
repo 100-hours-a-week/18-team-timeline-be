@@ -2,7 +2,7 @@ package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.dto.StatisticsDTO;
-import com.tamnara.backend.news.dto.WrappedDTO;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
