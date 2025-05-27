@@ -39,7 +39,7 @@ public class BookmarkController {
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
                             true,
-                            BookmarkResponseMessage.BOOKMARK_ADDED,
+                            BookmarkResponseMessage.BOOKMARK_ADDED_SUCCESS,
                             bookmarkAddResponse
                     ));
 
