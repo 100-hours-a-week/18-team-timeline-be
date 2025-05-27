@@ -1,8 +1,10 @@
 package com.tamnara.backend.bookmark.service;
 
+import com.tamnara.backend.bookmark.constant.BookmarkResponseMessage;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.dto.response.BookmarkAddResponse;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.user.domain.User;
@@ -25,15 +27,13 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     public BookmarkAddResponse addBookmark(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         News news  = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 뉴스입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
-        Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
-        if (bookmark.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 북마크가 추가된 상태입니다.");
-        }
+        bookmarkRepository.findByUserAndNews(user, news)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, BookmarkResponseMessage.BOOKMARK_ALREADY_ADDED));
 
         Bookmark savedBookmark = new Bookmark();
         savedBookmark.setUser(user);
@@ -46,14 +46,14 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     public void deleteBookmark(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         News news  = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 뉴스입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "북마크가 존재하지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, BookmarkResponseMessage.BOOKMARK_NOT_FOUND);
         }
 
         bookmarkRepository.delete(bookmark.get());
