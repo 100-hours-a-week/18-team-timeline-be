@@ -2,6 +2,7 @@ package com.tamnara.backend.news.domain;
 
 import com.tamnara.backend.news.domain.converter.StringListConverter;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
@@ -15,6 +16,7 @@ import java.util.List;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 @Table(name = "timeline_cards", indexes = @Index(name = "idx_news_start_desc", columnList = "news_id, start_at DESC"))
 public class TimelineCard {
     @Id
