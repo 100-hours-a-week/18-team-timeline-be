@@ -32,10 +32,8 @@ public class BookmarkServiceImpl implements BookmarkService {
         News news  = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
-        Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
-        if (bookmark.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, BookmarkResponseMessage.BOOKMARK_ALREADY_ADDED);
-        }
+        bookmarkRepository.findByUserAndNews(user, news)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, BookmarkResponseMessage.BOOKMARK_ALREADY_ADDED));
 
         Bookmark savedBookmark = new Bookmark();
         savedBookmark.setUser(user);
