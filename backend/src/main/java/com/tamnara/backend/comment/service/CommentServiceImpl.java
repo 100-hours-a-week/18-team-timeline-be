@@ -1,10 +1,12 @@
 package com.tamnara.backend.comment.service;
 
+import com.tamnara.backend.comment.constant.CommentResponseMessage;
 import com.tamnara.backend.comment.domain.Comment;
-import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.CommentDTO;
+import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.response.CommentListResponse;
 import com.tamnara.backend.comment.repository.CommentRepository;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.user.domain.User;
@@ -32,7 +34,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentListResponse getComments(Long newsId, Integer offset) {
         if (!newsRepository.existsById(newsId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND);
         }
 
         int page = offset / PAGE_SIZE;
@@ -62,10 +64,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Long save(Long userId, Long newsId, CommentCreateRequest commentCreateRequest) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Comment comment = new Comment();
         comment.setContent(commentCreateRequest.getContent());
@@ -79,18 +81,18 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void delete(Long userId, Long newsId, Long commentId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글의 뉴스가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 댓글이 존재하지 않습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, CommentResponseMessage.COMMENT_NOT_FOUND));
 
         if (comment.getUser().equals(user)) {
             commentRepository.delete(comment);
         } else {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "댓글을 삭제할 권한이 없습니다.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, CommentResponseMessage.COMMENT_DELETE_FORBIDDEN);
         }
     }
 }
