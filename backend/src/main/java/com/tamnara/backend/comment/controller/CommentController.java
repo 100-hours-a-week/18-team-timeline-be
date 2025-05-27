@@ -1,9 +1,11 @@
 package com.tamnara.backend.comment.controller;
 
+import com.tamnara.backend.comment.constant.CommentResponseMessage;
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
 import com.tamnara.backend.comment.dto.response.CommentCreateResponse;
 import com.tamnara.backend.comment.dto.response.CommentListResponse;
 import com.tamnara.backend.comment.service.CommentService;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.user.security.UserDetailsImpl;
@@ -31,7 +33,8 @@ public class CommentController {
     @GetMapping
     public ResponseEntity<WrappedDTO<CommentListResponse>> getComments(
             @PathVariable Long newsId,
-            @RequestParam(defaultValue = "0") Integer offset) {
+            @RequestParam(defaultValue = "0") Integer offset
+    ) {
 
         try {
             CommentListResponse commentListResponse = commentService.getComments(newsId, offset);
@@ -39,14 +42,14 @@ public class CommentController {
             return ResponseEntity.ok().body(
                     new WrappedDTO<> (
                         true,
-                        "요청하신 댓글 목록을 성공적으로 불러왔습니다.",
+                        CommentResponseMessage.COMMENT_LIST_FETCH_SUCCESS,
                         commentListResponse
                     ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
             throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
@@ -54,13 +57,14 @@ public class CommentController {
     }
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<CommentCreateResponse>> createComment(@PathVariable Long newsId,
-                                                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
-                                                                           @RequestBody CommentCreateRequest req
+    public ResponseEntity<WrappedDTO<CommentCreateResponse>> createComment(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody CommentCreateRequest req
     ) {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             Long userId = userDetails.getUser().getId();
@@ -70,29 +74,30 @@ public class CommentController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<> (
-                        true,
-                        "댓글이 성공적으로 생성되었습니다.",
-                        commentCreateResponse
+                            true,
+                            CommentResponseMessage.COMMENT_CREATED_SUCCESS,
+                            commentCreateResponse
                     ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long newsId,
-                                           @AuthenticationPrincipal UserDetailsImpl userDetails,
-                                           @RequestParam Long commentId
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam Long commentId
     ) {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             Long userId = userDetails.getUser().getId();
@@ -103,10 +108,10 @@ public class CommentController {
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 }
