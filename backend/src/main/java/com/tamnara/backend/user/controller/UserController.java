@@ -18,8 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
@@ -103,7 +101,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<UserInfo>> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<UserInfoWrapper>> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
@@ -112,7 +110,8 @@ public class UserController {
             }
 
             Long userId = userDetails.getUser().getId();
-            UserInfo data = userService.getCurrentUserInfo(userId);
+            UserInfo userInfo = userService.getCurrentUserInfo(userId);
+            UserInfoWrapper data = new UserInfoWrapper(userInfo);
 
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, "요청하신 정보를 성공적으로 불러왔습니다.", data)
@@ -142,7 +141,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
     public ResponseEntity<WrappedDTO<UserUpdateResponse>> updateUsername(
-            @RequestBody @Valid UserUpdateRequestDto dto,
+            @RequestBody @Valid UserUpdateRequest dto,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
@@ -200,4 +199,3 @@ public class UserController {
         }
     }
 }
-
