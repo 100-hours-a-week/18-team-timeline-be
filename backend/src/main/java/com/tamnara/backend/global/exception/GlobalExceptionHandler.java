@@ -1,5 +1,6 @@
 package com.tamnara.backend.global.exception;
 
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.response.ErrorResponse;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
