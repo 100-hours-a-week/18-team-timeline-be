@@ -8,6 +8,7 @@ import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
+import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
 import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
@@ -81,11 +82,6 @@ public class NewsServiceImpl implements NewsService {
 
     private final UserRepository userRepository;
     private final BookmarkRepository bookmarkRepository;
-
-    private final String TIMELINE_AI_ENDPOINT = "/timeline";
-    private final String MERGE_AI_ENDPOINT = "/merge";
-    private final String STATISTIC_AI_ENDPOINT = "/comment";
-    private final String HOTISSUE_AI_ENDPOINT = "/hot";
 
     private final Integer PAGE_SIZE = 20;
     private final Integer STATISTICS_AI_SEARCH_CNT = 10;
@@ -218,7 +214,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 0. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
-                .getAIStatistics(STATISTIC_AI_ENDPOINT, req.getKeywords(), STATISTICS_AI_SEARCH_CNT)
+                .getAIStatistics(req.getKeywords(), STATISTICS_AI_SEARCH_CNT)
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
                     if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
@@ -354,7 +350,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, keywords, STATISTICS_AI_SEARCH_CNT);
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatistics(keywords, STATISTICS_AI_SEARCH_CNT);
 
         // 3. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         AINewsResponse aiNewsResponse;
@@ -461,7 +457,7 @@ public class NewsServiceImpl implements NewsService {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         return aiWebClient.post()
-                .uri(TIMELINE_AI_ENDPOINT)
+                .uri(NewsExternalApiEndpoint.TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
                 .onStatus(
@@ -509,7 +505,7 @@ public class NewsServiceImpl implements NewsService {
                 AITimelineMergeRequest mergeRequest = new AITimelineMergeRequest(temp);
 
                 WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
-                        .uri(MERGE_AI_ENDPOINT)
+                        .uri(NewsExternalApiEndpoint.MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
                         .onStatus(
