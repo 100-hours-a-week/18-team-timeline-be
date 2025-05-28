@@ -12,6 +12,7 @@ public class NewsTest {
         News news = new News();
 
         // then
+        assertThat(news.getIsHotissue()).isFalse();
         assertThat(news.getViewCount()).isEqualTo(1L);
         assertThat(news.getUpdateCount()).isEqualTo(1L);
         assertThat(news.getRatioPosi()).isZero();

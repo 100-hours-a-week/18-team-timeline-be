@@ -50,7 +50,7 @@ public class News {
     private String summary;
 
     @Column(name = "is_hotissue", nullable = false)
-    private Boolean isHotissue;
+    private Boolean isHotissue = false;
 
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 1L;
