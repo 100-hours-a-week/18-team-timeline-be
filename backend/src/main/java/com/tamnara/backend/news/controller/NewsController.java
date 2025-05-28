@@ -149,7 +149,7 @@ public class NewsController {
             return ResponseEntity.created(location).body(
                     new WrappedDTO<>(
                             true,
-                            NewsResponseMessage.NEWS_CREATE_SUCCESS,
+                            NewsResponseMessage.NEWS_CREATED_SUCCESS,
                             newsDetailResponse
                     ));
 
@@ -185,7 +185,7 @@ public class NewsController {
             return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
-                            NewsResponseMessage.NEWS_UPDATE_SUCCESS,
+                            NewsResponseMessage.NEWS_UPDATED_SUCCESS,
                             newsDetailResponse
                     ));
 
