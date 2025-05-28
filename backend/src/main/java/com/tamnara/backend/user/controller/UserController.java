@@ -18,6 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import static com.tamnara.backend.global.constant.ResponseMessage.*;
+import static com.tamnara.backend.user.constant.UserResponseMessage.*;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
@@ -39,20 +42,20 @@ public class UserController {
         try {
             if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
                 return ResponseEntity.badRequest().body(
-                        new WrappedDTO<>(false, "이메일 형식이 잘못되었습니다.", null)
+                        new WrappedDTO<>(false, EMAIL_BAD_REQUEST, null)
                 );
             }
 
             boolean available = userService.isEmailAvailable(email);
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
-                            available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다.",
+                            available ? EMAIL_AVAILABLE : EMAIL_UNAVALIABLE,
                             new EmailAvailabilityResponse(available))
             );
 
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 오류가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }
@@ -71,20 +74,20 @@ public class UserController {
         try {
             if (nickname == null || nickname.isBlank() || nickname.length() > 10) {
                 return ResponseEntity.badRequest().body(
-                        new WrappedDTO<>(false, "닉네임 형식이 잘못되었습니다.", null)
+                        new WrappedDTO<>(false, NICKNAME_BAD_REQUEST, null)
                 );
             }
 
             boolean available = userService.isUsernameAvailable(nickname);
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
-                            available ? "사용 가능한 닉네임입니다." : "이미 사용 중인 닉네임입니다.",
+                            available ? NICKNAME_AVAILABLE : NICKNAME_UNAVALIABLE,
                             new NicknameAvailabilityResponse(available))
             );
 
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 오류가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }
@@ -114,16 +117,16 @@ public class UserController {
             UserInfoWrapper data = new UserInfoWrapper(userInfo);
 
             return ResponseEntity.ok(
-                    new WrappedDTO<>(true, "요청하신 정보를 성공적으로 불러왔습니다.", data)
+                    new WrappedDTO<>(true, USER_INFO_RETRIEVED, data)
             );
 
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, "관련된 회원이 없습니다.", null)
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
             );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }
@@ -149,21 +152,21 @@ public class UserController {
             User updatedUser = userService.updateUsername(userId, dto.getNickname());
 
             return ResponseEntity.ok(
-                    new WrappedDTO<>(true, "회원 정보가 성공적으로 수정되었습니다.",
+                    new WrappedDTO<>(true, USER_INFO_MODIFIED,
                             new UserUpdateResponse(updatedUser.getId()))
             );
 
         } catch (DuplicateUsernameException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                    new WrappedDTO<>(false, "이미 사용 중인 닉네임입니다.", null)
+                    new WrappedDTO<>(false, NICKNAME_UNAVALIABLE, null)
             );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, "관련된 회원이 없습니다.", null)
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
             );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }
@@ -184,17 +187,17 @@ public class UserController {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, "유효하지 않은 계정입니다.", null)
+                        new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
                 );
             }
 
             return ResponseEntity.ok(
-                    new WrappedDTO<>(true, "정상적으로 로그아웃되었습니다.", null)
+                    new WrappedDTO<>(true, LOGOUT_SUCCESSFUL, null)
             );
 
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 오류가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }
