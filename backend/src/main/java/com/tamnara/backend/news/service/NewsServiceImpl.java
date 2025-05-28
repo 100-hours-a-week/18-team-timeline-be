@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
+import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -158,7 +160,7 @@ public class NewsServiceImpl implements NewsService {
     public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
         }
 
         Integer page = offset / PAGE_SIZE;
@@ -177,7 +179,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Optional<User> user;
         if (userId != null) {
@@ -212,7 +214,7 @@ public class NewsServiceImpl implements NewsService {
     @Transactional
     public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         // 0. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
@@ -321,14 +323,14 @@ public class NewsServiceImpl implements NewsService {
     @Transactional
     public NewsDetailDTO update(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_UPDATE_CONFLICT);
         }
 
         List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(newsId);
@@ -427,17 +429,17 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public void delete(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         if (user.getRole() != Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스 삭제에 대한 권한이 없습니다.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NewsResponseMessage.NEWS_DELETE_FORBIDDEN);
         }
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_DELETE_CONFLICT);
         }
 
         newsRepository.delete(news);
@@ -607,7 +609,7 @@ public class NewsServiceImpl implements NewsService {
         Long categoryId = null;
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
             categoryId = c.getId();
         }
 
@@ -663,7 +665,7 @@ public class NewsServiceImpl implements NewsService {
         Long categoryId = null;
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
             categoryId = c.getId();
         }
         return categoryId;
