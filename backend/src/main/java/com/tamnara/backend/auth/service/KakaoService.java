@@ -17,6 +17,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+import static com.tamnara.backend.global.constant.ResponseMessage.INTERNAL_SERVER_ERROR;
+
 @Service
 @RequiredArgsConstructor
 public class KakaoService {
@@ -85,14 +88,14 @@ public class KakaoService {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
-                    .body(new WrappedDTO<>(true, "카카오 로그인이 성공적으로 완료되었습니다.", null));
+                    .body(new WrappedDTO<>(true, KAKAO_LOGIN_SUCCESSFUL, null));
 
         } catch (RestClientException e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body(new WrappedDTO<>(false, "❌ 카카오 서버 요청 실패: " + e.getMessage(), null));
+                    .body(new WrappedDTO<>(false, KAKAO_BAD_GATEWAY + e.getMessage(), null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new WrappedDTO<>(false, "❌ 예상치 못한 오류 발생: " + e.getMessage(), null));
+                    .body(new WrappedDTO<>(false, INTERNAL_SERVER_ERROR + e.getMessage(), null));
         }
     }
 }

@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth/kakao")
@@ -31,7 +33,7 @@ public class KakaoController {
         return ResponseEntity.ok(
                 new WrappedDTO<>(
                         true,
-                        "카카오 로그인 요청 URL이 성공적으로 생성되었습니다.",
+                        KAKAO_LOGIN_URL_GENERATGED,
                         new KakaoLoginUrlResponse(loginUrl)
                 )
         );
