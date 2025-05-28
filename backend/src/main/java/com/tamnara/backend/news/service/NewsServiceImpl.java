@@ -345,7 +345,15 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatistics(keywords);
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
+                .getAIStatistics(keywords)
+                .exceptionally(ex -> {
+                    Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
+                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
+                        return null;
+                    }
+                    throw new CompletionException(cause);
+                });
 
         // 3. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         AINewsResponse aiNewsResponse;
