@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -168,5 +169,36 @@ public class UserControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("이미 사용 중인 닉네임입니다."));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 통합 테스트 - 성공")
+    void withdrawUser_success() throws Exception {
+        // when & then
+        mockMvc.perform(patch("/users/me/state")
+                        .header("Authorization", getAccessToken(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user.userId").value(user.getId()))
+                .andExpect(jsonPath("$.data.user.withdrawnAt").exists());
+
+        // then: DB 상태 확인
+        User deletedUser = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(deletedUser.getState()).isEqualTo(State.DELETED);
+        assertThat(deletedUser.getWithdrawnAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 실패 - 이미 탈퇴한 계정")
+    void withdrawUser_forbidden_ifDeleted() throws Exception {
+        // given
+        user.softDelete();
+        userRepository.save(user);
+
+        // when & then
+        mockMvc.perform(patch("/users/me/state")
+                        .header("Authorization", getAccessToken(user)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
     }
 }

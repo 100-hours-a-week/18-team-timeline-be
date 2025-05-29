@@ -2,6 +2,7 @@ package com.tamnara.backend.user.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -59,6 +60,7 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime lastActiveAt;
 
+    @UpdateTimestamp
     private LocalDateTime withdrawnAt;
 
     @PrePersist
@@ -79,5 +81,10 @@ public class User {
 
     public void updateLastActiveAtNow() {
         this.lastActiveAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.state = State.DELETED;
+        this.withdrawnAt = LocalDateTime.now();
     }
 }
