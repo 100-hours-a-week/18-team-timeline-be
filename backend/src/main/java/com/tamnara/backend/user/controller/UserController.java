@@ -216,7 +216,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<UserWithdrawResponse>> withdrawUser(
+    public ResponseEntity<WrappedDTO<UserWithdrawInfoWrapper>> withdrawUser(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
@@ -233,7 +233,7 @@ public class UserController {
                 );
             }
 
-            UserWithdrawResponse response = userService.withdrawUser(user.getId());
+            UserWithdrawInfoWrapper response = userService.withdrawUser(user.getId());
 
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, "회원 탈퇴 처리가 완료되었습니다.", response)

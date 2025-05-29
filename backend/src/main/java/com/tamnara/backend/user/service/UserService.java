@@ -3,10 +3,7 @@ package com.tamnara.backend.user.service;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.SignupRequest;
-import com.tamnara.backend.user.dto.SignupResponse;
-import com.tamnara.backend.user.dto.UserInfo;
-import com.tamnara.backend.user.dto.UserWithdrawResponse;
+import com.tamnara.backend.user.dto.*;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -92,12 +89,14 @@ public class UserService {
         return user;
     }
 
-    public UserWithdrawResponse withdrawUser(Long userId) {
+    public UserWithdrawInfoWrapper withdrawUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
-        user.softDelete();  // 상태 및 탈퇴일시 변경
+        user.softDelete();
 
-        return new UserWithdrawResponse(user.getId(), user.getWithdrawnAt());
+        return new UserWithdrawInfoWrapper(
+                new UserWithdrawInfo(user.getId(), user.getWithdrawnAt())
+        );
     }
 }
