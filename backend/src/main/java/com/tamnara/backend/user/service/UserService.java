@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import static com.tamnara.backend.user.constant.UserResponseMessage.REGISTER_SUCCESSFUL;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -47,7 +49,7 @@ public class UserService {
 
         return SignupResponse.builder()
                 .success(true)
-                .message("회원가입이 성공적으로 완료되었습니다.")
+                .message(REGISTER_SUCCESSFUL)
                 .data(SignupResponse.UserData.builder()
                         .userId(savedUser.getId())
                         .build())
