@@ -144,6 +144,7 @@ jobs:
 
       - name: Notify Discord on Success (ECR Push)
         run: |
+          chmod +x .github/scripts/discord_notify.sh
           TAG=${{ steps.meta.outputs.tag }}
           ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
           TITLE="*ECR Push 완료!*"
