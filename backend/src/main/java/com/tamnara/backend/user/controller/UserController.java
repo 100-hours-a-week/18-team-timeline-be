@@ -220,12 +220,6 @@ public class UserController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, "유효하지 않은 토큰입니다.", null)
-                );
-            }
-
             User user = userDetails.getUser();
             if (user.getState() != State.ACTIVE) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
