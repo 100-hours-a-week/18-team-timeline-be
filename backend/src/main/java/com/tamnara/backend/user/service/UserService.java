@@ -6,6 +6,7 @@ import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.SignupRequest;
 import com.tamnara.backend.user.dto.SignupResponse;
 import com.tamnara.backend.user.dto.UserInfo;
+import com.tamnara.backend.user.dto.UserWithdrawResponse;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -89,5 +90,14 @@ public class UserService {
         user.updateUsername(newUsername); // 엔티티에 닉네임 변경 메서드 필요
 
         return user;
+    }
+
+    public UserWithdrawResponse withdrawUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        user.softDelete();  // 상태 및 탈퇴일시 변경
+
+        return new UserWithdrawResponse(user.getId(), user.getWithdrawnAt());
     }
 }
