@@ -141,7 +141,6 @@ jobs:
           docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
           docker tag 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
           docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
-🔧 변경점 요약:
 
       - name: Notify Discord on Success (ECR Push)
         run: |
