@@ -1,6 +1,7 @@
 package com.tamnara.backend.user.controller;
 
 import com.tamnara.backend.global.dto.WrappedDTO;
+import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.*;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
@@ -198,6 +199,47 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
                     new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
+            );
+        }
+    }
+
+    @PatchMapping("/me/state")
+    @Operation(
+            summary = "회원 탈퇴 (Soft Delete)",
+            description = "특정 문구를 입력한 사용자가 요청하면 회원 상태를 DELETED로 바꾸고 탈퇴 처리합니다.",
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "회원 탈퇴 처리가 완료되었습니다."),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰입니다."),
+            @ApiResponse(responseCode = "403", description = "유효하지 않은 계정입니다."),
+            @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
+            @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
+    })
+    public ResponseEntity<WrappedDTO<UserWithdrawInfoWrapper>> withdrawUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        try {
+            User user = userDetails.getUser();
+            if (user.getState() != State.ACTIVE) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        new WrappedDTO<>(false, "유효하지 않은 계정입니다.", null)
+                );
+            }
+
+            UserWithdrawInfoWrapper response = userService.withdrawUser(user.getId());
+
+            return ResponseEntity.ok(
+                    new WrappedDTO<>(true, "회원 탈퇴 처리가 완료되었습니다.", response)
+            );
+
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new WrappedDTO<>(false, "관련된 회원이 없습니다.", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(
+                    new WrappedDTO<>(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요.", null)
             );
         }
     }
