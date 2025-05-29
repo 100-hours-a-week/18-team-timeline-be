@@ -40,10 +40,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      #     - name: Run Checkstyle
-      #       working-directory: ./backend
-      #       run: ./gradlew checkstyleMain
-
       - name: Build without Tests
         working-directory: ./backend
         env:
@@ -64,8 +60,6 @@ jobs:
       - name: Notify Discord on Failure
         if: failure()
         run: |
-          echo "❌ CI 실패! Discord 알림 전송 중..."
-
           CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
             sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
 
@@ -91,11 +85,9 @@ jobs:
           fi
 
           ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
-          TITLE="🚨 *백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+          TITLE="*백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
 
-          curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"$TITLE\\n$ERROR_MSG\\n👉 [자세한 로그 보기](https://github.com/100-hours-a-week/18-team-timeline-be/actions)\"}" \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+          .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
 
   build-and-push:
     name: Docker Build & ECR Push (main only)
@@ -143,17 +135,18 @@ jobs:
         run: |
           chmod +x ../scripts/build.sh
           ../scripts/build.sh 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
-          echo "🚀 Docker 이미지 ECR 푸시"
           docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
+          docker tag 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
+          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
 
-      - name: Notify Discord on Success
+      - name: Notify Discord on Success (ECR Push)
         run: |
           TAG=${{ steps.meta.outputs.tag }}
           ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
+          TITLE="*ECR Push 완료!*"
+          MSG="📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)"
 
-          curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"✅ *ECR Push 완료!*\\n📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+          .github/scripts/discord_notify.sh success "$TITLE" "$MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
 
       - name: Deploy to ECS (자동화 핵심)
         env:
@@ -188,10 +181,12 @@ jobs:
             --service $SERVICE \
             --task-definition $NEW_TASK_ARN
 
-      - name: Notify Discord on Success
+      - name: Notify Discord on Success (ECS 배포)
         run: |
           TAG=${{ steps.meta.outputs.tag }}
           ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-          curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"✅ *ECR + ECS 배포 완료!*\\n📦 $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)\"}" \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TITLE="*ECR + ECS 배포 완료!*"
+          MSG="📦 $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)"
+
+          .github/scripts/discord_notify.sh success "$TITLE" "$MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
