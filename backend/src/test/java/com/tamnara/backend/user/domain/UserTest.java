@@ -79,4 +79,16 @@ public class UserTest {
         // then
         assertThat(user.getUpdatedAt()).isAfter(beforeUpdate);
     }
+
+    @Test
+    @DisplayName("softDelete 호출 시 상태는 DELETED가 되고 withdrawnAt은 현재 시각으로 설정된다")
+    void softDelete_success() {
+        // when
+        user.softDelete();
+
+        // then
+        assertThat(user.getState()).isEqualTo(State.DELETED);
+        assertThat(user.getWithdrawnAt()).isNotNull();
+        assertThat(user.getWithdrawnAt()).isBeforeOrEqualTo(LocalDateTime.now());
+    }
 }
