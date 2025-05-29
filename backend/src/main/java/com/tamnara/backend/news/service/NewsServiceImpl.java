@@ -331,7 +331,7 @@ public class NewsServiceImpl implements NewsService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
         }
 
-        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndDuration(newsId, null);
+        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(newsId);
         List<TimelineCardDTO> oldTimeline = new ArrayList<>();
         for (TimelineCard tc : timelineCards) {
             TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
@@ -626,7 +626,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
-        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
+        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(news.getId());
         List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
         timeline.forEach(tc -> {
             TimelineCardDTO dto = new TimelineCardDTO(
