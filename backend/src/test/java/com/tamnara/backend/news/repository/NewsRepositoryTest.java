@@ -4,6 +4,10 @@ import com.tamnara.backend.global.config.JpaConfig;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
+import com.tamnara.backend.news.domain.NewsImage;
+import com.tamnara.backend.news.domain.NewsTag;
+import com.tamnara.backend.news.domain.Tag;
+import com.tamnara.backend.news.domain.TimelineCard;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -22,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +52,9 @@ public class NewsRepositoryTest {
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private TagRepository tagRepository;
     @Autowired private NewsTagRepository newsTagRepository;
-    
+    @Autowired private NewsImageRepository newsImageRepository;
+    @Autowired private TimelineCardRepository timelineCardRepository;
+
     private News createNews(String title, String summary, User user, Category category) {
         News news = new News();
         news.setTitle(title);
@@ -392,5 +399,49 @@ public class NewsRepositoryTest {
                 first.getUpdatedAt().isAfter(second.getUpdatedAt()) ||
                         (first.getUpdatedAt().isEqual(second.getUpdatedAt()) && first.getId() > second.getId())
         );
+    }
+
+    @Test
+    void 뉴스_삭제_시_연관관계_CASCADE_삭제_검증() {
+        // given
+        Tag tag = new Tag();
+        tag.setName("태그");
+        tagRepository.saveAndFlush(tag);
+
+        News news = createNews("제목", "미리보기 내용", user, null);
+        newsRepository.saveAndFlush(news);
+
+        em.flush();
+        em.clear();
+
+        NewsImage newsImage = new NewsImage();
+        newsImage.setNews(news);
+        newsImage.setUrl("url");
+        newsImageRepository.saveAndFlush(newsImage);
+
+        TimelineCard timelineCard = new TimelineCard();
+        timelineCard.setNews(news);
+        timelineCard.setTitle("제목");
+        timelineCard.setContent("내용");
+        timelineCard.setSource(List.of("source1", "source2"));
+        timelineCard.setStartAt(LocalDate.now());
+        timelineCard.setEndAt(LocalDate.now());
+        timelineCardRepository.saveAndFlush(timelineCard);
+
+        NewsTag newsTag = new NewsTag();
+        newsTag.setNews(news);
+        newsTag.setTag(tag);
+        newsTagRepository.saveAndFlush(newsTag);
+
+        // when
+        News findedNews = newsRepository.findById(news.getId()).get();
+        newsRepository.delete(findedNews);
+        em.flush();
+        em.clear();
+
+        // then
+        assertFalse(newsImageRepository.existsById(newsImage.getId()));
+        assertFalse(timelineCardRepository.existsById(timelineCard.getId()));
+        assertFalse(newsTagRepository.existsById(newsTag.getId()));
     }
 }
