@@ -193,3 +193,4 @@ jobs:
           MSG="📦 $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)"
 
           .github/scripts/discord_notify.sh success "$TITLE" "$MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
