@@ -8,6 +8,7 @@ import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
 import static com.tamnara.backend.global.constant.ResponseMessage.INTERNAL_SERVER_ERROR;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class KakaoService {
@@ -35,21 +37,27 @@ public class KakaoService {
     private String redirectUri;
 
     public String buildKakaoLoginUrl() {
-        return UriComponentsBuilder.fromUriString("https://kauth.kakao.com/oauth/authorize")
+        String url = UriComponentsBuilder.fromUriString("https://kauth.kakao.com/oauth/authorize")
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .build()
                 .toUriString();
+
+        log.info("카카오 로그인 URL 생성됨: {}", url);
+        return url;
     }
 
     public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
+        log.info("카카오 로그인 시작: code={}", code);
         try {
             // access token 요청
             String accessToken = kakaoApiClient.getAccessToken(code);
+            log.info("카카오 access token 발급 성공");
 
             // 사용자 정보 요청
             Map<String, Object> userInfoJson = kakaoApiClient.getUserInfo(accessToken);
+            log.info("카카오 사용자 정보 조회 성공");
 
             // 사용자 정보 파싱
             Map<String, Object> kakaoAccount = (Map<String, Object>) userInfoJson.get("kakao_account");
@@ -59,6 +67,8 @@ public class KakaoService {
             String email = (String) kakaoAccount.get("email");
             String nickname = (String) properties.get("nickname");
 
+            log.debug("카카오 사용자 파싱 결과: kakaoId={}, email={}, nickname={}", kakaoId, email, nickname);
+
             // 이미 카카오 로그인으로 가입된 사용자인지 확인
             Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
 
@@ -67,6 +77,7 @@ public class KakaoService {
             if (optionalUser.isPresent()) {
                 // 기존 사용자 → 로그인 처리
                 user = optionalUser.get();
+                log.info("기존 사용자 로그인 처리: userId={}", user.getId());
             } else {
                 // 신규 사용자 → 회원가입 처리
                 user = User.builder()
@@ -77,11 +88,14 @@ public class KakaoService {
                         .role(Role.USER)         // 기본 권한
                         .state(State.ACTIVE)     // 기본 상태
                         .build();
+                log.info("신규 사용자 회원가입 처리 예정: email={}", email);
             }
             user.updateLastActiveAtNow();
             userRepository.save(user);
+            log.info("마지막 활동시간 업데이트 완료: userId={}", user.getId());
 
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
+            log.info("JWT 발급 완료: userId={}", user.getId());
 
             // 콘솔에 access token 출력 (로컬 디버깅용)
 //            System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
@@ -91,9 +105,11 @@ public class KakaoService {
                     .body(new WrappedDTO<>(true, KAKAO_LOGIN_SUCCESSFUL, null));
 
         } catch (RestClientException e) {
+            log.error("카카오 API 요청 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .body(new WrappedDTO<>(false, KAKAO_BAD_GATEWAY + e.getMessage(), null));
         } catch (Exception e) {
+            log.error("카카오 로그인 처리 중 예외 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new WrappedDTO<>(false, INTERNAL_SERVER_ERROR + e.getMessage(), null));
         }
