@@ -1,6 +1,7 @@
 package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -8,6 +9,10 @@ import com.tamnara.backend.news.domain.NewsImage;
 import com.tamnara.backend.news.domain.TimelineCard;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
+import com.tamnara.backend.news.dto.StatisticsDTO;
+import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.category.AllResponse;
 import com.tamnara.backend.news.dto.response.category.EconomyResponse;
@@ -37,8 +42,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +57,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class NewsServiceImplTest {
 
+    @Mock private AIService aiService;
     @Mock private AsyncAIService asyncAiService;
 
     @Mock private NewsRepository newsRepository;
@@ -64,7 +72,15 @@ class NewsServiceImplTest {
 
     @InjectMocks private NewsServiceImpl newsServiceImpl;
 
-    private static final int PAGE_SIZE = 20;
+    private static final String TIMELINE_AI_ENDPOINT = "/timeline";
+    private static final String MERGE_AI_ENDPOINT = "/merge";
+    private static final String STATISTIC_AI_ENDPOINT = "/comment";
+
+    private static final Integer PAGE_SIZE = 20;
+    private static final Integer STATISTICS_AI_SEARCH_CNT = 10;
+    private static final Integer NEWS_CREATE_DAYS = 30;
+    private static final Integer NEWS_UPDATE_HOURS = 24;
+    private static final Integer NEWS_DELETE_DAYS = 90;
 
     User user;
     Category economy;
@@ -339,15 +355,76 @@ class NewsServiceImplTest {
         assertEquals(response.getTimeline().get(1).getTitle(), timelineCard2.getTitle());
         assertEquals(response.getTimeline().get(2).getTitle(), timelineCard3.getTitle());
     }
-//
-//    @Test
-//    void 뉴스_생성_검증() {
-//        // given
-//
-//        // when
-//
-//        // then
-//    }
+
+    @Test
+    void 뉴스_생성_검증() {
+        // given
+        List<String> query = List.of("키워드1", "키워드2", "키워드3");
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        // 타임라인 생성
+        NewsCreateRequest newsCreateRequest = new NewsCreateRequest(query);
+        List<TimelineCardDTO> dayCardDTOs = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            LocalDate localDate = LocalDate.now().minusDays(i);
+
+            TimelineCardDTO dayCardDTO = new TimelineCardDTO(
+                    "제목",
+                    "내용",
+                    List.of("source1", "source2"),
+                    "DAY",
+                    localDate,
+                    localDate
+            );
+
+            dayCardDTOs.add(dayCardDTO);
+        }
+        WrappedDTO<AINewsResponse> createAiNewsResponse = new WrappedDTO<>(
+                true,
+                "메시지",
+                new AINewsResponse(
+                        "제목",
+                        "미리보기 내용",
+                        "이미지",
+                        "카테고리",
+                        dayCardDTOs
+                )
+        );
+        LocalDate localDate = LocalDate.now();
+        when(aiService.createAINews(query, localDate.minusDays(NEWS_CREATE_DAYS), localDate)).thenReturn(createAiNewsResponse);
+
+        // 타임라인 병합
+        TimelineCardDTO weekCardDTO = new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("source1", "source2"),
+                "WEEK",
+                LocalDate.now().minusDays(6),
+                LocalDate.now()
+        );
+        List<TimelineCardDTO> mergeAiNewsResponse = List.of(weekCardDTO);
+        when(aiService.mergeTimelineCards(dayCardDTOs)).thenReturn(mergeAiNewsResponse);
+
+        // 여론 통계 생성
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(
+                new WrappedDTO<>(
+                        true,
+                        "메시지",
+                        new StatisticsDTO(
+                                10,
+                                20,
+                                70
+                        )
+                )
+        );
+        when(asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, query, 10)).thenReturn(statsAiResponse);
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
+
+        // then
+        assertEquals(createAiNewsResponse.getData().getTitle(), response.getTitle());
+    }
 //
 //    @Test
 //    void 뉴스_업데이트_검증() {
