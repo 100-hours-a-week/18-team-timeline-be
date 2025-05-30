@@ -22,7 +22,7 @@ ARG AI_BASE_URL
 ARG EC2_PUBLIC_URL_1
 ARG EC2_PUBLIC_URL_2
 ARG EC2_PUBLIC_URL_3
-ARG OTEL_EXPORTER_OTLP_ENDPOINT  # 🔥 OTEL 엔드포인트도 ARG로 전달
+ARG OTEL_EXPORTER_OTLP_ENDPOINT
 
 # 환경 변수 설정
 ENV DB_URL=$DB_URL \
@@ -51,6 +51,8 @@ CMD java \
   -Dspring.datasource.url="$DB_URL" \
   -Dspring.datasource.username="$DB_USERNAME" \
   -Dspring.datasource.password="$DB_PASSWORD" \
+  -Dmanagement.endpoints.web.exposure.include=prometheus,health,info \
+  -Duser.timezone=Asia/Seoul \
   -Dspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver \
   -jar build/libs/backend-0.0.1-SNAPSHOT.jar
 

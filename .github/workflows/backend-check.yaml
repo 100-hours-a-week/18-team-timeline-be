@@ -55,6 +55,7 @@ jobs:
           EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
           EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
           EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
   build-image:
@@ -137,24 +138,65 @@ jobs:
           aws-region: ap-northeast-2
 
 
+#      - name: Deploy to ECS
+#        env:
+#          TAG: ${{ needs.build-image.outputs.tag }}
+#          AWS_REGION: ap-northeast-2
+#        run: |
+#          FAMILY="docker-v1-backend-cluster"
+#          SERVICE="${FAMILY}-service"
+#          CONTAINER_NAME="docker-v1-backend"
+#          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+#
+#          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
+#
+#          NEW_DEF=$(echo $TASK | jq '.taskDefinition |
+#            {
+#              family: .family,
+#              networkMode: .networkMode,
+#              executionRoleArn: .executionRoleArn,
+#              containerDefinitions: (.containerDefinitions | map(if .name == "'$CONTAINER_NAME'" then .image = "'$IMAGE'" else . end)),
+#              requiresCompatibilities: .requiresCompatibilities,
+#              cpu: .cpu,
+#              memory: .memory
+#            }')
+#
+#          echo "$NEW_DEF" > new-task-def.json
+#
+#          NEW_TASK_ARN=$(aws ecs register-task-definition \
+#            --cli-input-json file://new-task-def.json \
+#            | jq -r '.taskDefinition.taskDefinitionArn')
+#
+#          aws ecs update-service \
+#            --cluster $FAMILY \
+#            --service $SERVICE \
+#            --task-definition $NEW_TASK_ARN
       - name: Deploy to ECS
         env:
           TAG: ${{ needs.build-image.outputs.tag }}
           AWS_REGION: ap-northeast-2
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
         run: |
           FAMILY="docker-v1-backend-cluster"
           SERVICE="${FAMILY}-service"
           CONTAINER_NAME="docker-v1-backend"
-          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest"
 
           TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
 
-          NEW_DEF=$(echo $TASK | jq '.taskDefinition |
+          NEW_DEF=$(echo $TASK | jq --arg IMAGE "$IMAGE" --arg CONTAINER_NAME "$CONTAINER_NAME" --arg OTEL "$OTEL_EXPORTER_OTLP_ENDPOINT" '.taskDefinition |
             {
               family: .family,
               networkMode: .networkMode,
               executionRoleArn: .executionRoleArn,
-              containerDefinitions: (.containerDefinitions | map(if .name == "'$CONTAINER_NAME'" then .image = "'$IMAGE'" else . end)),
+              containerDefinitions: (
+                .containerDefinitions | map(
+                  if .name == $CONTAINER_NAME then
+                    .image = $IMAGE 
+                  else .
+                  end
+                )
+              ),
               requiresCompatibilities: .requiresCompatibilities,
               cpu: .cpu,
               memory: .memory
