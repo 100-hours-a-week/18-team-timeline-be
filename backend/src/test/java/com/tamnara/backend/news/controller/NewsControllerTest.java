@@ -2,7 +2,11 @@ package com.tamnara.backend.news.controller;
 
 import com.tamnara.backend.config.NewsServiceMockConfig;
 import com.tamnara.backend.news.domain.CategoryType;
+import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
+import com.tamnara.backend.news.dto.StatisticsDTO;
+import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
 import com.tamnara.backend.news.dto.response.category.AllResponse;
@@ -31,6 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -77,6 +82,32 @@ public class NewsControllerTest {
                 updatedAt,
                 bookmarked,
                 bookmarked ? LocalDateTime.now() : null
+        );
+    };
+
+    private TimelineCardDTO createTimelineCardDTO() {
+        return new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("source1", "source2"),
+                TimelineCardType.DAY.toString(),
+                LocalDate.now(),
+                LocalDate.now()
+        );
+    }
+
+    private NewsDetailDTO createNewsDetailDTO(Long id, boolean bookmarked) {
+        TimelineCardDTO timelineCardDTO1 = createTimelineCardDTO();
+        TimelineCardDTO timelineCardDTO2 = createTimelineCardDTO();
+
+        return new NewsDetailDTO(
+                id,
+                "제목",
+                "이미지 링크",
+                LocalDateTime.now(),
+                bookmarked,
+                List.of(timelineCardDTO1, timelineCardDTO2),
+                new StatisticsDTO(50, 30, 20)
         );
     };
 
@@ -547,5 +578,47 @@ public class NewsControllerTest {
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.KTB.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_뉴스_상세_정보_조회_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        Long newsId = 1L;
+        NewsDetailDTO response = createNewsDetailDTO(newsId, false);
+        given(newsService.getNewsDetail(newsId, null)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news/{newsId}", newsId)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.news.id").value(newsId))
+                .andExpect(jsonPath("$.data.news.bookmarked").value(false));                ;
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_뉴스_상세_정보_조회_검증() throws Exception {
+        // given
+        Long newsId = 1L;
+        NewsDetailDTO response = createNewsDetailDTO(newsId, false);
+        given(newsService.getNewsDetail(newsId, userId)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news/{newsId}", newsId)
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.news.id").value(newsId))
+                .andExpect(jsonPath("$.data.news.bookmarked").value(false));                ;
     }
 }
