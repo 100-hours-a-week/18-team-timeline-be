@@ -117,7 +117,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("회원 정보 조회 통합 테스트")
+    @DisplayName("회원 정보 조회 통합 테스트 - 성공")
     void getCurrentUser_success() throws Exception {
         // when & then
         mockMvc.perform(get("/users/me")
@@ -128,7 +128,21 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("닉네임 수정 통합 테스트")
+    @DisplayName("회원 정보 조회 통합 테스트 - 이미 탈퇴한 계정")
+    void getCurrentUser_forbidden_ifDeleted() throws Exception {
+        // given
+        user.softDelete();
+        userRepository.save(user);
+
+        // when & then
+        mockMvc.perform(get("/users/me")
+                        .header("Authorization", getAccessToken(user)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
+    }
+
+    @Test
+    @DisplayName("회원 정보 수정 통합 테스트 - 성공")
     void updateNickname_success() throws Exception {
         // given
         UserUpdateRequest dto = new UserUpdateRequest("newnick");
@@ -149,7 +163,25 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("닉네임 중복 수정 실패")
+    @DisplayName("회원 정보 수정 실패 - 이미 탈퇴한 계정")
+    void updateUser_forbidden_ifDeleted() throws Exception {
+        // given
+        user.softDelete();
+        userRepository.save(user);
+
+        UserUpdateRequest dto = new UserUpdateRequest("newnick");
+
+        // when & then
+        mockMvc.perform(patch("/users/me")
+                        .header("Authorization", getAccessToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
+    }
+
+    @Test
+    @DisplayName("회원 정보 수정 실패 - 중복 닉네임")
     void updateNickname_conflict() throws Exception {
         // given
         userRepository.save(User.builder()
