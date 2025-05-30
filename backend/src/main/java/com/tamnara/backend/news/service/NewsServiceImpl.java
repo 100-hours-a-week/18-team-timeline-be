@@ -238,7 +238,6 @@ public class NewsServiceImpl implements NewsService {
             }
             throw ex;
         }
-        AINewsResponse aiNewsResponse = res.getData();
 
         // 2. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = mergeTimelineCards(aiNewsResponse.getTimeline());
