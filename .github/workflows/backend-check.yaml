@@ -66,6 +66,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      checks: write
+      pull-requests: write
+
 
     steps:
       - name: Checkout source code
@@ -119,6 +122,12 @@ jobs:
     needs: build-image
     if: github.ref == 'refs/heads/main'
 
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
     steps:
       # 🔐 OIDC 인증 추가 (필수)
       - name: Configure AWS credentials (OIDC)
@@ -166,7 +175,7 @@ jobs:
     name: Notify Discord on Failure
     runs-on: ubuntu-latest
     if: failure()
-    needs: [ci-check]
+    needs: [ci-check, build-image, deploy-ecs]
 
     steps:
       - name: Notify Discord on CI Failure
