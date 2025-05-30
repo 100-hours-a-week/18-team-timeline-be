@@ -123,6 +123,7 @@ jobs:
       - name: Deploy to ECS
         env:
           TAG: ${{ needs.build-image.outputs.tag }}
+          AWS_REGION: ap-northeast-2
         run: |
           FAMILY="docker-v1-backend-cluster"
           SERVICE="${FAMILY}-service"
