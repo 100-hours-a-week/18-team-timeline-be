@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -618,6 +619,33 @@ public class NewsControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("뉴스가 성공적으로 생성되었습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.news.id").value(newsId));
+    }
+
+    @Test
+    void 로그아웃_상태에서_뉴스_업데이트_불가_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        // when & then
+        Long newsId = 1L;
+        mockMvc.perform(patch("/news/{newsId}", newsId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 로그인_상태에서_뉴스_업데이트_검증() throws Exception {
+        // given
+        Long newsId = 1L;
+        NewsDetailDTO response = createNewsDetailDTO(newsId, true);
+        given(newsService.update(eq(newsId), eq(USER_ID))).willReturn(response);
+
+        // when & then
+        mockMvc.perform(patch("/news/{newsId}", newsId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("데이터가 성공적으로 업데이트되었습니다."))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId));
     }
