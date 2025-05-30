@@ -53,3 +53,4 @@ CMD java \
   -Dspring.datasource.password="$DB_PASSWORD" \
   -Dspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver \
   -jar build/libs/backend-0.0.1-SNAPSHOT.jar
+
