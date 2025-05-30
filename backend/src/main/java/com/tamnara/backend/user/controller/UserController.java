@@ -171,8 +171,7 @@ public class UserController {
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, USER_INFO_MODIFIED,
                             new UserUpdateResponse(updatedUser.getId()))
-            );
-
+            )
         } catch (DuplicateUsernameException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
                     new WrappedDTO<>(false, NICKNAME_UNAVAILABLE, null)
