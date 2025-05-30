@@ -59,6 +59,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -577,15 +578,62 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals("마지막 업데이트 이후 24시간이 지나지 않았습니다.", exception.getReason());;
+        assertEquals("마지막 업데이트 이후 24시간이 지나지 않았습니다.", exception.getReason());
     }
-//
-//    @Test
-//    void 뉴스_삭제_검증() {
-//        // given
-//
-//        // when
-//
-//        // then
-//    }
+
+    @Test
+    void 뉴스_삭제_검증() {
+        // given
+        News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+        news.setUpdatedAt(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS));
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(user.getRole()).thenReturn(Role.ADMIN);
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
+
+        // when
+        newsServiceImpl.delete(news.getId(), user.getId());
+
+        // then
+        verify(newsRepository).delete(news);
+    }
+
+    @Test
+    void 뉴스_삭제_권한_검증() {
+        // given
+        News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+        news.setUpdatedAt(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS));
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(user.getRole()).thenReturn(Role.USER);
+
+        // when
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            newsServiceImpl.delete(news.getId(), user.getId());
+        });
+
+        // then
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("뉴스 삭제에 대한 권한이 없습니다.", exception.getReason());;
+    }
+
+    @Test
+    void 뉴스_삭제_시간_제약_검증() {
+        // given
+        News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+        news.setUpdatedAt(LocalDateTime.now());
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(user.getRole()).thenReturn(Role.ADMIN);
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
+
+        // when
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            newsServiceImpl.delete(news.getId(), user.getId());
+        });
+
+        // then
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertEquals("마지막 업데이트 이후 3개월이 지나지 않았습니다.", exception.getReason());;
+    }
 }
