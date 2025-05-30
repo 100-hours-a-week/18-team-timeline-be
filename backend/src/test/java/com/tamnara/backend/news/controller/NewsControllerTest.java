@@ -39,6 +39,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -648,5 +649,52 @@ public class NewsControllerTest {
                 .andExpect(jsonPath("$.message").value("데이터가 성공적으로 업데이트되었습니다."))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId));
+    }
+
+    @Test
+    void 관리자가_뉴스_삭제_검증() throws Exception {
+        // given
+        User user2 = User.builder()
+                .id(USER_ID)
+                .username("테스트유저")
+                .role(Role.ADMIN)
+                .build();
+
+        UserDetailsImpl principal = new UserDetailsImpl(user2);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+
+        Long newsId = 1L;
+
+        // when & then
+        mockMvc.perform(delete("/news/{newsId}", newsId))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void 로그아웃_상태에서_뉴스_삭제_불가_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+        Long newsId = 1L;
+
+        // when & then
+        mockMvc.perform(delete("/news/{newsId}", newsId))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("인증되지 않은 회원입니다."));
+    }
+
+    @Test
+    void 관리자가_아니면_뉴스_삭제_불가_검증() throws Exception {
+        // given
+        Long newsId = 1L;
+
+        // when & then
+        mockMvc.perform(delete("/news/{newsId}", newsId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("뉴스를 삭제할 권한이 없습니다."));
     }
 }
