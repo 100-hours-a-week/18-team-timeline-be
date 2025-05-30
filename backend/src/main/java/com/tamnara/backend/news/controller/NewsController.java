@@ -201,7 +201,7 @@ public class NewsController {
 
     @DeleteMapping("/{newsId}")
     public ResponseEntity<Void> deleteNews(@PathVariable Long newsId,
-                                        @AuthenticationPrincipal UserDetailsImpl userDetails
+                                           @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
