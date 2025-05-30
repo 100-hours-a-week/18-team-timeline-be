@@ -166,7 +166,7 @@ jobs:
     name: Notify Discord on Failure
     runs-on: ubuntu-latest
     if: failure()
-    needs: [ci-check]
+    needs: [ci-check, build-image, deploy-ecs]
 
     steps:
       - name: Notify Discord on CI Failure
