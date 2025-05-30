@@ -2,6 +2,8 @@ package com.tamnara.backend.news.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.config.NewsServiceMockConfig;
+import com.tamnara.backend.global.constant.ResponseMessage;
+import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
@@ -131,7 +133,7 @@ public class NewsControllerTest {
         mockMvc.perform(get("/news/hotissue"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.HOTISSUE_NEWS_CARD_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data.newsList.length()").value(3))
                 .andExpect(jsonPath("$.data.newsList[0].id").value(1))
                 .andExpect(jsonPath("$.data.newsList[1].id").value(2))
@@ -153,7 +155,7 @@ public class NewsControllerTest {
         mockMvc.perform(get("/news/hotissue"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.HOTISSUE_NEWS_CARD_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data.newsList.length()").value(3))
                 .andExpect(jsonPath("$.data.newsList[0].id").value(1))
                 .andExpect(jsonPath("$.data.newsList[1].id").value(2))
@@ -202,7 +204,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(1))
@@ -255,7 +257,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(1))
@@ -292,7 +294,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
                 .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
@@ -321,7 +323,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
                 .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
@@ -350,7 +352,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
@@ -377,7 +379,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
@@ -406,7 +408,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
@@ -433,7 +435,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
@@ -462,7 +464,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
@@ -489,7 +491,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
@@ -518,7 +520,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
@@ -545,7 +547,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
                 .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
@@ -565,7 +567,7 @@ public class NewsControllerTest {
         mockMvc.perform(get("/news/{newsId}", newsId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_DETAIL_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId))
                 .andExpect(jsonPath("$.data.news.bookmarked").value(false));                ;
@@ -582,7 +584,7 @@ public class NewsControllerTest {
         mockMvc.perform(get("/news/{newsId}", newsId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_DETAIL_FETCH_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId))
                 .andExpect(jsonPath("$.data.news.bookmarked").value(false));                ;
@@ -619,7 +621,7 @@ public class NewsControllerTest {
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("뉴스가 성공적으로 생성되었습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_CREATED_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId));
     }
@@ -646,7 +648,7 @@ public class NewsControllerTest {
         mockMvc.perform(patch("/news/{newsId}", newsId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("데이터가 성공적으로 업데이트되었습니다."))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_UPDATED_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId));
     }
@@ -683,7 +685,7 @@ public class NewsControllerTest {
         mockMvc.perform(delete("/news/{newsId}", newsId))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("인증되지 않은 회원입니다."));
+                .andExpect(jsonPath("$.message").value(ResponseMessage.USER_NOT_CERTIFICATION));
     }
 
     @Test
@@ -695,6 +697,6 @@ public class NewsControllerTest {
         mockMvc.perform(delete("/news/{newsId}", newsId))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("뉴스를 삭제할 권한이 없습니다."));
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_DELETE_FORBIDDEN));
     }
 }
