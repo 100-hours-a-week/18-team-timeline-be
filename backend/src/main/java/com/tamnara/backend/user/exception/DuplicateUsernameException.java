@@ -1,3 +1,9 @@
 package com.tamnara.backend.user.exception;
 
-public class DuplicateUsernameException extends RuntimeException {}
+import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_UNAVAILABLE;
+
+public class DuplicateUsernameException extends RuntimeException {
+    public DuplicateUsernameException() {
+        super(NICKNAME_UNAVAILABLE);
+    }
+}
