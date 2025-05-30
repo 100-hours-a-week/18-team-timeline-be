@@ -120,6 +120,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
+      # 🔐 OIDC 인증 추가 (필수)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+
       - name: Deploy to ECS
         env:
           TAG: ${{ needs.build-image.outputs.tag }}
