@@ -121,8 +121,9 @@ class NewsServiceImplTest {
         lenient().when(categoryRepository.findByName(CategoryType.KTB)).thenReturn(Optional.of(ktb));
     }
 
-    private News createNews(String title, String summary, Boolean isHotissue, User user, Category category) {
+    private News createNews(Long id, String title, String summary, Boolean isHotissue, User user, Category category) {
         News news = new News();
+        news.setId(id);
         news.setTitle(title);
         news.setSummary(summary);
         news.setIsHotissue(isHotissue);
@@ -155,9 +156,9 @@ class NewsServiceImplTest {
     @Test
     void 핫이슈_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", true, user, economy);
-        News news2 = createNews("제목", "미리보기 내용", true, user, entertainment);
-        News news3 = createNews("제목", "미리보기 내용", true, user, sports);
+        News news1 = createNews(1L, "제목", "미리보기 내용", true, user, economy);
+        News news2 = createNews(2L, "제목", "미리보기 내용", true, user, entertainment);
+        News news3 = createNews(3L, "제목", "미리보기 내용", true, user, sports);
         Page<News> newsPage = new PageImpl<>(List.of(news1, news2, news3));
         when(newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged()))
                 .thenReturn(newsPage);
@@ -167,19 +168,19 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(3, response.getNewsList().size());
-        assertEquals(news1.getId(), response.getNewsList().get(2).getId());
+        assertEquals(news1.getId(), response.getNewsList().get(0).getId());
         assertEquals(news2.getId(), response.getNewsList().get(1).getId());
-        assertEquals(news3.getId(), response.getNewsList().get(0).getId());
+        assertEquals(news3.getId(), response.getNewsList().get(2).getId());
     }
 
     @Test
     void 모든_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, economy);
-        News news2 = createNews("제목", "미리보기 내용", false, user, entertainment);
-        News news3 = createNews("제목", "미리보기 내용", false, user, sports);
-        News news4 = createNews("제목", "미리보기 내용", false, user, ktb);
-        News news5 = createNews("제목", "미리보기 내용", false, user, null);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, economy);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, entertainment);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, sports);
+        News news4 = createNews(4L, "제목", "미리보기 내용", false, user, ktb);
+        News news5 = createNews(5L, "제목", "미리보기 내용", false, user, null);
 
         int offset = 0;
         int page = offset / PAGE_SIZE;
@@ -227,11 +228,11 @@ class NewsServiceImplTest {
     @Test
     void 전체_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, economy);
-        News news2 = createNews("제목", "미리보기 내용", false, user, entertainment);
-        News news3 = createNews("제목", "미리보기 내용", false, user, sports);
-        News news4 = createNews("제목", "미리보기 내용", false, user, ktb);
-        News news5 = createNews("제목", "미리보기 내용", false, user, null);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, economy);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, entertainment);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, sports);
+        News news4 = createNews(4L, "제목", "미리보기 내용", false, user, ktb);
+        News news5 = createNews(5L, "제목", "미리보기 내용", false, user, null);
 
         int offset = 20;
         int page = offset / PAGE_SIZE;
@@ -250,9 +251,9 @@ class NewsServiceImplTest {
     @Test
     void 경제_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, economy);
-        News news2 = createNews("제목", "미리보기 내용", false, user, economy);
-        News news3 = createNews("제목", "미리보기 내용", false, user, economy);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, economy);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, economy);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, economy);
 
         int offset = 20;
         int page = offset / PAGE_SIZE;
@@ -271,9 +272,9 @@ class NewsServiceImplTest {
     @Test
     void 연예_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, entertainment);
-        News news2 = createNews("제목", "미리보기 내용", false, user, entertainment);
-        News news3 = createNews("제목", "미리보기 내용", false, user, entertainment);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, entertainment);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, entertainment);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, entertainment);
 
         int offset = 20;
         int page = offset / PAGE_SIZE;
@@ -292,9 +293,9 @@ class NewsServiceImplTest {
     @Test
     void 스포츠_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, sports);
-        News news2 = createNews("제목", "미리보기 내용", false, user, sports);
-        News news3 = createNews("제목", "미리보기 내용", false, user, sports);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, sports);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, sports);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, sports);
 
         int offset = 20;
         int page = offset / PAGE_SIZE;
@@ -313,9 +314,9 @@ class NewsServiceImplTest {
     @Test
     void 카테부_카테고리_뉴스_카드_목록_조회_검증() {
         // given
-        News news1 = createNews("제목", "미리보기 내용", false, user, ktb);
-        News news2 = createNews("제목", "미리보기 내용", false, user, ktb);
-        News news3 = createNews("제목", "미리보기 내용", false, user, ktb);
+        News news1 = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+        News news2 = createNews(2L, "제목", "미리보기 내용", false, user, ktb);
+        News news3 = createNews(3L, "제목", "미리보기 내용", false, user, ktb);
 
         int offset = 20;
         int page = offset / PAGE_SIZE;
@@ -334,14 +335,14 @@ class NewsServiceImplTest {
     @Test
     void 뉴스_상세_정보_조회_검증() {
         // given
-        News news = createNews("제목", "미리보기 내용", false, user, sports);
+        News news = createNews(1L, "제목", "미리보기 내용", false, user, sports);
         NewsImage newsImage = createNewsImage(news, "url");
         TimelineCard timelineCard1 = createTimelineCard(news, "제목", "내용", List.of("source1", "source2"), null, LocalDate.now(), LocalDate.now());
         TimelineCard timelineCard2 = createTimelineCard(news, "제목", "내용", List.of("source1", "source2"), null, LocalDate.now(), LocalDate.now());
         TimelineCard timelineCard3 = createTimelineCard(news, "제목", "내용", List.of("source1", "source2"), null, LocalDate.now(), LocalDate.now());
 
         when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
-        when(newsImageRepository.findByNewsId(newsImage.getId())).thenReturn(Optional.of(newsImage));
+        when(newsImageRepository.findByNewsId(news.getId())).thenReturn(Optional.of(newsImage));
         when(timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(news.getId())).thenReturn(List.of(timelineCard1, timelineCard2, timelineCard3));
 
         // when
@@ -425,10 +426,13 @@ class NewsServiceImplTest {
         // then
         assertEquals(createAiNewsResponse.getData().getTitle(), response.getTitle());
     }
-//
+
 //    @Test
 //    void 뉴스_업데이트_검증() {
 //        // given
+//        News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+//        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+//        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
 //
 //        // when
 //
