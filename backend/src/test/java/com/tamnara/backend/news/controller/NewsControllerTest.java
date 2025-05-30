@@ -5,7 +5,12 @@ import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
+import com.tamnara.backend.news.dto.response.category.AllResponse;
+import com.tamnara.backend.news.dto.response.category.EconomyResponse;
+import com.tamnara.backend.news.dto.response.category.EntertainmentResponse;
+import com.tamnara.backend.news.dto.response.category.KtbResponse;
 import com.tamnara.backend.news.dto.response.category.MultiCategoryResponse;
+import com.tamnara.backend.news.dto.response.category.SportsResponse;
 import com.tamnara.backend.news.service.NewsService;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.User;
@@ -78,7 +83,7 @@ public class NewsControllerTest {
     @BeforeEach
     void setupSecurityContext() {
         User user = User.builder()
-                .id(1L)
+                .id(userId)
                 .username("테스트유저")
                 .role(Role.USER)
                 .build();
@@ -248,5 +253,299 @@ public class NewsControllerTest {
                 .andExpect(jsonPath("$.data.SPORTS.newsList[0].category").value(CategoryType.SPORTS.toString()))
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(1))
                 .andExpect(jsonPath("$.data.KTB.newsList[0].category").value(CategoryType.KTB.toString()));
+    }
+
+    @Test
+    void 로그아웃_상태에서_전체_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO4 = createNewsCardDTO(4L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        AllResponse response = new AllResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(null, null, PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .param("category", (String) null)
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
+                .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ALL.hasNext").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_전체_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO4 = createNewsCardDTO(4L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        AllResponse response = new AllResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(userId, null, PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("category", (String) null)
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
+                .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ALL.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_경제_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        EconomyResponse response = new EconomyResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(null, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .param("category", CategoryType.ECONOMY.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ECONOMY.hasNext").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_경제_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        EconomyResponse response = new EconomyResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(userId, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("category", CategoryType.ECONOMY.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ECONOMY.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_연예_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        EntertainmentResponse response = new EntertainmentResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(null, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .param("category", CategoryType.ENTERTAINMENT.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.hasNext").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_연예_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        EntertainmentResponse response = new EntertainmentResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(userId, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("category", CategoryType.ENTERTAINMENT.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_스포츠_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        SportsResponse response = new SportsResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(null, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .param("category", CategoryType.SPORTS.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.SPORTS.hasNext").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_스포츠_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        SportsResponse response = new SportsResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(userId, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("category", CategoryType.SPORTS.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.SPORTS.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_카테부_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        KtbResponse response = new KtbResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(null, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .param("category", CategoryType.KTB.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.KTB.hasNext").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_카테부_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.KTB.name(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        KtbResponse response = new KtbResponse(newsListResponse);
+        given(newsService.getSingleCategoryPage(userId, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("category", CategoryType.KTB.toString())
+                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.KTB.hasNext").value(false));
     }
 }
