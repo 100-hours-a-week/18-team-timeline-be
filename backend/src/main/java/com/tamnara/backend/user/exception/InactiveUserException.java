@@ -1,6 +1,6 @@
 package com.tamnara.backend.user.exception;
 
-import static com.tamnara.backend.user.constant.UserResponseMessage.ACCOUNT_FORBIDDEN;
+import static com.tamnara.backend.global.constant.ResponseMessage.ACCOUNT_FORBIDDEN;
 
 public class InactiveUserException extends RuntimeException {
     public InactiveUserException() {

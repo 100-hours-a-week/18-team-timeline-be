@@ -12,9 +12,6 @@ public class UserResponseMessage {
     public static final String USER_INFO_RETRIEVED = "요청하신 회원 정보를 성공적으로 불러왔습니다.";
     public static final String USER_INFO_MODIFIED = "회원 정보가 성공적으로 수정되었습니다.";
 
-    public static final String INVALID_TOKEN = "유효하지 않은 토큰입니다.";
-    public static final String ACCOUNT_FORBIDDEN = "유효하지 않은 계정입니다.";
-
     public static final String LOGOUT_SUCCESSFUL = "정상적으로 로그아웃되었습니다.";
 
     public static final String WITHDRAWAL_SUCCESSFUL ="회원 탈퇴 처리가 완료되었습니다.";
