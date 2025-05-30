@@ -5,7 +5,9 @@ import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.*;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
+import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
+import com.tamnara.backend.user.repository.UserRepository;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import com.tamnara.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +29,7 @@ import static com.tamnara.backend.user.constant.UserResponseMessage.*;
 @RequestMapping("/users")
 public class UserController {
 
+    private final UserRepository userRepository;
     private final UserService userService;
 
     @GetMapping("/check-email")
@@ -50,7 +53,7 @@ public class UserController {
             boolean available = userService.isEmailAvailable(email);
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
-                            available ? EMAIL_AVAILABLE : EMAIL_UNAVALIABLE,
+                            available ? EMAIL_AVAILABLE : EMAIL_UNAVAILABLE,
                             new EmailAvailabilityResponse(available))
             );
 
@@ -82,7 +85,7 @@ public class UserController {
             boolean available = userService.isUsernameAvailable(nickname);
             return ResponseEntity.ok(
                     new WrappedDTO<>(true,
-                            available ? NICKNAME_AVAILABLE : NICKNAME_UNAVALIABLE,
+                            available ? NICKNAME_AVAILABLE : NICKNAME_UNAVAILABLE,
                             new NicknameAvailabilityResponse(available))
             );
 
@@ -101,7 +104,8 @@ public class UserController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "요청하신 정보를 성공적으로 불러왔습니다."),
-            @ApiResponse(responseCode = "401", description = "로그인이 필요합니다."),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰입니다."),
+            @ApiResponse(responseCode = "403", description = "유효하지 않은 계정입니다."),
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
@@ -109,7 +113,7 @@ public class UserController {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, "로그인이 필요합니다.", null)
+                        new WrappedDTO<>(false, INVALID_TOKEN, null)
                 );
             }
 
@@ -121,6 +125,10 @@ public class UserController {
                     new WrappedDTO<>(true, USER_INFO_RETRIEVED, data)
             );
 
+        } catch (InactiveUserException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+            );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     new WrappedDTO<>(false, USER_NOT_FOUND, null)
@@ -140,8 +148,10 @@ public class UserController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "회원 정보가 성공적으로 수정되었습니다."),
-            @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임입니다."),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰입니다."),
+            @ApiResponse(responseCode = "403", description = "유효하지 않은 계정입니다."),
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
+            @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임입니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
     public ResponseEntity<WrappedDTO<UserUpdateResponse>> updateUsername(
@@ -149,6 +159,12 @@ public class UserController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
+            if (userDetails == null || userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        new WrappedDTO<>(false, INVALID_TOKEN, null)
+                );
+            }
+
             Long userId = userDetails.getUser().getId();
             User updatedUser = userService.updateUsername(userId, dto.getNickname());
 
@@ -159,7 +175,11 @@ public class UserController {
 
         } catch (DuplicateUsernameException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                    new WrappedDTO<>(false, NICKNAME_UNAVALIABLE, null)
+                    new WrappedDTO<>(false, NICKNAME_UNAVAILABLE, null)
+            );
+        } catch (InactiveUserException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
             );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -182,11 +202,21 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "정상적으로 로그아웃되었습니다."),
             @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰입니다."),
             @ApiResponse(responseCode = "403", description = "유효하지 않은 계정입니다."),
+            @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.")
     })
     public ResponseEntity<WrappedDTO<Void>> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        new WrappedDTO<>(false, INVALID_TOKEN, null)
+                );
+            }
+
+            User user = userRepository.findById(userDetails.getUser().getId())
+                    .orElseThrow(() -> new UserNotFoundException());
+
+            if (userDetails.getUser().getState() != State.ACTIVE) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                         new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
                 );
@@ -196,6 +226,10 @@ public class UserController {
                     new WrappedDTO<>(true, LOGOUT_SUCCESSFUL, null)
             );
 
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
+            );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
                     new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
@@ -220,26 +254,29 @@ public class UserController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
-            User user = userDetails.getUser();
-            if (user.getState() != State.ACTIVE) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, "유효하지 않은 계정입니다.", null)
+            if (userDetails == null || userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        new WrappedDTO<>(false, INVALID_TOKEN, null)
                 );
             }
 
-            UserWithdrawInfoWrapper response = userService.withdrawUser(user.getId());
+            UserWithdrawInfoWrapper response = userService.withdrawUser(userDetails.getUser().getId());
 
             return ResponseEntity.ok(
-                    new WrappedDTO<>(true, "회원 탈퇴 처리가 완료되었습니다.", response)
+                    new WrappedDTO<>(true, WITHDRAWAL_SUCCESSFUL, response)
             );
 
+        } catch (InactiveUserException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+            );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, "관련된 회원이 없습니다.", null)
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
             );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, "서버 내부 에러가 발생했습니다. 나중에 다시 시도해주세요.", null)
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
             );
         }
     }

@@ -6,6 +6,7 @@ import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
+import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +87,7 @@ class UserServiceTest {
 
         // when, then
         assertThatThrownBy(() -> userService.getCurrentUserInfo(1L))
-                .isInstanceOf(UserNotFoundException.class);
+                .isInstanceOf(InactiveUserException.class);
     }
 
     @Test

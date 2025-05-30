@@ -6,6 +6,7 @@ import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.*;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
+import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -83,7 +84,7 @@ public class UserService {
 
         if (user.getState() != State.ACTIVE) {
             log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
-            throw new UserNotFoundException(); // DELETED나 INACTIVE는 허용하지 않음
+            throw new InactiveUserException(); // DELETED나 INACTIVE는 허용하지 않음
         }
 
         return new UserInfo(user.getId(), user.getEmail(), user.getUsername());
@@ -104,6 +105,11 @@ public class UserService {
                     return new UserNotFoundException();
                 });
 
+        if (user.getState() != State.ACTIVE) {
+            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
+            throw new InactiveUserException();
+        }
+
         user.updateUsername(newUsername);
         log.info("닉네임 변경 성공: userId={}, updatedUsername={}", userId, newUsername);
 
@@ -118,6 +124,11 @@ public class UserService {
                     log.error("회원 조회 실패: userId={}", userId);
                     return new UserNotFoundException();
                 });
+
+        if (user.getState() != State.ACTIVE) {
+            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
+            throw new InactiveUserException();
+        }
 
         user.softDelete();
         log.info("회원 탈퇴 처리 완료: userId={}, withdrawnAt={}", user.getId(), user.getWithdrawnAt());
