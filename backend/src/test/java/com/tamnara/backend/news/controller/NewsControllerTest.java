@@ -4,17 +4,30 @@ import com.tamnara.backend.config.NewsServiceMockConfig;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
+import com.tamnara.backend.news.dto.response.NewsListResponse;
+import com.tamnara.backend.news.dto.response.category.MultiCategoryResponse;
 import com.tamnara.backend.news.service.NewsService;
+import com.tamnara.backend.user.domain.Role;
+import com.tamnara.backend.user.domain.User;
+import com.tamnara.backend.user.security.UserDetailsImpl;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
@@ -31,11 +44,23 @@ public class NewsControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private NewsService newsService;
 
-    private static final Integer PAGE_SIZE = 20;
+    private static final Long userId = 1L;
+    private static final Integer PAGE_SIZE = 6;
 
-    private String createFakeJwtToken() {
-        return "test.jwt.token"; // 임시로 'Authorization' 헤더에 넣을 가짜 토큰
+    private String createFakeJwtToken(String role) {
+        String secret = "TESTJWTSECRETKEY1234567890TESTKEY!";
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("username", "이름")
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30분
+                .signWith(key)
+                .compact();
     }
+
 
     private NewsCardDTO createNewsCardDTO(Long id, String category, LocalDateTime updatedAt, boolean bookmarked) {
         return new NewsCardDTO(
@@ -50,9 +75,26 @@ public class NewsControllerTest {
         );
     };
 
+    @BeforeEach
+    void setupSecurityContext() {
+        User user = User.builder()
+                .id(1L)
+                .username("테스트유저")
+                .role(Role.USER)
+                .build();
+
+        UserDetailsImpl principal = new UserDetailsImpl(user);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+    }
+
     @Test
     void 로그아웃_상태에서_핫이슈_뉴스_카드_목록_조회_검증() throws Exception {
         // given
+        SecurityContextHolder.clearContext();
+
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
         NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
@@ -87,7 +129,7 @@ public class NewsControllerTest {
         // when & then
         mockMvc.perform(
                 get("/news/hotissue")
-                        .header("Authorization", "Bearer " + createFakeJwtToken())
+                        .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -96,5 +138,115 @@ public class NewsControllerTest {
                 .andExpect(jsonPath("$.data.newsList[0].id").value(1))
                 .andExpect(jsonPath("$.data.newsList[1].id").value(2))
                 .andExpect(jsonPath("$.data.newsList[2].id").value(3));
+    }
+
+    @Test
+    void 로그아웃_상태에서_일반_뉴스_카드_목록_최초_로딩_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO4 = createNewsCardDTO(4L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), false);
+
+        List<NewsCardDTO> allnewsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
+        NewsListResponse allResponse = new NewsListResponse(allnewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> economynewsList = List.of(newsCardDTO1);
+        NewsListResponse economyResponse = new NewsListResponse(economynewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> entertainmentnewsList = List.of(newsCardDTO2);
+        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentnewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> sportsnewsList = List.of(newsCardDTO3);
+        NewsListResponse sportsResponse = new NewsListResponse(sportsnewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> ktbnewsList = List.of(newsCardDTO4);
+        NewsListResponse ktbResponse = new NewsListResponse(ktbnewsList, PAGE_SIZE, false);
+
+        MultiCategoryResponse response = new MultiCategoryResponse();
+        response.setAll(allResponse);
+        response.setEconomy(economyResponse);
+        response.setEntertainment(entertainmentResponse);
+        response.setSports(sportsResponse);
+        response.setKtb(ktbResponse);
+
+        given(newsService.getMultiCategoryPage(null, 0)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                get("/news")
+                        .param("offset", "0")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
+                .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.ECONOMY.newsList[0].category").value(CategoryType.ECONOMY.toString()))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList[0].category").value(CategoryType.ENTERTAINMENT.toString()))
+                .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.SPORTS.newsList[0].category").value(CategoryType.SPORTS.toString()))
+                .andExpect(jsonPath("$.data.KTB.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.KTB.newsList[0].category").value(CategoryType.KTB.toString()));
+    }
+
+    @Test
+    @WithMockUser
+    void 로그인_상태에서_일반_뉴스_카드_목록_최초_로딩_검증() throws Exception {
+        // given
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO4 = createNewsCardDTO(4L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), true);
+
+        List<NewsCardDTO> allNewsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
+        NewsListResponse allResponse = new NewsListResponse(allNewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> economyNewsList = List.of(newsCardDTO1);
+        NewsListResponse economyResponse = new NewsListResponse(economyNewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> entertainmentNewsList = List.of(newsCardDTO2);
+        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentNewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> sportsNewsList = List.of(newsCardDTO3);
+        NewsListResponse sportsResponse = new NewsListResponse(sportsNewsList, PAGE_SIZE, false);
+
+        List<NewsCardDTO> ktbNewsList = List.of(newsCardDTO4);
+        NewsListResponse ktbResponse = new NewsListResponse(ktbNewsList, PAGE_SIZE, false);
+
+        MultiCategoryResponse response = new MultiCategoryResponse();
+        response.setAll(allResponse);
+        response.setEconomy(economyResponse);
+        response.setEntertainment(entertainmentResponse);
+        response.setSports(sportsResponse);
+        response.setKtb(ktbResponse);
+
+        given(newsService.getMultiCategoryPage(userId, 0)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news")
+                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
+                                .param("offset", "0")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
+                .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.ECONOMY.newsList[0].category").value(CategoryType.ECONOMY.toString()))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList[0].category").value(CategoryType.ENTERTAINMENT.toString()))
+                .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.SPORTS.newsList[0].category").value(CategoryType.SPORTS.toString()))
+                .andExpect(jsonPath("$.data.KTB.newsList.size()").value(1))
+                .andExpect(jsonPath("$.data.KTB.newsList[0].category").value(CategoryType.KTB.toString()));
     }
 }
