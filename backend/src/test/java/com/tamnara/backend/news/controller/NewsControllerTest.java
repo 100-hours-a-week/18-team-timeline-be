@@ -1,5 +1,6 @@
 package com.tamnara.backend.news.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.config.NewsServiceMockConfig;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.TimelineCardType;
@@ -7,6 +8,7 @@ import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
 import com.tamnara.backend.news.dto.response.category.AllResponse;
@@ -19,8 +21,6 @@ import com.tamnara.backend.news.service.NewsService;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.security.UserDetailsImpl;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,19 +29,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,25 +51,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class NewsControllerTest {
 
     @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+
     @Autowired private NewsService newsService;
 
-    private static final Long userId = 1L;
+    private static final Long USER_ID = 1L;
     private static final Integer PAGE_SIZE = 6;
-
-    private String createFakeJwtToken(String role) {
-        String secret = "TESTJWTSECRETKEY1234567890TESTKEY!";
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-
-        return Jwts.builder()
-                .subject(userId.toString())
-                .claim("username", "이름")
-                .claim("role", role)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30분
-                .signWith(key)
-                .compact();
-    }
-
 
     private NewsCardDTO createNewsCardDTO(Long id, String category, LocalDateTime updatedAt, boolean bookmarked) {
         return new NewsCardDTO(
@@ -114,7 +100,7 @@ public class NewsControllerTest {
     @BeforeEach
     void setupSecurityContext() {
         User user = User.builder()
-                .id(userId)
+                .id(USER_ID)
                 .username("테스트유저")
                 .role(Role.USER)
                 .build();
@@ -151,7 +137,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_핫이슈_뉴스_카드_목록_조회_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
@@ -163,10 +148,7 @@ public class NewsControllerTest {
         given(newsService.getHotissueNewsCardPage()).willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(
-                get("/news/hotissue")
-                        .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                )
+        mockMvc.perform(get("/news/hotissue"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다."))
@@ -232,7 +214,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_일반_뉴스_카드_목록_최초_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
@@ -263,13 +244,12 @@ public class NewsControllerTest {
         response.setSports(sportsResponse);
         response.setKtb(ktbResponse);
 
-        given(newsService.getMultiCategoryPage(userId, 0)).willReturn(response);
+        given(newsService.getMultiCategoryPage(USER_ID, 0)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("offset", "0")
+                    get("/news")
+                            .param("offset", "0")
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -304,9 +284,9 @@ public class NewsControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .param("category", (String) null)
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", (String) null)
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -318,7 +298,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_전체_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
@@ -330,14 +309,13 @@ public class NewsControllerTest {
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
         NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
         AllResponse response = new AllResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(userId, null, PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, null, PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("category", (String) null)
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", (String) null)
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -364,9 +342,9 @@ public class NewsControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .param("category", CategoryType.ECONOMY.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", CategoryType.ECONOMY.toString())
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -378,7 +356,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_경제_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
@@ -388,14 +365,13 @@ public class NewsControllerTest {
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
         NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
         EconomyResponse response = new EconomyResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(userId, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("category", CategoryType.ECONOMY.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", CategoryType.ECONOMY.toString())
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -422,9 +398,9 @@ public class NewsControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .param("category", CategoryType.ENTERTAINMENT.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", CategoryType.ENTERTAINMENT.toString())
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -436,7 +412,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_연예_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
@@ -446,14 +421,13 @@ public class NewsControllerTest {
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
         NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
         EntertainmentResponse response = new EntertainmentResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(userId, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("category", CategoryType.ENTERTAINMENT.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                    get("/news")
+                            .param("category", CategoryType.ENTERTAINMENT.toString())
+                            .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -480,9 +454,9 @@ public class NewsControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .param("category", CategoryType.SPORTS.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                get("/news")
+                        .param("category", CategoryType.SPORTS.toString())
+                        .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -494,7 +468,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_스포츠_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
@@ -504,14 +477,13 @@ public class NewsControllerTest {
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
         NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
         SportsResponse response = new SportsResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(userId, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("category", CategoryType.SPORTS.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                get("/news")
+                        .param("category", CategoryType.SPORTS.toString())
+                        .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -538,9 +510,9 @@ public class NewsControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .param("category", CategoryType.KTB.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                get("/news")
+                        .param("category", CategoryType.KTB.toString())
+                        .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -552,7 +524,6 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_카테부_카테고리의_일반_뉴스_카드_목록_추가_로딩_검증() throws Exception {
         // given
         NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
@@ -562,14 +533,13 @@ public class NewsControllerTest {
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
         NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
         KtbResponse response = new KtbResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(userId, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
-                        get("/news")
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                                .param("category", CategoryType.KTB.toString())
-                                .param("offset", String.valueOf(PAGE_SIZE * 2))
+                get("/news")
+                        .param("category", CategoryType.KTB.toString())
+                        .param("offset", String.valueOf(PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -590,9 +560,7 @@ public class NewsControllerTest {
         given(newsService.getNewsDetail(newsId, null)).willReturn(response);
 
         // when & then
-        mockMvc.perform(
-                        get("/news/{newsId}", newsId)
-                )
+        mockMvc.perform(get("/news/{newsId}", newsId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
@@ -602,23 +570,55 @@ public class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void 로그인_상태에서_뉴스_상세_정보_조회_검증() throws Exception {
         // given
         Long newsId = 1L;
         NewsDetailDTO response = createNewsDetailDTO(newsId, false);
-        given(newsService.getNewsDetail(newsId, userId)).willReturn(response);
+        given(newsService.getNewsDetail(newsId, USER_ID)).willReturn(response);
 
         // when & then
-        mockMvc.perform(
-                        get("/news/{newsId}", newsId)
-                                .header("Authorization", "Bearer " + createFakeJwtToken(Role.USER.toString()))
-                )
+        mockMvc.perform(get("/news/{newsId}", newsId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다."))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.news.id").value(newsId))
                 .andExpect(jsonPath("$.data.news.bookmarked").value(false));                ;
+    }
+
+    @Test
+    void 로그아웃_상태에서_뉴스_생성_불가_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        // when & then
+        NewsCreateRequest request = new NewsCreateRequest(List.of("키워드1", "키워드1"));
+        mockMvc.perform(
+                post("/news")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 로그인_상태에서_뉴스_생성_검증() throws Exception {
+        // given
+        Long newsId = 1L;
+        NewsDetailDTO response = createNewsDetailDTO(newsId, true);
+        given(newsService.save(eq(USER_ID), eq(false), any(NewsCreateRequest.class))).willReturn(response);
+
+        // when & then
+        NewsCreateRequest request = new NewsCreateRequest(List.of("키워드1", "키워드1"));
+        mockMvc.perform(
+                post("/news")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("뉴스가 성공적으로 생성되었습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.news.id").value(newsId));
     }
 }
