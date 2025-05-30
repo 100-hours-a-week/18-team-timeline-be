@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static com.tamnara.backend.user.constant.UserResponseMessage.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -62,7 +63,7 @@ public class UserControllerIntegrationTest {
                         .param("email", "new@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(true))
-                .andExpect(jsonPath("$.message").value("사용 가능한 이메일입니다."));
+                .andExpect(jsonPath("$.message").value(EMAIL_AVAILABLE));
     }
 
     @Test
@@ -82,7 +83,7 @@ public class UserControllerIntegrationTest {
                         .param("email", "duplicate@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(false))
-                .andExpect(jsonPath("$.message").value("이미 사용 중인 이메일입니다."));
+                .andExpect(jsonPath("$.message").value(EMAIL_UNAVAILABLE));
     }
 
     @Test
@@ -93,7 +94,7 @@ public class UserControllerIntegrationTest {
                         .param("nickname", "uniqueNick"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(true))
-                .andExpect(jsonPath("$.message").value("사용 가능한 닉네임입니다."));
+                .andExpect(jsonPath("$.message").value(NICKNAME_AVAILABLE));
     }
 
     @Test
@@ -113,7 +114,7 @@ public class UserControllerIntegrationTest {
                         .param("nickname", "dupeNick"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(false))
-                .andExpect(jsonPath("$.message").value("이미 사용 중인 닉네임입니다."));
+                .andExpect(jsonPath("$.message").value(NICKNAME_UNAVAILABLE));
     }
 
     @Test
@@ -138,7 +139,7 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(get("/users/me")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
+                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
     }
 
     @Test
@@ -177,7 +178,7 @@ public class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
+                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
     }
 
     @Test
@@ -200,7 +201,7 @@ public class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("이미 사용 중인 닉네임입니다."));
+                .andExpect(jsonPath("$.message").value(NICKNAME_UNAVAILABLE));
     }
 
     @Test
@@ -231,6 +232,6 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(patch("/users/me/state")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("유효하지 않은 계정입니다."));
+                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
     }
 }
