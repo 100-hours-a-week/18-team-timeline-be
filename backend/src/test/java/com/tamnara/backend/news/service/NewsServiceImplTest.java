@@ -26,7 +26,6 @@ import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsImageRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.news.repository.NewsTagRepository;
-import com.tamnara.backend.news.repository.TagRepository;
 import com.tamnara.backend.news.repository.TimelineCardRepository;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -72,7 +71,6 @@ class NewsServiceImplTest {
     @Mock private TimelineCardRepository timelineCardRepository;
     @Mock private NewsImageRepository newsImageRepository;
     @Mock private CategoryRepository categoryRepository;
-    @Mock private TagRepository tagRepository;
     @Mock private NewsTagRepository newsTagRepository;
 
     @Mock private UserRepository userRepository;
@@ -80,8 +78,6 @@ class NewsServiceImplTest {
 
     @InjectMocks private NewsServiceImpl newsServiceImpl;
 
-    private static final String TIMELINE_AI_ENDPOINT = "/timeline";
-    private static final String MERGE_AI_ENDPOINT = "/merge";
     private static final String STATISTIC_AI_ENDPOINT = "/comment";
 
     private static final Integer PAGE_SIZE = 20;
