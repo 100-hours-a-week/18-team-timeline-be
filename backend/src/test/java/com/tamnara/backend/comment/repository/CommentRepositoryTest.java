@@ -1,5 +1,6 @@
 package com.tamnara.backend.comment.repository;
 
+import com.tamnara.backend.comment.constant.CommentServiceConstant;
 import com.tamnara.backend.comment.domain.Comment;
 import com.tamnara.backend.global.config.JpaConfig;
 import com.tamnara.backend.news.domain.News;
@@ -196,7 +197,7 @@ public class CommentRepositoryTest {
         commentRepository.saveAndFlush(comment3);
 
         // when
-        Pageable pageable = PageRequest.of(0, 20);
+        Pageable pageable = PageRequest.of(0, CommentServiceConstant.PAGE_SIZE);
         Page<Comment> commentPage = commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), pageable);
         List<Comment> commentList = commentPage.getContent();
 
