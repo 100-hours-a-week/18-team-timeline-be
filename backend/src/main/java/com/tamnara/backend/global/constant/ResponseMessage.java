@@ -8,6 +8,8 @@ public class ResponseMessage {
     // 회원 예외 메시지
     public static final String USER_NOT_FOUND = "존재하지 않는 회원입니다.";
     public static final String USER_NOT_CERTIFICATION = "인증되지 않은 사용자입니다.";
+    public static final String INVALID_TOKEN = "유효하지 않은 토큰입니다.";
+    public static final String ACCOUNT_FORBIDDEN = "유효하지 않은 계정입니다.";
 
     // 뉴스 예외 메시지
     public static final String NEWS_NOT_FOUND = "존재하지 않는 뉴스입니다.";

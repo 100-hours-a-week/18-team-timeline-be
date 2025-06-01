@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
+import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
+import com.tamnara.backend.news.constant.NewsResponseMessage;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -80,17 +84,6 @@ public class NewsServiceImpl implements NewsService {
     private final UserRepository userRepository;
     private final BookmarkRepository bookmarkRepository;
 
-    private final String TIMELINE_AI_ENDPOINT = "/timeline";
-    private final String MERGE_AI_ENDPOINT = "/merge";
-    private final String STATISTIC_AI_ENDPOINT = "/comment";
-    private final String HOTISSUE_AI_ENDPOINT = "/hot";
-
-    private final Integer PAGE_SIZE = 20;
-    private final Integer STATISTICS_AI_SEARCH_CNT = 10;
-    private final Integer NEWS_CREATE_DAYS = 30;
-    private final Integer NEWS_UPDATE_HOURS = 24;
-    private final Integer NEWS_DELETE_DAYS = 90;
-
     @Override
     public HotissueNewsListResponse getHotissueNewsCardPage() {
         Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
@@ -100,54 +93,54 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public MultiCategoryResponse getMultiCategoryPage(Long userId, Integer offset) {
-        int page = offset / PAGE_SIZE;
-        int nextOffset = (page + 1) * PAGE_SIZE;
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        int nextOffset = (page + 1) * NewsServiceConstant.PAGE_SIZE;
 
         Page<News> newsPage;
         MultiCategoryResponse res = new MultiCategoryResponse();
 
-        newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, PAGE_SIZE));
+        newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setAll(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page, PAGE_SIZE));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setEconomy(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page, PAGE_SIZE));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setEntertainment(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page, PAGE_SIZE));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setSports(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
 
-        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page, PAGE_SIZE));
+        newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setKtb(
                 new NewsListResponse(
                         getNewsCardDTOList(userId, newsPage),
                         nextOffset,
-                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page + 1, PAGE_SIZE)).isEmpty()
+                        !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
 
@@ -158,10 +151,10 @@ public class NewsServiceImpl implements NewsService {
     public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
         }
 
-        Integer page = offset / PAGE_SIZE;
+        Integer page = offset / NewsServiceConstant.PAGE_SIZE;
         NewsListResponse newsListResponse = getNewsListResponse(userId, category, page);
 
         return switch (category != null ? category.toUpperCase() : "ALL") {
@@ -177,7 +170,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Optional<User> user;
         if (userId != null) {
@@ -212,11 +205,11 @@ public class NewsServiceImpl implements NewsService {
     @Transactional
     public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         // 0. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
-                .getAIStatistics(STATISTIC_AI_ENDPOINT, req.getKeywords(), STATISTICS_AI_SEARCH_CNT)
+                .getAIStatistics(req.getKeywords())
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
                     if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
@@ -229,7 +222,7 @@ public class NewsServiceImpl implements NewsService {
         AINewsResponse aiNewsResponse;
         try {
             LocalDate endAt = LocalDate.now();
-            LocalDate startAt = endAt.minusDays(NEWS_CREATE_DAYS);
+            LocalDate startAt = endAt.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS);
             WrappedDTO<AINewsResponse> res = createAINews(req.getKeywords(), startAt, endAt);
             aiNewsResponse = res.getData();
         } catch (AIException ex) {
@@ -321,17 +314,17 @@ public class NewsServiceImpl implements NewsService {
     @Transactional
     public NewsDetailDTO update(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 24시간이 지나지 않았습니다.");
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_UPDATE_CONFLICT);
         }
 
-        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdAndDuration(newsId, null);
+        List<TimelineCard> timelineCards = timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(newsId);
         List<TimelineCardDTO> oldTimeline = new ArrayList<>();
         for (TimelineCard tc : timelineCards) {
             TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
@@ -352,7 +345,15 @@ public class NewsServiceImpl implements NewsService {
         }
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, keywords, STATISTICS_AI_SEARCH_CNT);
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
+                .getAIStatistics(keywords)
+                .exceptionally(ex -> {
+                    Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
+                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
+                        return null;
+                    }
+                    throw new CompletionException(cause);
+                });
 
         // 3. AI에게 요청하여 가장 최신 타임라인 카드의 endAt 이후 시점에 대한 뉴스를 생성한다.
         AINewsResponse aiNewsResponse;
@@ -426,17 +427,17 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public void delete(Long newsId, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         if (user.getRole() != Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뉴스 삭제에 대한 권한이 없습니다.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, NewsResponseMessage.NEWS_DELETE_FORBIDDEN);
         }
 
         News news = newsRepository.findById(newsId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "요청하신 뉴스를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
-        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "마지막 업데이트 이후 3개월이 지나지 않았습니다.");
+        if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_DELETE_CONFLICT);
         }
 
         newsRepository.delete(news);
@@ -459,7 +460,7 @@ public class NewsServiceImpl implements NewsService {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         return aiWebClient.post()
-                .uri(TIMELINE_AI_ENDPOINT)
+                .uri(NewsExternalApiEndpoint.TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
                 .onStatus(
@@ -507,7 +508,7 @@ public class NewsServiceImpl implements NewsService {
                 AITimelineMergeRequest mergeRequest = new AITimelineMergeRequest(temp);
 
                 WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
-                        .uri(MERGE_AI_ENDPOINT)
+                        .uri(NewsExternalApiEndpoint.MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
                         .onStatus(
@@ -602,23 +603,23 @@ public class NewsServiceImpl implements NewsService {
         Long categoryId = null;
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
             categoryId = c.getId();
         }
 
-        int nextOffset = (page + 1) * PAGE_SIZE;
+        int nextOffset = (page + 1) * NewsServiceConstant.PAGE_SIZE;
         NewsListResponse newsListResponse;
 
         if (category == null || category.equalsIgnoreCase("ALL")) {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, PAGE_SIZE));
+            Page<News> newsPage = newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
             List<NewsCardDTO> newsCardDTOList = getNewsCardDTOList(userId, newsPage);
-            boolean hasNext = !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
+            boolean hasNext = !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty();
 
             newsListResponse = new NewsListResponse(newsCardDTOList, nextOffset, hasNext);
         } else {
-            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page, PAGE_SIZE));
+            Page<News> newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
             List<NewsCardDTO> newsCardDTOList = getNewsCardDTOList(userId, newsPage);
-            boolean hasNext = !newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
+            boolean hasNext = !newsRepository.findByIsHotissueFalseAndCategoryId(categoryId, PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty();
 
             newsListResponse = new NewsListResponse(newsCardDTOList, nextOffset, hasNext);
         }
@@ -626,7 +627,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<TimelineCardDTO> getTimelineCardDTOList(News news) {
-        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdAndDuration(news.getId(), null);
+        List<TimelineCard> timeline = timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(news.getId());
         List<TimelineCardDTO> timelineCardDTOList = new ArrayList<>();
         timeline.forEach(tc -> {
             TimelineCardDTO dto = new TimelineCardDTO(
@@ -658,7 +659,7 @@ public class NewsServiceImpl implements NewsService {
         Long categoryId = null;
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             Category c = categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
             categoryId = c.getId();
         }
         return categoryId;

@@ -14,7 +14,7 @@ on:
       - 'release/**'
 
 jobs:
-  backend-ci:
+  ci-check:
     name: Run Static Analysis and Type Check
     runs-on: ubuntu-latest
 
@@ -57,8 +57,170 @@ jobs:
           EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
-      - name: Notify Discord on Failure
-        if: failure()
+  build-image:
+    name: Docker Build & ECR Push
+    runs-on: ubuntu-latest
+    needs: [ci-check]
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      - name: Get short commit SHA
+        id: meta
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Download OTEL Java Agent
+        working-directory: ./backend
+        run: |
+          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
+
+      - name: Build and Push Docker Image
+        working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          chmod +x ../scripts/build.sh
+          ../scripts/build.sh 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
+          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
+          docker tag 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
+          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
+
+  deploy-ecs:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: build-image
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      # 🔐 OIDC 인증 추가 (필수)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+
+#      - name: Deploy to ECS
+#        env:
+#          TAG: ${{ needs.build-image.outputs.tag }}
+#          AWS_REGION: ap-northeast-2
+#        run: |
+#          FAMILY="docker-v1-backend-cluster"
+#          SERVICE="${FAMILY}-service"
+#          CONTAINER_NAME="docker-v1-backend"
+#          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+#
+#          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
+#
+#          NEW_DEF=$(echo $TASK | jq '.taskDefinition |
+#            {
+#              family: .family,
+#              networkMode: .networkMode,
+#              executionRoleArn: .executionRoleArn,
+#              containerDefinitions: (.containerDefinitions | map(if .name == "'$CONTAINER_NAME'" then .image = "'$IMAGE'" else . end)),
+#              requiresCompatibilities: .requiresCompatibilities,
+#              cpu: .cpu,
+#              memory: .memory
+#            }')
+#
+#          echo "$NEW_DEF" > new-task-def.json
+#
+#          NEW_TASK_ARN=$(aws ecs register-task-definition \
+#            --cli-input-json file://new-task-def.json \
+#            | jq -r '.taskDefinition.taskDefinitionArn')
+#
+#          aws ecs update-service \
+#            --cluster $FAMILY \
+#            --service $SERVICE \
+#            --task-definition $NEW_TASK_ARN
+      - name: Deploy to ECS
+        env:
+          TAG: ${{ needs.build-image.outputs.tag }}
+          AWS_REGION: ap-northeast-2
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          FAMILY="docker-v1-backend-cluster"
+          SERVICE="${FAMILY}-service"
+          CONTAINER_NAME="docker-v1-backend"
+          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+
+          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
+
+          NEW_DEF=$(echo $TASK | jq --arg IMAGE "$IMAGE" --arg CONTAINER_NAME "$CONTAINER_NAME" --arg OTEL "$OTEL_EXPORTER_OTLP_ENDPOINT" '.taskDefinition |
+            {
+              family: .family,
+              networkMode: .networkMode,
+              executionRoleArn: .executionRoleArn,
+              containerDefinitions: (
+                .containerDefinitions | map(
+                  if .name == $CONTAINER_NAME then
+                    .image = $IMAGE |
+                    .environment += [{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":$OTEL}]
+                  else .
+                  end
+                )
+              ),
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }')
+
+          echo "$NEW_DEF" > new-task-def.json
+
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json \
+            | jq -r '.taskDefinition.taskDefinitionArn')
+
+          aws ecs update-service \
+            --cluster $FAMILY \
+            --service $SERVICE \
+            --task-definition $NEW_TASK_ARN
+
+  notify-failure:
+    name: Notify Discord on Failure
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [ci-check, build-image, deploy-ecs]
+
+    steps:
+      - name: Notify Discord on CI Failure
         run: |
           CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
             sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
@@ -87,107 +249,5 @@ jobs:
           ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
           TITLE="*백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
 
-          .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
-
-  build-and-push:
-    name: Docker Build & ECR Push (main only)
-    needs: backend-ci
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
-          aws-region: ap-northeast-2
-
-      - name: Get short commit SHA
-        id: meta
-        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build and Push Docker Image
-        working-directory: ./backend
-        env:
-          TAG: ${{ steps.meta.outputs.tag }}
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
-          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
-          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
-          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
-          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
-          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
-          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
-        run: |
-          chmod +x ../scripts/build.sh
-          ../scripts/build.sh 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be $TAG
-          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG
-          docker tag 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
-          docker push 346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest
-
-      - name: Notify Discord on Success (ECR Push)
-        run: |
           chmod +x .github/scripts/discord_notify.sh
-          TAG=${{ steps.meta.outputs.tag }}
-          ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-          TITLE="*ECR Push 완료!*"
-          MSG="📦 Repository: $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)"
-
-          .github/scripts/discord_notify.sh success "$TITLE" "$MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
-
-      - name: Deploy to ECS (자동화 핵심)
-        env:
-          TAG: ${{ steps.meta.outputs.tag }}
-        run: |
-          FAMILY="docker-v1-backend-cluster"
-          SERVICE="${FAMILY}-service"
-          CONTAINER_NAME="docker-v1-backend"
-          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
-
-          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
-
-          NEW_DEF=$(echo $TASK | jq '.taskDefinition |
-            {
-              family: .family,
-              networkMode: .networkMode,
-              executionRoleArn: .executionRoleArn,
-              containerDefinitions: (.containerDefinitions | map(if .name == "'"$CONTAINER_NAME"'" then .image = "'"$IMAGE"'" else . end)),
-              requiresCompatibilities: .requiresCompatibilities,
-              cpu: .cpu,
-              memory: .memory
-            }')
-
-          echo "$NEW_DEF" > new-task-def.json
-
-          NEW_TASK_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://new-task-def.json \
-            | jq -r '.taskDefinition.taskDefinitionArn')
-
-          aws ecs update-service \
-            --cluster $FAMILY \
-            --service $SERVICE \
-            --task-definition $NEW_TASK_ARN
-
-      - name: Notify Discord on Success (ECS 배포)
-        run: |
-          TAG=${{ steps.meta.outputs.tag }}
-          ECR_REPO=346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be
-          TITLE="*ECR + ECS 배포 완료!*"
-          MSG="📦 $ECR_REPO:$TAG\\n👉 [ECR 보기](https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/tamnara/be?region=ap-northeast-2)"
-
-          .github/scripts/discord_notify.sh success "$TITLE" "$MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
-
+          .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
