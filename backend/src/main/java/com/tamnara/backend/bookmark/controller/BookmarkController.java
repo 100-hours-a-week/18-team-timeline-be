@@ -26,7 +26,10 @@ public class BookmarkController {
     private final BookmarkService bookmarkService;
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<BookmarkAddResponse>> addBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<BookmarkAddResponse>> addBookmark(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
@@ -54,7 +57,10 @@ public class BookmarkController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<Void> deleteBookmark(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
