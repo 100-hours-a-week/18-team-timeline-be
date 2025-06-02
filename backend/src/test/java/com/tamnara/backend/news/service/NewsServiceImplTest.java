@@ -2,6 +2,8 @@ package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.global.dto.WrappedDTO;
+import com.tamnara.backend.news.constant.NewsResponseMessage;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -77,14 +79,6 @@ class NewsServiceImplTest {
     @Mock private BookmarkRepository bookmarkRepository;
 
     @InjectMocks private NewsServiceImpl newsServiceImpl;
-
-    private static final String STATISTIC_AI_ENDPOINT = "/comment";
-
-    private static final Integer PAGE_SIZE = 20;
-    private static final Integer STATISTICS_AI_SEARCH_CNT = 10;
-    private static final Integer NEWS_CREATE_DAYS = 30;
-    private static final Integer NEWS_UPDATE_HOURS = 24;
-    private static final Integer NEWS_DELETE_DAYS = 90;
 
     User user;
     Category economy;
@@ -203,45 +197,45 @@ class NewsServiceImplTest {
         News news5 = createNews(5L, "제목", "미리보기 내용", false, user, null);
 
         int offset = 0;
-        int page = offset / PAGE_SIZE;
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
 
-        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3, news4, news5)));
-        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3, news4, news5)));
+        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news2)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news2)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news3)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news3)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news4)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news4)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         MultiCategoryResponse response = newsServiceImpl.getMultiCategoryPage(user.getId(), offset);
 
         // then
         assertEquals(5, response.getAll().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getAll().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getAll().getOffset());
         assertFalse(response.getAll().isHasNext());
 
         assertEquals(1, response.getEconomy().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getEconomy().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getEconomy().getOffset());
         assertFalse(response.getEconomy().isHasNext());
 
         assertEquals(1, response.getEntertainment().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getEntertainment().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getEntertainment().getOffset());
         assertFalse(response.getEntertainment().isHasNext());
 
         assertEquals(1, response.getSports().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getSports().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getSports().getOffset());
         assertFalse(response.getSports().isHasNext());
 
         assertEquals(1, response.getKtb().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getKtb().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getKtb().getOffset());
         assertFalse(response.getKtb().isHasNext());
     }
 
@@ -255,16 +249,16 @@ class NewsServiceImplTest {
         News news5 = createNews(5L, "제목", "미리보기 내용", false, user, null);
 
         int offset = 20;
-        int page = offset / PAGE_SIZE;
-        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3, news4, news5)));
-        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3, news4, news5)));
+        when(newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         AllResponse response = (AllResponse) newsServiceImpl.getSingleCategoryPage(user.getId(), null, offset);
 
         // then
         assertEquals(5, response.getAll().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getAll().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getAll().getOffset());
         assertFalse(response.getAll().isHasNext());
     }
 
@@ -276,16 +270,16 @@ class NewsServiceImplTest {
         News news3 = createNews(3L, "제목", "미리보기 내용", false, user, economy);
 
         int offset = 20;
-        int page = offset / PAGE_SIZE;
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(economy.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         EconomyResponse response = (EconomyResponse) newsServiceImpl.getSingleCategoryPage(user.getId(), economy.getName().toString(), offset);
 
         // then
         assertEquals(3, response.getEconomy().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getEconomy().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getEconomy().getOffset());
         assertFalse(response.getEconomy().isHasNext());
     }
 
@@ -297,16 +291,16 @@ class NewsServiceImplTest {
         News news3 = createNews(3L, "제목", "미리보기 내용", false, user, entertainment);
 
         int offset = 20;
-        int page = offset / PAGE_SIZE;
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(entertainment.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         EntertainmentResponse response = (EntertainmentResponse) newsServiceImpl.getSingleCategoryPage(user.getId(), entertainment.getName().toString(), offset);
 
         // then
         assertEquals(3, response.getEntertainment().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getEntertainment().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getEntertainment().getOffset());
         assertFalse(response.getEntertainment().isHasNext());
     }
 
@@ -318,16 +312,16 @@ class NewsServiceImplTest {
         News news3 = createNews(3L, "제목", "미리보기 내용", false, user, sports);
 
         int offset = 20;
-        int page = offset / PAGE_SIZE;
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(sports.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         SportsResponse response = (SportsResponse) newsServiceImpl.getSingleCategoryPage(user.getId(), sports.getName().toString(), offset);
 
         // then
         assertEquals(3, response.getSports().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getSports().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getSports().getOffset());
         assertFalse(response.getSports().isHasNext());
     }
 
@@ -339,16 +333,16 @@ class NewsServiceImplTest {
         News news3 = createNews(3L, "제목", "미리보기 내용", false, user, ktb);
 
         int offset = 20;
-        int page = offset / PAGE_SIZE;
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
-        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page + 1, PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of(news1, news2, news3)));
+        when(newsRepository.findByIsHotissueFalseAndCategoryId(eq(ktb.getId()), eq(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)))).thenReturn(new PageImpl<>(List.of()));
 
         // when
         KtbResponse response = (KtbResponse) newsServiceImpl.getSingleCategoryPage(user.getId(), ktb.getName().toString(), offset);
 
         // then
         assertEquals(3, response.getKtb().getNewsList().size());
-        assertEquals(offset + PAGE_SIZE, response.getKtb().getOffset());
+        assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getKtb().getOffset());
         assertFalse(response.getKtb().isHasNext());
     }
 
@@ -412,7 +406,7 @@ class NewsServiceImplTest {
                 )
         );
         LocalDate localDate = LocalDate.now();
-        when(aiService.createAINews(query, localDate.minusDays(NEWS_CREATE_DAYS), localDate)).thenReturn(createAiNewsResponse);
+        when(aiService.createAINews(query, localDate.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS), localDate)).thenReturn(createAiNewsResponse);
 
         // 타임라인 병합
         TimelineCardDTO weekCardDTO = new TimelineCardDTO(
@@ -437,7 +431,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, query, STATISTICS_AI_SEARCH_CNT)).thenReturn(statsAiResponse);
+        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
         NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
@@ -454,7 +448,7 @@ class NewsServiceImplTest {
     void 뉴스_업데이트_검증() {
         // given
         News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
-        news.setUpdatedAt(LocalDateTime.now().minusHours(NEWS_UPDATE_HOURS));
+        news.setUpdatedAt(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS));
 
         NewsImage newsImage = createNewsImage(1L, news, "url");
 
@@ -546,7 +540,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(STATISTIC_AI_ENDPOINT, query, STATISTICS_AI_SEARCH_CNT)).thenReturn(statsAiResponse);
+        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
         NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId());
@@ -574,14 +568,14 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals("마지막 업데이트 이후 24시간이 지나지 않았습니다.", exception.getReason());
+        assertEquals(NewsResponseMessage.NEWS_DELETE_CONFLICT, exception.getReason());
     }
 
     @Test
     void 뉴스_삭제_검증() {
         // given
         News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
-        news.setUpdatedAt(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS));
+        news.setUpdatedAt(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
 
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(user.getRole()).thenReturn(Role.ADMIN);
@@ -598,7 +592,7 @@ class NewsServiceImplTest {
     void 뉴스_삭제_권한_검증() {
         // given
         News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
-        news.setUpdatedAt(LocalDateTime.now().minusDays(NEWS_DELETE_DAYS));
+        news.setUpdatedAt(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
 
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(user.getRole()).thenReturn(Role.USER);
@@ -610,7 +604,7 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertEquals("뉴스 삭제에 대한 권한이 없습니다.", exception.getReason());;
+        assertEquals(NewsResponseMessage.NEWS_DELETE_FORBIDDEN, exception.getReason());;
     }
 
     @Test
@@ -630,6 +624,6 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals("마지막 업데이트 이후 3개월이 지나지 않았습니다.", exception.getReason());;
+        assertEquals(NewsResponseMessage.NEWS_UPDATE_CONFLICT, exception.getReason());;
     }
 }

@@ -1,6 +1,8 @@
 package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.global.exception.AIException;
+import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
@@ -22,14 +24,14 @@ public class AsyncAIServiceImpl implements AsyncAIService {
     private final WebClient aiWebClient;
 
     @Async
-    public CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatistics(String endpoint, List<String> keywords, Integer num) {
+    public CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatistics(List<String> keywords) {
         AIStatisticsRequest req = new AIStatisticsRequest(
                 keywords,
-                num
+                NewsServiceConstant.STATISTICS_AI_SEARCH_CNT
         );
 
         return aiWebClient.post()
-                .uri(endpoint)
+                .uri(NewsExternalApiEndpoint.STATISTIC_AI_ENDPOINT)
                 .bodyValue(req)
                 .retrieve()
                 .onStatus(

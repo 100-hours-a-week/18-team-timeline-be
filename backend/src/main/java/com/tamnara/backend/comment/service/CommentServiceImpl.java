@@ -1,6 +1,7 @@
 package com.tamnara.backend.comment.service;
 
 import com.tamnara.backend.comment.constant.CommentResponseMessage;
+import com.tamnara.backend.comment.constant.CommentServiceConstant;
 import com.tamnara.backend.comment.domain.Comment;
 import com.tamnara.backend.comment.dto.CommentDTO;
 import com.tamnara.backend.comment.dto.request.CommentCreateRequest;
@@ -29,19 +30,17 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final NewsRepository newsRepository;
 
-    private final Integer PAGE_SIZE = 20;
-
     @Override
     public CommentListResponse getComments(Long newsId, Integer offset) {
         if (!newsRepository.existsById(newsId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND);
         }
 
-        int page = offset / PAGE_SIZE;
-        int nextOffset = (page + 1) * PAGE_SIZE;
+        int page = offset / CommentServiceConstant.PAGE_SIZE;
+        int nextOffset = (page + 1) * CommentServiceConstant.PAGE_SIZE;
 
-        Page<Comment> comments = commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page, PAGE_SIZE));
-        boolean hasNext = !commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page + 1, PAGE_SIZE)).isEmpty();
+        Page<Comment> comments = commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page, CommentServiceConstant.PAGE_SIZE));
+        boolean hasNext = !commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page + 1, CommentServiceConstant.PAGE_SIZE)).isEmpty();
 
         List<CommentDTO> commentDTOList = new ArrayList<>();
         for (Comment c : comments.getContent()) {
@@ -83,7 +82,7 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
-        News news = newsRepository.findById(newsId)
+        newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         Comment comment = commentRepository.findById(commentId)
