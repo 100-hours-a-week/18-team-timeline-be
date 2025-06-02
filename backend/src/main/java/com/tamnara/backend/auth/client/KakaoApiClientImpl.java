@@ -12,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+
 @Service
 @RequiredArgsConstructor
 public class KakaoApiClientImpl implements KakaoApiClient {
@@ -49,7 +51,7 @@ public class KakaoApiClientImpl implements KakaoApiClient {
             Map<String, Object> body = objectMapper.readValue(response.getBody(), Map.class);
             return (String) body.get("access_token");
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse access token", e);
+            throw new RuntimeException(PARSING_ACCESS_TOKEN_FAILS, e);
         }
     }
 
@@ -70,7 +72,7 @@ public class KakaoApiClientImpl implements KakaoApiClient {
         try {
             return objectMapper.readValue(response.getBody(), Map.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse user info", e);
+            throw new RuntimeException(PARSING_USER_INFO_FAILS, e);
         }
     }
 }
