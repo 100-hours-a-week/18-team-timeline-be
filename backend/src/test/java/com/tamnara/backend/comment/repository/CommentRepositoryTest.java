@@ -221,4 +221,48 @@ public class CommentRepositoryTest {
         // then
         assertFalse(commentRepository.existsById(comment.getId()));
     }
+
+    @Test
+    void 뉴스_삭제_시_연관된_댓글들_CASCADE_검증() {
+        // given
+        Comment comment1 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment1);
+        Comment comment2 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment2);
+        Comment comment3 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment3);
+        em.clear();
+
+        // when
+        newsRepository.delete(news);
+        em.flush();
+        em.clear();
+
+        // then
+        assertFalse(commentRepository.existsById(comment1.getId()));
+        assertFalse(commentRepository.existsById(comment2.getId()));
+        assertFalse(commentRepository.existsById(comment3.getId()));
+    }
+
+    @Test
+    void 회원_삭제_시_연관된_댓글들의_회원_필드_SET_NULL_검증() {
+        // given
+        Comment comment1 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment1);
+        Comment comment2 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment2);
+        Comment comment3 = createComment("댓글 내용", news, user);
+        commentRepository.saveAndFlush(comment3);
+        em.clear();
+
+        // when
+        userRepository.delete(user);
+        em.flush();
+        em.clear();
+
+        // then
+        assertNull(commentRepository.findById(comment1.getId()).get().getUser());
+        assertNull(commentRepository.findById(comment2.getId()).get().getUser());
+        assertNull(commentRepository.findById(comment3.getId()).get().getUser());
+    }
 }
