@@ -1,4 +1,4 @@
-package com.tamnara.backend.config;
+package com.tamnara.backend.news.config;
 
 import com.tamnara.backend.news.service.NewsService;
 import org.mockito.Mockito;
