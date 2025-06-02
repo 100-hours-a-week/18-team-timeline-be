@@ -8,6 +8,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -52,6 +53,8 @@ public class KakaoApiClientImpl implements KakaoApiClient {
             return (String) body.get("access_token");
         } catch (JsonProcessingException e) {
             throw new RuntimeException(PARSING_ACCESS_TOKEN_FAILS, e);
+        } catch (ResourceAccessException e) {
+            throw new RuntimeException(EXTERNAL_API_TIMEOUT, e);
         }
     }
 
@@ -73,6 +76,8 @@ public class KakaoApiClientImpl implements KakaoApiClient {
             return objectMapper.readValue(response.getBody(), Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(PARSING_USER_INFO_FAILS, e);
+        } catch (ResourceAccessException e) {
+            throw new RuntimeException(EXTERNAL_API_TIMEOUT, e);
         }
     }
 }
