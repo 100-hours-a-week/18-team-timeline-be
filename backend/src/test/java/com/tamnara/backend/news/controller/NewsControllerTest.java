@@ -1,9 +1,10 @@
 package com.tamnara.backend.news.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tamnara.backend.config.NewsServiceMockConfig;
 import com.tamnara.backend.global.constant.ResponseMessage;
+import com.tamnara.backend.news.config.NewsServiceMockConfig;
 import com.tamnara.backend.news.constant.NewsResponseMessage;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsCardDTO;
@@ -60,7 +61,6 @@ public class NewsControllerTest {
     @Autowired private NewsService newsService;
 
     private static final Long USER_ID = 1L;
-    private static final Integer PAGE_SIZE = 6;
 
     private NewsCardDTO createNewsCardDTO(Long id, String category, LocalDateTime updatedAt, boolean bookmarked) {
         return new NewsCardDTO(
@@ -174,19 +174,19 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), false);
 
         List<NewsCardDTO> allnewsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
-        NewsListResponse allResponse = new NewsListResponse(allnewsList, PAGE_SIZE, false);
+        NewsListResponse allResponse = new NewsListResponse(allnewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> economynewsList = List.of(newsCardDTO1);
-        NewsListResponse economyResponse = new NewsListResponse(economynewsList, PAGE_SIZE, false);
+        NewsListResponse economyResponse = new NewsListResponse(economynewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> entertainmentnewsList = List.of(newsCardDTO2);
-        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentnewsList, PAGE_SIZE, false);
+        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentnewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> sportsnewsList = List.of(newsCardDTO3);
-        NewsListResponse sportsResponse = new NewsListResponse(sportsnewsList, PAGE_SIZE, false);
+        NewsListResponse sportsResponse = new NewsListResponse(sportsnewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> ktbnewsList = List.of(newsCardDTO4);
-        NewsListResponse ktbResponse = new NewsListResponse(ktbnewsList, PAGE_SIZE, false);
+        NewsListResponse ktbResponse = new NewsListResponse(ktbnewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         MultiCategoryResponse response = new MultiCategoryResponse();
         response.setAll(allResponse);
@@ -227,19 +227,19 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), true);
 
         List<NewsCardDTO> allNewsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
-        NewsListResponse allResponse = new NewsListResponse(allNewsList, PAGE_SIZE, false);
+        NewsListResponse allResponse = new NewsListResponse(allNewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> economyNewsList = List.of(newsCardDTO1);
-        NewsListResponse economyResponse = new NewsListResponse(economyNewsList, PAGE_SIZE, false);
+        NewsListResponse economyResponse = new NewsListResponse(economyNewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> entertainmentNewsList = List.of(newsCardDTO2);
-        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentNewsList, PAGE_SIZE, false);
+        NewsListResponse entertainmentResponse = new NewsListResponse(entertainmentNewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> sportsNewsList = List.of(newsCardDTO3);
-        NewsListResponse sportsResponse = new NewsListResponse(sportsNewsList, PAGE_SIZE, false);
+        NewsListResponse sportsResponse = new NewsListResponse(sportsNewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         List<NewsCardDTO> ktbNewsList = List.of(newsCardDTO4);
-        NewsListResponse ktbResponse = new NewsListResponse(ktbNewsList, PAGE_SIZE, false);
+        NewsListResponse ktbResponse = new NewsListResponse(ktbNewsList, NewsServiceConstant.PAGE_SIZE, false);
 
         MultiCategoryResponse response = new MultiCategoryResponse();
         response.setAll(allResponse);
@@ -282,22 +282,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), false);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         AllResponse response = new AllResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(null, null, PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(null, null, NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", (String) null)
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
-                .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ALL.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ALL.hasNext").value(false));
     }
 
@@ -311,22 +311,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO5 = createNewsCardDTO(5L, null, LocalDateTime.now(), true);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3, newsCardDTO4, newsCardDTO5);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         AllResponse response = new AllResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(USER_ID, null, PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, null, NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", (String) null)
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ALL.newsList.size()").value(5))
-                .andExpect(jsonPath("$.data.ALL.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ALL.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ALL.hasNext").value(false));
     }
 
@@ -340,22 +340,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), false);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         EconomyResponse response = new EconomyResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(null, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(null, CategoryType.ECONOMY.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", CategoryType.ECONOMY.toString())
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ECONOMY.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ECONOMY.hasNext").value(false));
     }
 
@@ -367,22 +367,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ECONOMY.toString(), LocalDateTime.now(), true);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         EconomyResponse response = new EconomyResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ECONOMY.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ECONOMY.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", CategoryType.ECONOMY.toString())
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ECONOMY.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.ECONOMY.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ECONOMY.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ECONOMY.hasNext").value(false));
     }
 
@@ -396,22 +396,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         EntertainmentResponse response = new EntertainmentResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(null, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(null, CategoryType.ENTERTAINMENT.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", CategoryType.ENTERTAINMENT.toString())
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.hasNext").value(false));
     }
 
@@ -423,22 +423,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         EntertainmentResponse response = new EntertainmentResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ENTERTAINMENT.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.ENTERTAINMENT.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                     get("/news")
                             .param("category", CategoryType.ENTERTAINMENT.toString())
-                            .param("offset", String.valueOf(PAGE_SIZE * 2))
+                            .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.ENTERTAINMENT.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.ENTERTAINMENT.hasNext").value(false));
     }
 
@@ -452,22 +452,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), false);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         SportsResponse response = new SportsResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(null, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(null, CategoryType.SPORTS.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                 get("/news")
                         .param("category", CategoryType.SPORTS.toString())
-                        .param("offset", String.valueOf(PAGE_SIZE * 2))
+                        .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.SPORTS.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.SPORTS.hasNext").value(false));
     }
 
@@ -479,22 +479,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.SPORTS.toString(), LocalDateTime.now(), true);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         SportsResponse response = new SportsResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.SPORTS.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.SPORTS.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                 get("/news")
                         .param("category", CategoryType.SPORTS.toString())
-                        .param("offset", String.valueOf(PAGE_SIZE * 2))
+                        .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.SPORTS.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.SPORTS.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.SPORTS.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.SPORTS.hasNext").value(false));
     }
 
@@ -508,22 +508,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         KtbResponse response = new KtbResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(null, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(null, CategoryType.KTB.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                 get("/news")
                         .param("category", CategoryType.KTB.toString())
-                        .param("offset", String.valueOf(PAGE_SIZE * 2))
+                        .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.KTB.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.KTB.hasNext").value(false));
     }
 
@@ -535,22 +535,22 @@ public class NewsControllerTest {
         NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
 
         List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
-        NewsListResponse newsListResponse = new NewsListResponse(newsList, PAGE_SIZE * 2, false);
+        NewsListResponse newsListResponse = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
         KtbResponse response = new KtbResponse(newsListResponse);
-        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.KTB.toString(), PAGE_SIZE * 2)).willReturn(response);
+        given(newsService.getSingleCategoryPage(USER_ID, CategoryType.KTB.toString(), NewsServiceConstant.PAGE_SIZE * 2)).willReturn(response);
 
         // when & then
         mockMvc.perform(
                 get("/news")
                         .param("category", CategoryType.KTB.toString())
-                        .param("offset", String.valueOf(PAGE_SIZE * 2))
+                        .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE * 2))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS))
                 .andExpect(jsonPath("$.data").isNotEmpty())
                 .andExpect(jsonPath("$.data.KTB.newsList.size()").value(3))
-                .andExpect(jsonPath("$.data.KTB.offset").value(PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.KTB.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
                 .andExpect(jsonPath("$.data.KTB.hasNext").value(false));
     }
 
