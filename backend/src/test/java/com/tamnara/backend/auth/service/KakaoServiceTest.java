@@ -2,7 +2,7 @@ package com.tamnara.backend.auth.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.auth.client.KakaoApiClient;
-import com.tamnara.backend.auth.utils.TestUtils;
+import com.tamnara.backend.utils.TestUtils;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;

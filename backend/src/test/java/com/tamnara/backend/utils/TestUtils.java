@@ -1,4 +1,4 @@
-package com.tamnara.backend.auth.utils;
+package com.tamnara.backend.utils;
 
 public class TestUtils {
     public static void setPrivateField(Object target, String fieldName, Object value) {

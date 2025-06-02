@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.auth.client.KakaoApiClient;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +54,7 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.AUTHORIZATION, org.hamcrest.Matchers.startsWith("Bearer ")))
+                .andExpect(header().string(HttpHeaders.AUTHORIZATION, Matchers.startsWith("Bearer ")))
                 .andExpect(jsonPath("$.success").value(true));
     }
 
@@ -69,7 +70,7 @@ class KakaoControllerIntegrationTest {
                         .param("code", "invalidCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("카카오 서버 요청 실패")));
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("카카오 서버 요청 실패")));
     }
 
     @Test
@@ -87,24 +88,18 @@ class KakaoControllerIntegrationTest {
                         .param("code", "dummyCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("예상치 못한 오류")));
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("서버 내부에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.")));
     }
 
     @Test
     @DisplayName("기존 사용자가 카카오 로그인 시 토큰 발급 및 활동시간 업데이트에 성공한다")
     void kakaoCallback_existingUser_success() throws Exception {
         // given
-        var existingUser = User.builder()
-                .email("test@kakao.com")
-                .username("카카오유저")
-                .provider("KAKAO")
-                .providerId("12345")
-                .role(com.tamnara.backend.user.domain.Role.USER)
-                .state(com.tamnara.backend.user.domain.State.ACTIVE)
-                .build();
+        User existingUser = userRepository.findByEmailAndProvider("test@kakao.com", "KAKAO")
+                .orElseThrow(() -> new IllegalArgumentException("테스트 실패: 기존 사용자가 존재하지 않습니다."));
 
         // 실제 DB 저장 (실제 흐름 테스트 목적)
-        var savedUser = userRepository.save(existingUser);
+        userRepository.save(existingUser);
 
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
 
@@ -118,7 +113,7 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.AUTHORIZATION, org.hamcrest.Matchers.startsWith("Bearer ")))
+                .andExpect(header().string(HttpHeaders.AUTHORIZATION, Matchers.startsWith("Bearer ")))
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
