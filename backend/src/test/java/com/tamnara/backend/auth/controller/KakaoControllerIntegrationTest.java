@@ -17,6 +17,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 
 import java.util.Map;
 
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+import static com.tamnara.backend.global.constant.ResponseMessage.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -63,14 +65,14 @@ class KakaoControllerIntegrationTest {
     void kakaoCallback_AccessTokenFailure_returnsBadGateway() throws Exception {
         // given
         when(kakaoApiClient.getAccessToken(anyString()))
-                .thenThrow(new RuntimeException("카카오 서버 요청 실패"));
+                .thenThrow(new RuntimeException(KAKAO_BAD_GATEWAY));
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "invalidCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(Matchers.containsString("카카오 서버 요청 실패")));
+                .andExpect(jsonPath("$.message").value(Matchers.containsString(KAKAO_BAD_GATEWAY)));
     }
 
     @Test
@@ -81,14 +83,14 @@ class KakaoControllerIntegrationTest {
                 .thenReturn("mockAccessToken");
 
         when(kakaoApiClient.getUserInfo("mockAccessToken"))
-                .thenThrow(new RuntimeException("Invalid Kakao JSON"));
+                .thenThrow(new RuntimeException(PARSING_USER_INFO_FAILS));
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(Matchers.containsString("서버 내부에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.")));
+                .andExpect(jsonPath("$.message").value(Matchers.containsString(PARSING_USER_INFO_FAILS)));
     }
 
     @Test
@@ -96,7 +98,7 @@ class KakaoControllerIntegrationTest {
     void kakaoCallback_existingUser_success() throws Exception {
         // given
         User existingUser = userRepository.findByEmailAndProvider("test@kakao.com", "KAKAO")
-                .orElseThrow(() -> new IllegalArgumentException("테스트 실패: 기존 사용자가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
         // 실제 DB 저장 (실제 흐름 테스트 목적)
         userRepository.save(existingUser);
