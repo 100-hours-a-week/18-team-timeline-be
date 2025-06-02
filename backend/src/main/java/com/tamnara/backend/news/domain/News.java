@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 @Table(name = "news")
 public class News {
     @Id
@@ -41,14 +43,14 @@ public class News {
     @OnDelete(action = OnDeleteAction.RESTRICT)
     private Category category;
 
-    @Column(name = "title", length = 24, nullable = false)
+    @Column(name = "title", length = 255, nullable = false)
     private String title;
 
-    @Column(name = "summary", length = 36, nullable = false)
+    @Column(name = "summary", length = 255, nullable = false)
     private String summary;
 
     @Column(name = "is_hotissue", nullable = false)
-    private Boolean isHotissue;
+    private Boolean isHotissue = false;
 
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 1L;

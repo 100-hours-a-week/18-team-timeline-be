@@ -2,6 +2,7 @@ package com.tamnara.backend.news.domain;
 
 import com.tamnara.backend.news.domain.converter.StringListConverter;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
@@ -15,6 +16,7 @@ import java.util.List;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 @Table(name = "timeline_cards", indexes = @Index(name = "idx_news_start_desc", columnList = "news_id, start_at DESC"))
 public class TimelineCard {
     @Id
@@ -26,7 +28,7 @@ public class TimelineCard {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private News news;
 
-    @Column(name = "title", length = 18, nullable = false)
+    @Column(name = "title", length = 255, nullable = false)
     private String title;
 
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
@@ -37,8 +39,8 @@ public class TimelineCard {
     private List<String> source;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 10, nullable = false)
-    private TimelineCardType type = TimelineCardType.DAY;
+    @Column(name = "duration", length = 10, nullable = false)
+    private TimelineCardType duration = TimelineCardType.DAY;
 
     @Column(name = "start_at", nullable = false)
     private LocalDate startAt;
