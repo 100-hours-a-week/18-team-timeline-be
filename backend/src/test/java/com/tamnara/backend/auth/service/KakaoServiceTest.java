@@ -15,9 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.http.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_SUCCESSFUL;
 import static com.tamnara.backend.utils.CreateUserUtils.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -120,7 +122,7 @@ class KakaoServiceTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
 
-        verify(userRepository).save(existingUser); // 기존 유저도 save는 호출됨
+        verify(userRepository).save(existingUser);
         verify(jwtProvider).createAccessToken(existingUser);
     }
 
@@ -132,11 +134,8 @@ class KakaoServiceTest {
         String tamnaraToken = "jwtToken";
 
         User existingUser = spy(createActiveUser("test@kakao.com", "카카오유저", "KAKAO", "12345"));
+        LocalDateTime originalLastActiveAt = existingUser.getLastActiveAt();
 
-        when(userRepository.findByProviderAndProviderId("KAKAO", "12345"))
-                .thenReturn(Optional.of(existingUser));
-        when(jwtProvider.createAccessToken(existingUser))
-                .thenReturn(tamnaraToken);
         when(kakaoApiClient.getAccessToken(code))
                 .thenReturn("mockAccessToken");
         when(kakaoApiClient.getUserInfo("mockAccessToken"))
@@ -146,11 +145,33 @@ class KakaoServiceTest {
                         "properties", Map.of("nickname", "카카오유저")
                 ));
 
+        when(userRepository.findByProviderAndProviderId("KAKAO", "12345"))
+                .thenReturn(Optional.of(existingUser));
+        when(jwtProvider.createAccessToken(existingUser))
+                .thenReturn(tamnaraToken);
+
         // when
-        kakaoService.kakaoLogin(code);
+        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code);
 
         // then
-        verify(existingUser).updateLastActiveAtNow(); // 해당 메서드 호출 확인
+        // Verify header
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                .isEqualTo("Bearer " + tamnaraToken);
+
+        // Verify body
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getMessage()).isEqualTo(KAKAO_LOGIN_SUCCESSFUL);
+
+        // Verify implementations
+        verify(kakaoApiClient).getAccessToken(code);
+        verify(kakaoApiClient).getUserInfo("mockAccessToken");
+
+        verify(existingUser).updateLastActiveAtNow();
+        assertThat(existingUser.getLastActiveAt())
+                .isAfter(originalLastActiveAt);
+
         verify(userRepository).save(existingUser);
+        verify(jwtProvider).createAccessToken(existingUser);
     }
 }

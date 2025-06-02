@@ -4,6 +4,8 @@ import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 
+import java.time.LocalDateTime;
+
 public class CreateUserUtils {
     public static User createActiveUser(String email, String username, String provider, String providerId) {
         return User.builder()
@@ -13,6 +15,7 @@ public class CreateUserUtils {
                 .providerId(providerId)
                 .role(Role.USER)
                 .state(State.ACTIVE)
+                .lastActiveAt(LocalDateTime.now())
                 .build();
     }
 
@@ -24,6 +27,7 @@ public class CreateUserUtils {
                 .providerId(providerId)
                 .role(Role.USER)
                 .state(State.DELETED)
+                .lastActiveAt(LocalDateTime.now())
                 .build();
     }
 }
