@@ -35,8 +35,8 @@ public class Bookmark {
     private Long id;
 
         @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", referencedColumnName = "id", updatable = false)
-        @OnDelete(action = OnDeleteAction.SET_NULL)
+        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, updatable = false)
+        @OnDelete(action = OnDeleteAction.CASCADE)
         private User user;
 
         @ManyToOne(fetch = FetchType.LAZY)
