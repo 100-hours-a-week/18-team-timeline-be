@@ -18,6 +18,7 @@ import org.springframework.http.*;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.tamnara.backend.utils.CreateUserUtils.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -95,14 +96,7 @@ class KakaoServiceTest {
         String code = "dummy_code";
         String tamnaraToken = "jwtToken";
 
-        User existingUser = User.builder()
-                .email("test@kakao.com")
-                .username("카카오유저")
-                .provider("KAKAO")
-                .providerId("12345")
-                .role(Role.USER)
-                .state(State.ACTIVE)
-                .build();
+        User existingUser = createActiveUser("test@kakao.com", "카카오유저", "KAKAO", "12345");
 
         when(userRepository.findByProviderAndProviderId("KAKAO", "12345"))
                 .thenReturn(Optional.of(existingUser));
@@ -137,14 +131,7 @@ class KakaoServiceTest {
         String code = "dummy_code";
         String tamnaraToken = "jwtToken";
 
-        User existingUser = spy(User.builder()
-                .email("test@kakao.com")
-                .username("카카오유저")
-                .provider("KAKAO")
-                .providerId("12345")
-                .role(Role.USER)
-                .state(State.ACTIVE)
-                .build());
+        User existingUser = spy(createActiveUser("test@kakao.com", "카카오유저", "KAKAO", "12345"));
 
         when(userRepository.findByProviderAndProviderId("KAKAO", "12345"))
                 .thenReturn(Optional.of(existingUser));
