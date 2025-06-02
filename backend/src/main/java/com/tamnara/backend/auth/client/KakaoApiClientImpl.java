@@ -27,11 +27,9 @@ public class KakaoApiClientImpl implements KakaoApiClient {
 
     @Override
     public String getAccessToken(String code) {
-        // 1. 토큰 요청 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        // 2. 요청 파라미터 설정
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);
@@ -40,7 +38,6 @@ public class KakaoApiClientImpl implements KakaoApiClient {
 
         HttpEntity<?> request = new HttpEntity<>(params, headers);
 
-        // 3. access_token 요청
         ResponseEntity<String> response = restTemplate.exchange(
                 "https://kauth.kakao.com/oauth/token",
                 HttpMethod.POST,
@@ -59,7 +56,6 @@ public class KakaoApiClientImpl implements KakaoApiClient {
     @Override
     public Map<String, Object> getUserInfo(String accessToken) {
 
-        // 사용자 정보 요청
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         HttpEntity<Void> request = new HttpEntity<>(headers);

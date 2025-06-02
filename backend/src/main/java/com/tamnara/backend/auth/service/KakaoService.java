@@ -51,15 +51,12 @@ public class KakaoService {
     public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
         log.info("카카오 로그인 시작: code={}", code);
         try {
-            // access token 요청
             String accessToken = kakaoApiClient.getAccessToken(code);
             log.info("카카오 access token 발급 성공");
 
-            // 사용자 정보 요청
             Map<String, Object> userInfoJson = kakaoApiClient.getUserInfo(accessToken);
             log.info("카카오 사용자 정보 조회 성공");
 
-            // 사용자 정보 파싱
             Map<String, Object> kakaoAccount = (Map<String, Object>) userInfoJson.get("kakao_account");
             Map<String, Object> properties = (Map<String, Object>) userInfoJson.get("properties");
 
@@ -69,24 +66,21 @@ public class KakaoService {
 
             log.debug("카카오 사용자 파싱 결과: kakaoId={}, email={}, nickname={}", kakaoId, email, nickname);
 
-            // 이미 카카오 로그인으로 가입된 사용자인지 확인
             Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
 
             User user;
 
             if (optionalUser.isPresent()) {
-                // 기존 사용자 → 로그인 처리
                 user = optionalUser.get();
                 log.info("기존 사용자 로그인 처리: userId={}", user.getId());
             } else {
-                // 신규 사용자 → 회원가입 처리
                 user = User.builder()
                         .email(email)
                         .username(nickname)
                         .provider("KAKAO")
                         .providerId(kakaoId)
-                        .role(Role.USER)         // 기본 권한
-                        .state(State.ACTIVE)     // 기본 상태
+                        .role(Role.USER)
+                        .state(State.ACTIVE)
                         .build();
                 log.info("신규 사용자 회원가입 처리 예정: email={}", email);
             }
@@ -97,8 +91,7 @@ public class KakaoService {
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
             log.info("JWT 발급 완료: userId={}", user.getId());
 
-            // 콘솔에 access token 출력 (로컬 디버깅용)
-//            System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
+            // System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
