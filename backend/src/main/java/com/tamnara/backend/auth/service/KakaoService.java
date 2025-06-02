@@ -14,6 +14,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public class KakaoService {
         return url;
     }
 
+    @Transactional
     public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
         log.info("카카오 로그인 시작: code={}", code);
         try {
