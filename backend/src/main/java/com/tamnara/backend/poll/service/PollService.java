@@ -8,8 +8,12 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import static com.tamnara.backend.poll.constant.PollExceptionMessage.MIN_CHOICES_EXCEED_MAX;
+import static com.tamnara.backend.poll.constant.PollExceptionMessage.START_DATE_LATER_THAN_END_DATE;
+import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollFromRequest;
+import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollOptionsFromRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -20,37 +24,17 @@ public class PollService {
 
     @Transactional
     public Long createPoll(PollCreateRequest request) {
-        // 1. 유효성 추가 검증
         if (request.getMinChoices() > request.getMaxChoices()) {
-            throw new IllegalArgumentException("최소 선택 수는 최대 선택 수보다 클 수 없습니다.");
+            throw new IllegalArgumentException(MIN_CHOICES_EXCEED_MAX);
         }
         if (!request.getStartAt().isBefore(request.getEndAt())) {
-            throw new IllegalArgumentException("시작일은 종료일보다 앞서야 합니다.");
+            throw new IllegalArgumentException(START_DATE_LATER_THAN_END_DATE);
         }
 
-        // 2. Poll 저장
-        Poll poll = Poll.builder()
-                .title(request.getTitle())
-                .minChoices(request.getMinChoices())
-                .maxChoices(request.getMaxChoices())
-                .startAt(request.getStartAt())
-                .endAt(request.getEndAt())
-                .state(PollState.DRAFT)
-                .build();
+        Poll poll = buildPollFromRequest(request);
         Poll savedPoll = pollRepository.save(poll);
 
-        // 3. 옵션 저장
-        List<PollOption> options = new ArrayList<>();
-        int sortOrder = 0;
-        for (PollOptionCreateRequest optionReq : request.getOptions()) {
-            PollOption option = PollOption.builder()
-                    .title(optionReq.getTitle())
-                    .imageUrl(optionReq.getImageUrl())
-                    .sortOrder(sortOrder++)
-                    .poll(savedPoll)
-                    .build();
-            options.add(option);
-        }
+        List<PollOption> options = buildPollOptionsFromRequest(request.getOptions(), savedPoll);
         pollOptionRepository.saveAll(options);
 
         return savedPoll.getId();

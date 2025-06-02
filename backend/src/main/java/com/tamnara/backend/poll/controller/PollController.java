@@ -29,35 +29,26 @@ public class PollController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<WrappedDTO<PollCreateResponse>> createPoll(
-            @Valid @RequestBody PollCreateRequest request,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        try {
-            User user = userDetails.getUser();
+        @Valid @RequestBody PollCreateRequest request,
+        @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new WrappedDTO<>(false, USER_NOT_FOUND, null)
-                );
-            }
+        User user = userDetails.getUser();
 
-            if (user.getState() != State.ACTIVE) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
-                );
-            }
-
-            Long pollId = pollService.createPoll(request);
-            PollCreateResponse response = new PollCreateResponse(pollId);
-
-            return ResponseEntity.ok(new WrappedDTO<>(true, POLL_CREATED, response));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(
-                    new WrappedDTO<>(false, BAD_REQUEST, null)
-            );
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
             );
         }
+
+        if (user.getState() != State.ACTIVE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+            );
+        }
+
+        Long pollId = pollService.createPoll(request);
+        PollCreateResponse response = new PollCreateResponse(pollId);
+
+        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_CREATED, response));
     }
 }

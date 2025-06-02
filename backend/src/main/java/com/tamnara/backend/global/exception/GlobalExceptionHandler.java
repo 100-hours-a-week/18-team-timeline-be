@@ -6,10 +6,14 @@ import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
+
+import static com.tamnara.backend.global.constant.ResponseMessage.BAD_REQUEST;
+import static com.tamnara.backend.global.constant.ResponseMessage.INTERNAL_SERVER_ERROR;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,23 +28,24 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(DuplicateUsernameException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateUsernameException(DuplicateUsernameException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ErrorResponse.of(false, "이미 사용 중인 닉네임입니다."));
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<WrappedDTO<Void>> handleValidationException(MethodArgumentNotValidException ex) {
+        return ResponseEntity.badRequest().body(
+                new WrappedDTO<>(false, BAD_REQUEST, null)
+        );
     }
 
-    @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateEmailException(DuplicateEmailException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ErrorResponse.of(false, "이미 사용 중인 이메일입니다."));
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<WrappedDTO<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(
+                new WrappedDTO<>(false, BAD_REQUEST + ex.getMessage(), null)
+        );
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleGenericException(Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "success", false,
-                "message", "서버에 문제가 발생했습니다."
-        ));
+    public ResponseEntity<WrappedDTO<Void>> handleOtherExceptions(Exception ex) {
+        return ResponseEntity.internalServerError().body(
+                new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
+        );
     }
 }
