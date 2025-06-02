@@ -25,7 +25,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     private final NewsRepository newsRepository;
 
     @Override
-    public BookmarkAddResponse addBookmark(Long userId, Long newsId) {
+    public BookmarkAddResponse save(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
@@ -44,7 +44,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
-    public void deleteBookmark(Long userId, Long newsId) {
+    public void delete(Long userId, Long newsId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 

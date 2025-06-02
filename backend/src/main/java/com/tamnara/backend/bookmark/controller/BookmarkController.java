@@ -34,7 +34,7 @@ public class BookmarkController {
 
             Long userId = userDetails.getUser().getId();
 
-            BookmarkAddResponse bookmarkAddResponse = bookmarkService.addBookmark(userId, newsId);
+            BookmarkAddResponse bookmarkAddResponse = bookmarkService.save(userId, newsId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
@@ -61,7 +61,7 @@ public class BookmarkController {
             }
 
             Long userId = userDetails.getUser().getId();
-            bookmarkService.deleteBookmark(userId, newsId);
+            bookmarkService.delete(userId, newsId);
 
             return ResponseEntity.noContent().build();
 
