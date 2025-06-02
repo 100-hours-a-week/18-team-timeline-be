@@ -2,6 +2,7 @@ package com.tamnara.backend.poll.controller;
 
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.poll.dto.PollCreateRequest;
+import com.tamnara.backend.poll.dto.PollCreateResponse;
 import com.tamnara.backend.poll.service.PollService;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -15,9 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import static com.tamnara.backend.global.constant.ResponseMessage.*;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
 
 @RestController
@@ -29,7 +28,7 @@ public class PollController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<WrappedDTO<Long>> createPoll(
+    public ResponseEntity<WrappedDTO<PollCreateResponse>> createPoll(
             @Valid @RequestBody PollCreateRequest request,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
@@ -37,29 +36,28 @@ public class PollController {
 
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new WrappedDTO<>(false, "관련된 회원이 없습니다.", null)
+                        new WrappedDTO<>(false, USER_NOT_FOUND, null)
                 );
             }
 
             if (user.getState() != State.ACTIVE) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, "유효하지 않은 계정입니다.", null)
+                        new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
                 );
             }
 
             Long pollId = pollService.createPoll(request);
+            PollCreateResponse response = new PollCreateResponse(pollId);
 
-            Map<String, Long> responseData = new HashMap<>();
-            responseData.put("pollId", pollId);
-
-            return ResponseEntity.ok(new WrappedDTO<>(true, "투표 생성 성공", responseData));
-    } catch (IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(
-                new WrappedDTO<>(false, e.getMessage(), null)
-        );
-    } catch (Exception e) {
-        return ResponseEntity.internalServerError().body(
-                new WrappedDTO<>(false, "서버 내부 오류가 발생했습니다. 나중에 다시 시도해주세요.", null)
-        );
+            return ResponseEntity.ok(new WrappedDTO<>(true, POLL_CREATED, response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    new WrappedDTO<>(false, BAD_REQUEST, null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(
+                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
+            );
+        }
     }
 }
