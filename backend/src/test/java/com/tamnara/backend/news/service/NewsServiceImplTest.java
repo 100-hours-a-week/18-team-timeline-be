@@ -28,6 +28,7 @@ import com.tamnara.backend.news.repository.CategoryRepository;
 import com.tamnara.backend.news.repository.NewsImageRepository;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.news.repository.NewsTagRepository;
+import com.tamnara.backend.news.repository.TagRepository;
 import com.tamnara.backend.news.repository.TimelineCardRepository;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -56,6 +57,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -73,6 +75,7 @@ class NewsServiceImplTest {
     @Mock private TimelineCardRepository timelineCardRepository;
     @Mock private NewsImageRepository newsImageRepository;
     @Mock private CategoryRepository categoryRepository;
+    @Mock private TagRepository tagRepository;
     @Mock private NewsTagRepository newsTagRepository;
 
     @Mock private UserRepository userRepository;
@@ -433,6 +436,12 @@ class NewsServiceImplTest {
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
         when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
+        // 뉴스 태그 저장
+        Tag tag = new Tag();
+        tag.setId(1L);
+        tag.setName("태그명");
+        when(tagRepository.findByName(any(String.class))).thenReturn(Optional.of(tag));
+
         // when
         NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
 
@@ -603,8 +612,8 @@ class NewsServiceImplTest {
         });
 
         // then
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertEquals(NewsResponseMessage.NEWS_DELETE_FORBIDDEN, exception.getReason());;
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals(NewsResponseMessage.NEWS_DELETE_FORBIDDEN, exception.getReason());
     }
 
     @Test
@@ -624,6 +633,6 @@ class NewsServiceImplTest {
 
         // then
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(NewsResponseMessage.NEWS_UPDATE_CONFLICT, exception.getReason());;
+        assertEquals(NewsResponseMessage.NEWS_UPDATE_CONFLICT, exception.getReason());
     }
 }
