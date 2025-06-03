@@ -1,14 +1,14 @@
 ---
 name: "\U0001F9EA Test"
 about: 테스트 코드 작성
-title: "[풀스택] [DEPLOY]"
+title: "[풀스택] [TEST]"
 labels: test
 assignees: ''
 
 ---
 
 ## 설명
-> 단위/유닛/통합 테스트, 검증하거나 확인하려는 목표
+> 단위/통합 테스트, 검증하거나 확인하려는 목표
 
 <br/>
 
