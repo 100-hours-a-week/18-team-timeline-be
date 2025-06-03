@@ -69,7 +69,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
-    public BookmarkListResponse findByUserId(Long userId, Integer offset) {
+    public BookmarkListResponse getBookmarkedNewsList(Long userId, Integer offset) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 

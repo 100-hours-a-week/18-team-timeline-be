@@ -178,7 +178,7 @@ public class BookmarkServiceImplTest {
         when(bookmarkRepository.findByUser(user, pageable)).thenReturn(bookmarkPage);
 
         // when
-        BookmarkListResponse response = bookmarkServiceImpl.findByUserId(user.getId(), 0);
+        BookmarkListResponse response = bookmarkServiceImpl.getBookmarkedNewsList(user.getId(), 0);
 
         // then
         assertEquals(bookmarkList.size(), response.getBookmarks().size());
@@ -196,7 +196,7 @@ public class BookmarkServiceImplTest {
 
         // when
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            bookmarkServiceImpl.findByUserId(user.getId(), 0);
+            bookmarkServiceImpl.getBookmarkedNewsList(user.getId(), 0);
         });
 
         // then
