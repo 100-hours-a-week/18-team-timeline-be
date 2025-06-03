@@ -199,4 +199,16 @@ public class NewsTagRepositoryTest {
         assertEquals(newsTag2.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(1).getId());
         assertEquals(newsTag3.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(2).getId());
     }
+
+    @Test
+    void 입력_키워드_목록과_일치하는_뉴스가_없는_경우_조회_검증() {
+        // given
+
+        // when
+        List<String> keywords = List.of(tag1.getName(), tag2.getName(), tag3.getName());
+        News findNews = newsTagRepository.findNewsByExactlyMatchingTags(keywords, keywords.size()).orElse(null);
+
+        // then
+        assertNull(findNews);
+    }
 }
