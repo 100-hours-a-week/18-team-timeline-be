@@ -6,6 +6,7 @@ import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.dto.response.BookmarkAddResponse;
 import com.tamnara.backend.bookmark.dto.response.BookmarkListResponse;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -186,5 +187,20 @@ public class BookmarkServiceImplTest {
         assertEquals(news1.getId(), response.getBookmarks().get(2).getId());
         assertEquals(BookmarkServiceConstant.PAGE_SIZE, response.getOffset());
         assertFalse(response.isHasNext());
+    }
+
+    @Test
+    void 북마크한_뉴스_카드_목록_조회_시_회원이_존재하지_않으면_예외_처리_검증() {
+        // given
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+
+        // when
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            bookmarkServiceImpl.findByUserId(user.getId(), 0);
+        });
+
+        // then
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(ResponseMessage.USER_NOT_FOUND, exception.getReason());;
     }
 }
