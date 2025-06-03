@@ -43,7 +43,9 @@ public class NewsTagRepositoryTest {
     }
 
     News news;
-    Tag tag;
+    Tag tag1;
+    Tag tag2;
+    Tag tag3;
 
     @BeforeEach
     void setUp() {
@@ -52,9 +54,17 @@ public class NewsTagRepositoryTest {
         news.setSummary("미리보기 내용");
         newsRepository.saveAndFlush(news);
 
-        tag = new Tag();
-        tag.setName("태그");
-        tagRepository.saveAndFlush(tag);
+        tag1 = new Tag();
+        tag1.setName("태그1");
+        tagRepository.saveAndFlush(tag1);
+
+        tag2 = new Tag();
+        tag2.setName("태그2");
+        tagRepository.saveAndFlush(tag2);
+
+        tag3 = new Tag();
+        tag3.setName("태그3");
+        tagRepository.saveAndFlush(tag3);
 
         em.clear();
     }
@@ -62,7 +72,7 @@ public class NewsTagRepositoryTest {
     @Test
     void 뉴스태그_생성_성공_검증() {
         // given
-        NewsTag newsTag = createNewsTag(news, tag);
+        NewsTag newsTag = createNewsTag(news, tag1);
         newsTagRepository.saveAndFlush(newsTag);
         em.clear();
 
@@ -79,7 +89,7 @@ public class NewsTagRepositoryTest {
         NewsTag newsTag = new NewsTag();
 
         // when
-        newsTag.setTag(tag);
+        newsTag.setTag(tag1);
 
         // then
         assertNull(newsTag.getNews());
@@ -106,7 +116,7 @@ public class NewsTagRepositoryTest {
     @Test
     void 뉴스태그_뉴스와_태그_업데이트_불가_검증() {
         // given
-        NewsTag newsTag = createNewsTag(news, tag);
+        NewsTag newsTag = createNewsTag(news, tag1);
         newsTagRepository.saveAndFlush(newsTag);
         em.clear();
 
@@ -117,26 +127,21 @@ public class NewsTagRepositoryTest {
         newsRepository.saveAndFlush(newNews);
         em.clear();
 
-        Tag newTag = new Tag();
-        newTag.setName("태그2");
-        tagRepository.saveAndFlush(newTag);
-        em.clear();
-
         NewsTag findNewsTag = newsTagRepository.findById(newsTag.getId()).get();
         findNewsTag.setNews(newNews);
-        findNewsTag.setTag(newTag);
+        findNewsTag.setTag(tag2);
         newsTagRepository.saveAndFlush(newsTag);
         em.clear();
 
         // then
         assertEquals(news.getId(), findNewsTag.getNews().getId());
-        assertEquals(tag.getId(), findNewsTag.getTag().getId());
+        assertEquals(tag1.getId(), findNewsTag.getTag().getId());
     }
 
     @Test
     void 뉴스태그_삭제_성공_검증() {
         // given
-        NewsTag newsTag = createNewsTag(news, tag);
+        NewsTag newsTag = createNewsTag(news, tag1);
         newsTagRepository.saveAndFlush(newsTag);
         em.clear();
 
@@ -153,9 +158,9 @@ public class NewsTagRepositoryTest {
     @Test
     void 뉴스_ID로_연관된_뉴스태그들_조회_성공_검증() {
         // given
-        NewsTag newsTag1 = createNewsTag(news, tag);
+        NewsTag newsTag1 = createNewsTag(news, tag1);
         newsTagRepository.saveAndFlush(newsTag1);
-        NewsTag newsTag2 = createNewsTag(news, tag);
+        NewsTag newsTag2 = createNewsTag(news, tag2);
         newsTagRepository.saveAndFlush(newsTag2);
         em.clear();
 
@@ -164,5 +169,34 @@ public class NewsTagRepositoryTest {
 
         // then
         assertEquals(2, findNewsTags.size());
+    }
+
+    @Test
+    void 입력_키워드_목록과_일치하는_뉴스_조회_성공_검증() {
+        // given
+        NewsTag newsTag1 = createNewsTag(news, tag1);
+        newsTagRepository.saveAndFlush(newsTag1);
+        NewsTag newsTag2 = createNewsTag(news, tag2);
+        newsTagRepository.saveAndFlush(newsTag2);
+        NewsTag newsTag3 = createNewsTag(news, tag3);
+        newsTagRepository.saveAndFlush(newsTag3);
+        em.clear();
+
+        // when
+        List<String> keywords1 = List.of(tag1.getName(), tag2.getName(), tag3.getName());
+        News findNews1 = newsTagRepository.findNewsByExactlyMatchingTags(keywords1, keywords1.size()).get();
+        List<String> keywords2 = List.of(tag2.getName(), tag1.getName(), tag3.getName());
+        News findNews2 = newsTagRepository.findNewsByExactlyMatchingTags(keywords2, keywords2.size()).get();
+
+        // then
+        assertEquals(news.getId(), findNews1.getId());
+        assertEquals(newsTag1.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(0).getId());
+        assertEquals(newsTag2.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(1).getId());
+        assertEquals(newsTag3.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(2).getId());
+
+        assertEquals(news.getId(), findNews2.getId());
+        assertEquals(newsTag1.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(0).getId());
+        assertEquals(newsTag2.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(1).getId());
+        assertEquals(newsTag3.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(2).getId());
     }
 }
