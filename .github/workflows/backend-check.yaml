@@ -180,7 +180,7 @@ jobs:
           FAMILY="docker-v1-backend-cluster"
           SERVICE="${FAMILY}-service"
           CONTAINER_NAME="docker-v1-backend"
-          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+          IMAGE="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:latest"
 
           TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
 
