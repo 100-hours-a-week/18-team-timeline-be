@@ -196,7 +196,7 @@ public class NewsServiceImpl implements NewsService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         // 0. 뉴스 생성 키워드 목록과 기존 뉴스의 태그 목록이 일치할 경우, 기존 뉴스를 업데이트한다.
-        Optional<News> optionalNews = newsTagRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
+        Optional<News> optionalNews = newsRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
         if (optionalNews.isPresent()) {
             Long newsId = optionalNews.get().getId();
             return update(newsId, userId);
