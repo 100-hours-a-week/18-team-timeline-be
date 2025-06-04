@@ -1,5 +1,6 @@
 package com.tamnara.backend.bookmark.repository;
 
+import com.tamnara.backend.bookmark.constant.BookmarkServiceConstant;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.global.config.JpaConfig;
 import com.tamnara.backend.news.domain.News;
@@ -17,7 +18,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -171,6 +178,33 @@ public class BookmarkRepositoryTest {
 
         // then
         assertEquals(bookmark.getId(), findedBookmark.getId());
+    }
+
+    @Test
+    void 회원으로_북마크_목록_조회_검증() {
+        // given
+        Bookmark bookmark1 = createBookmark(news, user);
+        bookmarkRepository.saveAndFlush(bookmark1);
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+
+        Bookmark bookmark2 = createBookmark(news, user);
+        bookmarkRepository.saveAndFlush(bookmark2);
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+
+        Bookmark bookmark3 = createBookmark(news, user);
+        bookmarkRepository.saveAndFlush(bookmark3);
+        em.clear();
+
+        // when
+        Pageable pageable = PageRequest.of(0, BookmarkServiceConstant.PAGE_SIZE, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Bookmark> bookmarkPage = bookmarkRepository.findByUser(user, pageable);
+        List<Bookmark> bookmarkList = bookmarkPage.getContent();
+
+        // then
+        assertEquals(3, bookmarkList.size());
+        assertEquals(bookmark3, bookmarkList.get(0));
+        assertEquals(bookmark2, bookmarkList.get(1));
+        assertEquals(bookmark1, bookmarkList.get(2));
     }
 
     @Test
