@@ -58,6 +58,7 @@ jobs:
           EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
           EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
           EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
   build-image:
