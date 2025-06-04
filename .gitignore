@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Querydsl ###
+/build/
+build/generated/querydsl/
+build/generated/sources/annotationProcessor/
+src/main/generated/
