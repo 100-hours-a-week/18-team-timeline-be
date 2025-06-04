@@ -34,15 +34,15 @@ public class Bookmark {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, updatable = false)
-        @OnDelete(action = OnDeleteAction.CASCADE)
-        private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
-        @OnDelete(action = OnDeleteAction.CASCADE)
-        private News news;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private News news;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
