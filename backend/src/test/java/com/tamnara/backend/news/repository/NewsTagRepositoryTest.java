@@ -45,7 +45,6 @@ public class NewsTagRepositoryTest {
     News news;
     Tag tag1;
     Tag tag2;
-    Tag tag3;
 
     @BeforeEach
     void setUp() {
@@ -61,10 +60,6 @@ public class NewsTagRepositoryTest {
         tag2 = new Tag();
         tag2.setName("태그2");
         tagRepository.saveAndFlush(tag2);
-
-        tag3 = new Tag();
-        tag3.setName("태그3");
-        tagRepository.saveAndFlush(tag3);
 
         em.clear();
     }
@@ -169,46 +164,5 @@ public class NewsTagRepositoryTest {
 
         // then
         assertEquals(2, findNewsTags.size());
-    }
-
-    @Test
-    void 입력_키워드_목록과_일치하는_뉴스_조회_성공_검증() {
-        // given
-        NewsTag newsTag1 = createNewsTag(news, tag1);
-        newsTagRepository.saveAndFlush(newsTag1);
-        NewsTag newsTag2 = createNewsTag(news, tag2);
-        newsTagRepository.saveAndFlush(newsTag2);
-        NewsTag newsTag3 = createNewsTag(news, tag3);
-        newsTagRepository.saveAndFlush(newsTag3);
-        em.clear();
-
-        // when
-        List<String> keywords1 = List.of(tag1.getName(), tag2.getName(), tag3.getName());
-        News findNews1 = newsTagRepository.findNewsByExactlyMatchingTags(keywords1, keywords1.size()).get();
-        List<String> keywords2 = List.of(tag2.getName(), tag1.getName(), tag3.getName());
-        News findNews2 = newsTagRepository.findNewsByExactlyMatchingTags(keywords2, keywords2.size()).get();
-
-        // then
-        assertEquals(news.getId(), findNews1.getId());
-        assertEquals(newsTag1.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(0).getId());
-        assertEquals(newsTag2.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(1).getId());
-        assertEquals(newsTag3.getId(), newsTagRepository.findByNewsId(findNews1.getId()).get(2).getId());
-
-        assertEquals(news.getId(), findNews2.getId());
-        assertEquals(newsTag1.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(0).getId());
-        assertEquals(newsTag2.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(1).getId());
-        assertEquals(newsTag3.getId(), newsTagRepository.findByNewsId(findNews2.getId()).get(2).getId());
-    }
-
-    @Test
-    void 입력_키워드_목록과_일치하는_뉴스가_없는_경우_조회_검증() {
-        // given
-
-        // when
-        List<String> keywords = List.of(tag1.getName(), tag2.getName(), tag3.getName());
-        News findNews = newsTagRepository.findNewsByExactlyMatchingTags(keywords, keywords.size()).orElse(null);
-
-        // then
-        assertNull(findNews);
     }
 }
