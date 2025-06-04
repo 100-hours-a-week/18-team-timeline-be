@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<WrappedDTO<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(
-                new WrappedDTO<>(false, BAD_REQUEST + ex.getMessage(), null)
+                new WrappedDTO<>(false, BAD_REQUEST, null)
         );
     }
 
