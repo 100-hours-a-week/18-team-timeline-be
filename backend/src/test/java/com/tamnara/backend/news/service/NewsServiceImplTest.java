@@ -379,7 +379,7 @@ class NewsServiceImplTest {
         // given
         List<String> query = List.of("키워드1", "키워드2", "키워드3");
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(newsTagRepository.findNewsByExactlyMatchingTags(query, query.size())).thenReturn(Optional.empty());
+        when(newsRepository.findNewsByExactlyMatchingTags(query, query.size())).thenReturn(Optional.empty());
 
         // 타임라인 생성
         NewsCreateRequest newsCreateRequest = new NewsCreateRequest(query);
@@ -485,7 +485,7 @@ class NewsServiceImplTest {
         List<TimelineCard> timelineCards = List.of(weekCard);
 
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(newsTagRepository.findNewsByExactlyMatchingTags(query, query.size())).thenReturn(Optional.of(news));
+        when(newsRepository.findNewsByExactlyMatchingTags(query, query.size())).thenReturn(Optional.of(news));
         when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
         when(timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(news.getId())).thenReturn(timelineCards);
         when(newsTagRepository.findByNewsId(news.getId())).thenReturn(newsTags);
