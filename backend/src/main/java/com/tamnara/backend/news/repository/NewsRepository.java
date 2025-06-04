@@ -26,10 +26,7 @@ public interface NewsRepository extends JpaRepository<News, Long> {
           )
         ORDER BY n.updatedAt DESC, n.id DESC
     """)
-    Page<News> findByIsHotissueFalseAndCategoryId(
-            @Param("categoryId") Long categoryId,
-            Pageable pageable
-    );
+    Page<News> findByIsHotissueFalseAndCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
 
     @Modifying
     @Transactional

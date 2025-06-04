@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
@@ -26,21 +27,22 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 @Table(name = "bookmark", indexes = @Index(name = "idx_user_id_id_desc", columnList = "user_id, id DESC"))
 public class Bookmark {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", referencedColumnName = "id", updatable = false)
-        @OnDelete(action = OnDeleteAction.SET_NULL)
-        private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
-        @OnDelete(action = OnDeleteAction.CASCADE)
-        private News news;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "news_id", referencedColumnName = "id", nullable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private News news;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

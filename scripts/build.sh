@@ -17,4 +17,5 @@ docker build \
   --build-arg EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
   --build-arg EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
   --build-arg EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
+  --build-arg OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT \
   -t $ECR_REPO:$TAG .

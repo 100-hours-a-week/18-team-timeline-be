@@ -1,7 +1,9 @@
 package com.tamnara.backend.news.controller;
 
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
@@ -42,16 +44,16 @@ public class NewsController {
             return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
-                            "요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                            NewsResponseMessage.HOTISSUE_NEWS_CARD_FETCH_SUCCESS,
                             hotissueNewsListResponse
                     ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -70,7 +72,7 @@ public class NewsController {
 
                 return ResponseEntity.ok(new WrappedDTO<>(
                         true,
-                        "요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.",
+                        NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_SUCCESS,
                         multiCategoryResponse
                 ));
             } else {
@@ -82,7 +84,7 @@ public class NewsController {
                 return ResponseEntity.ok().body(
                         new WrappedDTO<> (
                                 true,
-                                "요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다.",
+                                NewsResponseMessage.NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS,
                                 singleCategoryResponse
                         ));
             }
@@ -90,16 +92,17 @@ public class NewsController {
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
     @GetMapping("/{newsId}")
-    public ResponseEntity<WrappedDTO<NewsDetailResponse>> findNewsDetail(@PathVariable("newsId") Long newsId,
-                                                                         @AuthenticationPrincipal UserDetailsImpl userDetails
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> findNewsDetail(
+            @PathVariable("newsId") Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             Long userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
@@ -110,27 +113,28 @@ public class NewsController {
             return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
-                            "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.",
+                            NewsResponseMessage.NEWS_DETAIL_FETCH_SUCCESS,
                             newsDetailResponse
                     ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<NewsDetailResponse>> createNews(@AuthenticationPrincipal UserDetailsImpl userDetails,
-                                                                             @RequestBody NewsCreateRequest req
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> createNews(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody NewsCreateRequest req
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 회원입니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             Long userId = userDetails.getUser().getId();
@@ -145,27 +149,28 @@ public class NewsController {
             return ResponseEntity.created(location).body(
                     new WrappedDTO<>(
                             true,
-                            "뉴스가 성공적으로 생성되었습니다.",
+                            NewsResponseMessage.NEWS_CREATED_SUCCESS,
                             newsDetailResponse
                     ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PatchMapping("/{newsId}")
-    public ResponseEntity<WrappedDTO<NewsDetailResponse>> updateNews(@PathVariable Long newsId,
-                                                                             @AuthenticationPrincipal UserDetailsImpl userDetails
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> updateNews(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 회원입니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             Long userId = userDetails.getUser().getId();
@@ -180,31 +185,31 @@ public class NewsController {
             return ResponseEntity.ok().body(
                     new WrappedDTO<>(
                             true,
-                            "데이터가 성공적으로 업데이트되었습니다.",
+                            NewsResponseMessage.NEWS_UPDATED_SUCCESS,
                             newsDetailResponse
                     ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/{newsId}")
     public ResponseEntity<Void> deleteNews(@PathVariable Long newsId,
-                                        @AuthenticationPrincipal UserDetailsImpl userDetails
+                                           @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증되지 않은 회원입니다.");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             if (userDetails.getUser().getRole() != Role.ADMIN) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "뉴스를 삭제할 권한이 없습니다.");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, NewsResponseMessage.NEWS_DELETE_FORBIDDEN);
             }
 
             newsService.delete(newsId, userDetails.getUser().getId());
@@ -214,10 +219,10 @@ public class NewsController {
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다.");
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 }
