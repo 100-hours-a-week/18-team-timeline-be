@@ -1,10 +1,12 @@
 package com.tamnara.backend.poll.controller;
 
 import com.tamnara.backend.global.dto.WrappedDTO;
+import com.tamnara.backend.poll.domain.Poll;
+import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.dto.PollCreateRequest;
 import com.tamnara.backend.poll.dto.PollCreateResponse;
+import com.tamnara.backend.poll.dto.PollInfoResponse;
 import com.tamnara.backend.poll.service.PollService;
-import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.security.UserDetailsImpl;
@@ -50,5 +52,28 @@ public class PollController {
         PollCreateResponse response = new PollCreateResponse(pollId);
 
         return ResponseEntity.ok(new WrappedDTO<>(true, POLL_CREATED, response));
+    }
+
+    @GetMapping("/{pollId}")
+    public ResponseEntity<WrappedDTO<PollInfoResponse>> getPollInfo(
+            @PathVariable Long pollId) {
+
+        Poll poll = pollService.getPollById(pollId);
+
+        if (poll == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new WrappedDTO<>(false, POLL_NOT_FOUND, null)
+            );
+        }
+
+        if (poll.getState() == PollState.DRAFT || poll.getState() == PollState.SCHEDULED || poll.getState() == PollState.DELETED) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, POLL_FORBIDDEN, null)
+            );
+        }
+
+        PollInfoResponse pollInfoResponse = new PollInfoResponse(poll);
+
+        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_OK, pollInfoResponse));
     }
 }

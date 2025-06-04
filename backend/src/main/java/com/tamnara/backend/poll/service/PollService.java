@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import static com.tamnara.backend.poll.constant.PollExceptionMessage.MIN_CHOICES_EXCEED_MAX;
-import static com.tamnara.backend.poll.constant.PollExceptionMessage.START_DATE_LATER_THAN_END_DATE;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
 import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollFromRequest;
 import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollOptionsFromRequest;
 
@@ -38,5 +37,9 @@ public class PollService {
         pollOptionRepository.saveAll(options);
 
         return savedPoll.getId();
+    }
+
+    public Poll getPollById(Long pollId) {
+        return pollRepository.findById(pollId).orElse(null);
     }
 }
