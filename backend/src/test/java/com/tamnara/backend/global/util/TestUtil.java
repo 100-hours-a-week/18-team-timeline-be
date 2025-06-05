@@ -1,6 +1,6 @@
-package com.tamnara.backend.utils;
+package com.tamnara.backend.global.util;
 
-public class TestUtils {
+public class TestUtil {
     public static void setPrivateField(Object target, String fieldName, Object value) {
         try {
             var field = target.getClass().getDeclaredField(fieldName);
