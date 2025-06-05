@@ -194,8 +194,7 @@ public class NewsServiceImpl implements NewsService {
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
 
-        news.setViewCount(news.getViewCount() + 1);
-        newsRepository.save(news);
+        newsRepository.increaseViewCount(news.getId());
 
         return new NewsDetailDTO(
                 news.getId(),
