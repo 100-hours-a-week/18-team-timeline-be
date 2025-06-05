@@ -2,7 +2,7 @@ package com.tamnara.backend.auth.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.auth.client.KakaoApiClient;
-import com.tamnara.backend.utils.TestUtils;
+import com.tamnara.backend.global.util.TestUtil;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_SUCCESSFUL;
-import static com.tamnara.backend.utils.CreateUserUtils.createActiveUser;
+import static com.tamnara.backend.global.util.CreateUserUtil.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -48,8 +48,8 @@ class KakaoServiceTest {
         MockitoAnnotations.openMocks(this);
         // private 필드 주입
         kakaoService = new KakaoService(userRepository, jwtProvider, kakaoApiClient);
-        TestUtils.setPrivateField(kakaoService, "clientId", "fake-client-id");
-        TestUtils.setPrivateField(kakaoService, "redirectUri", "http://fake-localhost:8080/auth/kakao/callback");
+        TestUtil.setPrivateField(kakaoService, "clientId", "fake-client-id");
+        TestUtil.setPrivateField(kakaoService, "redirectUri", "http://fake-localhost:8080/auth/kakao/callback");
     }
 
     @Test
