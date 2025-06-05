@@ -211,8 +211,11 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        User user = null;
+        if (!isHotissue) {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        }
 
         // 0. 뉴스 생성 키워드 목록과 기존 뉴스의 태그 목록이 일치할 경우, 기존 뉴스를 업데이트한다.
         Optional<News> optionalNews = newsRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
@@ -307,10 +310,12 @@ public class NewsServiceImpl implements NewsService {
         });
 
         // 6. 생성된 뉴스에 대해 북마크 설정한다.
-        Bookmark bookmark = new Bookmark();
-        bookmark.setUser(user);
-        bookmark.setNews(news);
-        bookmarkRepository.save(bookmark);
+        if (!isHotissue) {
+            Bookmark bookmark = new Bookmark();
+            bookmark.setUser(user);
+            bookmark.setNews(news);
+            bookmarkRepository.save(bookmark);
+        }
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
