@@ -30,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -273,6 +274,25 @@ public class NewsRepositoryTest {
         // then
         News updatedNews = newsRepository.findById(news.getId()).get();
         assertFalse(updatedNews.getIsHotissue());
+    }
+
+    @Test
+    void 뉴스_조회수_증가_시_수정일자_변경되지_않고_유지_검증() {
+        // given
+        News news = createNews("제목", "미리보기 내용", user, category);
+        newsRepository.saveAndFlush(news);
+        Long viewCount = news.getViewCount();
+        LocalDateTime updateTime = news.getUpdatedAt();
+
+        // when
+        newsRepository.increaseViewCount(news.getId());
+        em.flush();
+        em.clear();
+
+        // then
+        News updatedNews = newsRepository.findById(news.getId()).get();
+        assertEquals(viewCount + 1, updatedNews.getViewCount());
+        assertEquals(updateTime.truncatedTo(ChronoUnit.SECONDS), updatedNews.getUpdatedAt().truncatedTo(ChronoUnit.SECONDS));
     }
 
     @Test
