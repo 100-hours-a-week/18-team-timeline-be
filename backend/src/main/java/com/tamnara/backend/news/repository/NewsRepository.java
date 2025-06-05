@@ -46,6 +46,10 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsSearchRep
     Optional<News> findNewsByExactlyMatchingTags(@Param("keywords") List<String> keywords, @Param("size") Integer size);
 
     @Modifying
+    @Query("UPDATE News n SET n.viewCount = n.viewCount + 1 WHERE n.id = :newsId")
+    void increaseViewCount(@Param("newsId") Long newsId);
+
+    @Modifying
     @Transactional
     @Query("""
         DELETE FROM News n
