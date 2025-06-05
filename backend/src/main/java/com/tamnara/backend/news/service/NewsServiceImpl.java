@@ -175,6 +175,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
@@ -194,8 +195,7 @@ public class NewsServiceImpl implements NewsService {
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
 
-        news.setViewCount(news.getViewCount() + 1);
-        newsRepository.save(news);
+        newsRepository.increaseViewCount(news.getId());
 
         return new NewsDetailDTO(
                 news.getId(),
