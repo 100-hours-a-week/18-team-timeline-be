@@ -1,6 +1,8 @@
 package com.tamnara.backend.news.repository;
 
 import com.tamnara.backend.global.config.JpaConfig;
+import com.tamnara.backend.global.config.QuerydslConfig;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
 import com.tamnara.backend.news.domain.News;
@@ -39,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
-@Import(JpaConfig.class)
+@Import({JpaConfig.class, QuerydslConfig.class})
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class NewsRepositoryTest {
@@ -505,12 +507,74 @@ public class NewsRepositoryTest {
     @Test
     void 입력_키워드_목록과_일치하는_뉴스가_없는_경우_조회_검증() {
         // given
+        List<String> keywords = List.of(tag1.getName(), tag2.getName(), tag3.getName());
 
         // when
-        List<String> keywords = List.of(tag1.getName(), tag2.getName(), tag3.getName());
         News findNews = newsRepository.findNewsByExactlyMatchingTags(keywords, keywords.size()).orElse(null);
 
         // then
         assertNull(findNews);
+    }
+
+    @Test
+    void 키워드_기반_뉴스_목록_검색_결과_조회_검증() {
+        // given
+        News news1 = createNews("제목1", "미리보기 내용1", user, category);
+        newsRepository.saveAndFlush(news1);
+
+        News news2 = createNews("제목2", "미리보기 내용2", user, null);
+        newsRepository.saveAndFlush(news2);
+
+        News news3 = createNews("제목3", "미리보기 내용3", user, category);
+        newsRepository.saveAndFlush(news3);
+
+        News news4 = createNews("제목4", "미리보기 내용4", user, null);
+        newsRepository.saveAndFlush(news4);
+
+        em.clear();
+
+        Tag tag4 = new Tag();
+        tag4.setName("태그4");
+        tagRepository.saveAndFlush(tag4);
+        em.clear();
+
+        // news1 가중치: 3
+        NewsTag newsTag1 = createNewsTag(news1, tag1);
+        newsTagRepository.saveAndFlush(newsTag1);
+        NewsTag newsTag2 = createNewsTag(news1, tag2);
+        newsTagRepository.saveAndFlush(newsTag2);
+        NewsTag newsTag3 = createNewsTag(news1, tag3);
+        newsTagRepository.saveAndFlush(newsTag3);
+
+        // news2 가중치: 2
+        NewsTag newsTag4 = createNewsTag(news2, tag1);
+        newsTagRepository.saveAndFlush(newsTag4);
+        NewsTag newsTag5 = createNewsTag(news2, tag2);
+        newsTagRepository.saveAndFlush(newsTag5);
+
+        // news3 가중치: 2
+        NewsTag newsTag6 = createNewsTag(news3, tag1);
+        newsTagRepository.saveAndFlush(newsTag6);
+        NewsTag newsTag7 = createNewsTag(news3, tag2);
+        newsTagRepository.saveAndFlush(newsTag7);
+        NewsTag newsTag8 = createNewsTag(news3, tag4);
+        newsTagRepository.saveAndFlush(newsTag8);
+
+        // news4 가중치: 0
+        NewsTag newsTag9 = createNewsTag(news4, tag4);
+        newsTagRepository.saveAndFlush(newsTag9);
+
+        em.clear();
+
+        // when
+        List<String> keywords = List.of(tag1.getName(), tag2.getName(), tag3.getName());
+        Page<News> newsPage = newsRepository.searchNewsPageByTags(keywords, PageRequest.of(0, NewsServiceConstant.PAGE_SIZE));
+        List<News> newsList = newsPage.getContent();
+
+        // then
+        assertEquals(3, newsList.size());
+        assertEquals(news1.getId(), newsList.get(0).getId());
+        assertEquals(news3.getId(), newsList.get(1).getId());
+        assertEquals(news2.getId(), newsList.get(2).getId());
     }
 }

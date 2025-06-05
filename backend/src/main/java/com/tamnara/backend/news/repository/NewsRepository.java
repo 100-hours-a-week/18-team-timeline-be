@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface NewsRepository extends JpaRepository<News, Long> {
+public interface NewsRepository extends JpaRepository<News, Long>, NewsSearchRepository {
     Page<News> findAllByIsHotissueTrueOrderByIdAsc(Pageable pageable);
     Page<News> findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(Pageable pageable);
 
@@ -30,14 +30,6 @@ public interface NewsRepository extends JpaRepository<News, Long> {
     """)
     Page<News> findByIsHotissueFalseAndCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
 
-    @Modifying
-    @Transactional
-    @Query("""
-        DELETE FROM News n
-        WHERE n.updatedAt < :cutoff
-    """)
-    void deleteAllOlderThan(@Param("cutoff") LocalDateTime cutoff);
-
     @Query(value = """
         SELECT n.*
         FROM news n
@@ -45,11 +37,19 @@ public interface NewsRepository extends JpaRepository<News, Long> {
         JOIN tags t ON nt.tag_id = t.id
         WHERE t.name IN (:keywords)
         GROUP BY n.id
-        HAVING 
+        HAVING
             COUNT(DISTINCT CASE WHEN t.name IN (:keywords) THEN t.name END) = :size
             AND COUNT(*) = :size
         ORDER BY n.updated_at DESC
         LIMIT 1
     """, nativeQuery = true)
     Optional<News> findNewsByExactlyMatchingTags(@Param("keywords") List<String> keywords, @Param("size") Integer size);
+
+    @Modifying
+    @Transactional
+    @Query("""
+        DELETE FROM News n
+        WHERE n.updatedAt < :cutoff
+    """)
+    void deleteAllOlderThan(@Param("cutoff") LocalDateTime cutoff);
 }

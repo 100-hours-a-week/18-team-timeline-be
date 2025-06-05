@@ -7,6 +7,8 @@ public final class NewsResponseMessage {
     public static final String HOTISSUE_NEWS_CARD_FETCH_SUCCESS = "요청하신 핫이슈 뉴스 카드 목록을 성공적으로 불러왔습니다.";
     public static final String NORMAL_NEWS_CARD_FETCH_SUCCESS = "요청하신 일반 뉴스 카드 목록을 성공적으로 불러왔습니다.";
     public static final String NORMAL_NEWS_CARD_FETCH_MORE_SUCCESS = "요청하신 일반 뉴스 카드 목록을 성공적으로 추가 로딩하였습니다.";
+    public static final String SEARCHED_NEWS_CARD_FETCH_SUCCESS = "뉴스 검색 결과를 성공적으로 불러왔습니다.";
+    public static final String SEARCHED_NEWS_CARD_FETCH_MORE_SUCCESS = "뉴스 검색 결과를 성공적으로 추가 로딩하였습니다.";
     public static final String NEWS_DETAIL_FETCH_SUCCESS = "요청하신 뉴스의 상세 정보를 성공적으로 불러왔습니다.";
     public static final String NEWS_CREATED_SUCCESS = "뉴스가 성공적으로 생성되었습니다.";
     public static final String NEWS_UPDATED_SUCCESS = "데이터가 성공적으로 업데이트되었습니다.";
