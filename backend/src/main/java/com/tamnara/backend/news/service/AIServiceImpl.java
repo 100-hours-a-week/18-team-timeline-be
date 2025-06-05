@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
+import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
@@ -29,9 +30,6 @@ public class AIServiceImpl implements AIService {
 
     private final WebClient aiWebClient;
 
-    private final String TIMELINE_AI_ENDPOINT = "/timeline";
-    private final String MERGE_AI_ENDPOINT = "/merge";
-
     public WrappedDTO<AINewsResponse> createAINews(List<String> keywords, LocalDate startAt, LocalDate endAt) {
         AINewsRequest aiNewsRequest = new AINewsRequest(
                 keywords,
@@ -44,7 +42,7 @@ public class AIServiceImpl implements AIService {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         return aiWebClient.post()
-                .uri(TIMELINE_AI_ENDPOINT)
+                .uri(NewsExternalApiEndpoint.TIMELINE_AI_ENDPOINT)
                 .bodyValue(aiNewsRequest)
                 .retrieve()
                 .onStatus(
@@ -92,7 +90,7 @@ public class AIServiceImpl implements AIService {
                 AITimelineMergeRequest mergeRequest = new AITimelineMergeRequest(temp);
 
                 WrappedDTO<TimelineCardDTO> merged = aiWebClient.post()
-                        .uri(MERGE_AI_ENDPOINT)
+                        .uri(NewsExternalApiEndpoint.MERGE_AI_ENDPOINT)
                         .bodyValue(mergeRequest)
                         .retrieve()
                         .onStatus(
