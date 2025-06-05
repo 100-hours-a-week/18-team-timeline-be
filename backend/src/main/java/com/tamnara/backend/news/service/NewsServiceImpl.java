@@ -50,6 +50,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -156,6 +157,24 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    public NewsListResponse getSearchNewsCardPage(Long userId, List<String> tags, Integer offset) {
+        tags = new ArrayList<>(new LinkedHashSet<>(tags));
+        if (tags.size() < NewsServiceConstant.TAGS_MIN_SIZE || tags.size() > NewsServiceConstant.TAGS_MAX_SIZE) {
+            throw new IllegalArgumentException();
+        }
+
+        int page = offset / NewsServiceConstant.PAGE_SIZE;
+        int nextOffset = (page + 1) * NewsServiceConstant.PAGE_SIZE;
+        Page<News> newsPage = newsRepository.searchNewsPageByTags(tags, PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
+
+        return new NewsListResponse(
+                getNewsCardDTOList(userId, newsPage),
+                nextOffset,
+                newsPage.hasNext()
+        );
+    }
+
+    @Override
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
@@ -175,8 +194,7 @@ public class NewsServiceImpl implements NewsService {
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
 
-        news.setViewCount(news.getViewCount() + 1);
-        newsRepository.save(news);
+        newsRepository.increaseViewCount(news.getId());
 
         return new NewsDetailDTO(
                 news.getId(),

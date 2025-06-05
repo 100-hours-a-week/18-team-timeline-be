@@ -8,6 +8,7 @@ import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
+import com.tamnara.backend.news.dto.response.NewsListResponse;
 import com.tamnara.backend.news.dto.response.category.MultiCategoryResponse;
 import com.tamnara.backend.news.service.NewsService;
 import com.tamnara.backend.user.domain.Role;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -89,6 +91,34 @@ public class NewsController {
                         ));
             }
 
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<WrappedDTO<NewsListResponse>> searchNewsByTags(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam List<String> tags,
+            @RequestParam(defaultValue = "0") Integer offset
+    ) {
+        try {
+            Long userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
+
+            NewsListResponse newsListResponse = newsService.getSearchNewsCardPage(userId, tags, offset);
+
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    offset == 0
+                            ? NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_SUCCESS
+                            : NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_MORE_SUCCESS,
+                    newsListResponse
+            ));
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
         } catch (IllegalArgumentException e) {
@@ -200,8 +230,9 @@ public class NewsController {
     }
 
     @DeleteMapping("/{newsId}")
-    public ResponseEntity<Void> deleteNews(@PathVariable Long newsId,
-                                           @AuthenticationPrincipal UserDetailsImpl userDetails
+    public ResponseEntity<Void> deleteNews(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {

@@ -555,6 +555,118 @@ public class NewsControllerTest {
     }
 
     @Test
+    void 로그아웃_상태에서_뉴스_검색_결과_최초_조회_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.name(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse response = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE, false);
+        given(newsService.getSearchNewsCardPage(null, tags, 0)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                get("/news/search")
+                        .param("tags", tags.toArray(new String[0]))
+                        .param("offset", String.valueOf(0))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_SUCCESS))
+                .andExpect(jsonPath("$.data.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.offset").value(NewsServiceConstant.PAGE_SIZE))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void 로그인_상태에서_뉴스_검색_결과_최초_조회_검증() throws Exception {
+        // given
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.name(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse response = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE, false);
+        given(newsService.getSearchNewsCardPage(USER_ID, tags, 0)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news/search")
+                                .param("tags", tags.toArray(new String[0]))
+                                .param("offset", String.valueOf(0))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_SUCCESS))
+                .andExpect(jsonPath("$.data.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.offset").value(NewsServiceConstant.PAGE_SIZE))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void 로그아웃_상태에서_뉴스_검색_결과_추가_조회_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.name(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), false);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse response = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
+        given(newsService.getSearchNewsCardPage(null, tags, NewsServiceConstant.PAGE_SIZE)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news/search")
+                                .param("tags", tags.toArray(new String[0]))
+                                .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_MORE_SUCCESS))
+                .andExpect(jsonPath("$.data.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void 로그인_상태에서_뉴스_검색_결과_추가_조회_검증() throws Exception {
+        // given
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        NewsCardDTO newsCardDTO1 = createNewsCardDTO(1L, CategoryType.KTB.toString(), LocalDateTime.now(), true);
+        NewsCardDTO newsCardDTO2 = createNewsCardDTO(2L, CategoryType.ECONOMY.name(), LocalDateTime.now(), false);
+        NewsCardDTO newsCardDTO3 = createNewsCardDTO(3L, CategoryType.ENTERTAINMENT.toString(), LocalDateTime.now(), true);
+
+        List<NewsCardDTO> newsList = List.of(newsCardDTO1, newsCardDTO2, newsCardDTO3);
+        NewsListResponse response = new NewsListResponse(newsList, NewsServiceConstant.PAGE_SIZE * 2, false);
+        given(newsService.getSearchNewsCardPage(USER_ID, tags, NewsServiceConstant.PAGE_SIZE)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/news/search")
+                                .param("tags", tags.toArray(new String[0]))
+                                .param("offset", String.valueOf(NewsServiceConstant.PAGE_SIZE))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.SEARCHED_NEWS_CARD_FETCH_MORE_SUCCESS))
+                .andExpect(jsonPath("$.data.newsList.size()").value(3))
+                .andExpect(jsonPath("$.data.offset").value(NewsServiceConstant.PAGE_SIZE * 2))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
     void 로그아웃_상태에서_뉴스_상세_정보_조회_검증() throws Exception {
         // given
         SecurityContextHolder.clearContext();
