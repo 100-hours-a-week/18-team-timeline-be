@@ -20,10 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PollRepositoryTest {
     @MockBean
-    private JPAQueryFactory jpaQueryFactory;
+    private JPAQueryFactory jpaQueryFactory; // NewsSearchRepositoryImpl 로딩 시 필요
 
-    @Autowired
-    private PollRepository pollRepository;
+    @Autowired private PollRepository pollRepository;
 
     @Test
     @DisplayName("Poll 저장 및 조회에 성공한다")

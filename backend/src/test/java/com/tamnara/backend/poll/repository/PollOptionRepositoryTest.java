@@ -23,11 +23,8 @@ class PollOptionRepositoryTest {
     @MockBean
     private JPAQueryFactory jpaQueryFactory; // NewsSearchRepositoryImpl 로딩 시 필요
 
-    @Autowired
-    private PollRepository pollRepository;
-
-    @Autowired
-    private PollOptionRepository pollOptionRepository;
+    @Autowired private PollRepository pollRepository;
+    @Autowired private PollOptionRepository pollOptionRepository;
 
     @Test
     @DisplayName("PollOption을 저장하고 PollId로 조회한다")
