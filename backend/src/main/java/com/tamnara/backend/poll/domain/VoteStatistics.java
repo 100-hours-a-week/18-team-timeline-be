@@ -33,4 +33,12 @@ public class VoteStatistics {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "option_id", nullable = false)
     private PollOption option;
+
+    public static VoteStatistics zero(Poll poll, PollOption option) {
+        return VoteStatistics.builder()
+                .poll(poll)
+                .option(option)
+                .count(0L)
+                .build();
+    }
 }
