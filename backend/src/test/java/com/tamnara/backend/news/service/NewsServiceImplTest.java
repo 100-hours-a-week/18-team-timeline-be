@@ -18,6 +18,7 @@ import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
+import com.tamnara.backend.news.dto.response.NewsListResponse;
 import com.tamnara.backend.news.dto.response.category.AllResponse;
 import com.tamnara.backend.news.dto.response.category.EconomyResponse;
 import com.tamnara.backend.news.dto.response.category.EntertainmentResponse;
@@ -347,6 +348,87 @@ class NewsServiceImplTest {
         assertEquals(3, response.getKtb().getNewsList().size());
         assertEquals(offset + NewsServiceConstant.PAGE_SIZE, response.getKtb().getOffset());
         assertFalse(response.getKtb().isHasNext());
+    }
+
+    @Test
+    void 뉴스_검색_결과_조회_검증() {
+        // given
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        News news1 = createNews(1L, "제목1", "미리보기 내용1", false, user, sports);
+        News news2 = createNews(2L, "제목2", "미리보기 내용2", false, user, sports);
+        News news3 = createNews(3L, "제목3", "미리보기 내용3", false, user, sports);
+        News news4 = createNews(4L, "제목4", "미리보기 내용4", false, user, sports);
+        List<News> newsList = List.of(news1, news2, news3, news4);
+        Page<News> newsPage = new PageImpl<>(newsList);
+
+        when(newsRepository.searchNewsPageByTags(tags, PageRequest.of(0, NewsServiceConstant.PAGE_SIZE)))
+                .thenReturn(newsPage);
+
+        // when
+        NewsListResponse response = newsServiceImpl.getSearchNewsCardPage(user.getId(), tags, 0);
+
+        // then
+        assertEquals(newsList.size(), response.getNewsList().size());
+        assertEquals(NewsServiceConstant.PAGE_SIZE, response.getOffset());
+        assertFalse(response.isHasNext());
+    }
+
+    @Test
+    void 태그_수_미달_시_뉴스_검색_예외_처리_검증() {
+        // given
+        List<String> tags = List.of();
+
+        // when & then
+        assertThrows(IllegalArgumentException.class, () -> {
+            newsServiceImpl.getSearchNewsCardPage(user.getId(), tags, 0);
+        });
+    }
+
+    @Test
+    void 태그_수_초과_시_뉴스_검색_예외_처리_검증() {
+        // given
+        List<String> tags = List.of("태그1", "태그2", "태그3", "태그4", "태그5", "태그6", "태그7");
+
+        // when & then
+        assertThrows(IllegalArgumentException.class, () -> {
+            newsServiceImpl.getSearchNewsCardPage(user.getId(), tags, 0);
+        });
+    }
+
+    @Test
+    void 뉴스_검색_시_태그_중복_제거_검증() {
+        // given
+        List<String> tagsWithDuplicates = List.of("태그1", "태그2", "태그3", "태그3");
+        List<String> tags = List.of("태그1", "태그2", "태그3");
+
+        News news1 = createNews(1L, "제목1", "미리보기 내용1", false, user, sports);
+        News news2 = createNews(2L, "제목2", "미리보기 내용2", false, user, sports);
+        News news3 = createNews(3L, "제목3", "미리보기 내용3", false, user, sports);
+        News news4 = createNews(4L, "제목4", "미리보기 내용4", false, user, sports);
+        List<News> newsList = List.of(news1, news2, news3, news4);
+        Page<News> newsPage = new PageImpl<>(newsList);
+
+        when(newsRepository.searchNewsPageByTags(tags, PageRequest.of(0, NewsServiceConstant.PAGE_SIZE)))
+                .thenReturn(newsPage);
+
+        // when
+        NewsListResponse response1 = newsServiceImpl.getSearchNewsCardPage(user.getId(), tagsWithDuplicates, 0);
+        NewsListResponse response2 = newsServiceImpl.getSearchNewsCardPage(user.getId(), tags, 0);
+
+        // then
+        assertEquals(newsList.size(), response1.getNewsList().size());
+        assertEquals(NewsServiceConstant.PAGE_SIZE, response1.getOffset());
+        assertFalse(response1.isHasNext());
+
+        assertEquals(newsList.size(), response2.getNewsList().size());
+        assertEquals(NewsServiceConstant.PAGE_SIZE, response2.getOffset());
+        assertFalse(response2.isHasNext());
+
+        assertEquals(response1.getNewsList().get(0).getId(), response2.getNewsList().get(0).getId());
+        assertEquals(response1.getNewsList().get(1).getId(), response2.getNewsList().get(1).getId());
+        assertEquals(response1.getNewsList().get(2).getId(), response2.getNewsList().get(2).getId());
+        assertEquals(response1.getNewsList().get(3).getId(), response2.getNewsList().get(3).getId());
     }
 
     @Test
