@@ -1,4 +1,4 @@
-package com.tamnara.backend.utils;
+package com.tamnara.backend.global.util;
 
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -6,7 +6,7 @@ import com.tamnara.backend.user.domain.User;
 
 import java.time.LocalDateTime;
 
-public class CreateUserUtils {
+public class CreateUserUtil {
     public static User createActiveUser(String email, String username, String provider, String providerId) {
         return User.builder()
                 .email(email)
