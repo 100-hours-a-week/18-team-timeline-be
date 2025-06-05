@@ -51,6 +51,9 @@ CMD java \
   -Dspring.datasource.url="$DB_URL" \
   -Dspring.datasource.username="$DB_USERNAME" \
   -Dspring.datasource.password="$DB_PASSWORD" \
+  -Dmanagement.endpoints.web.exposure.include=prometheus,health,info \
+  -Duser.timezone=Asia/Seoul \
   -Dspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver \
   -jar build/libs/backend-0.0.1-SNAPSHOT.jar
+
 
