@@ -9,7 +9,7 @@ import com.tamnara.backend.poll.dto.PollOptionCreateRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PollBuilderUtil {
+public class PollBuilder {
 
     public static Poll buildPollFromRequest(PollCreateRequest request) {
         return Poll.builder()

@@ -20,7 +20,7 @@ public class VoteStatistics {
     private Long id;
 
     @Column(nullable = false)
-    private int count;
+    private Long count;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -7,8 +7,6 @@ import java.util.Optional;
 import java.util.List;
 
 public interface VoteStatisticsRepository extends JpaRepository<VoteStatistics, Long> {
-
     List<VoteStatistics> findByPollId(Long pollId);
-
     Optional<VoteStatistics> findByPollIdAndOptionId(Long pollId, Long optionId);
 }

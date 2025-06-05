@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
-import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollFromRequest;
-import static com.tamnara.backend.poll.util.PollBuilderUtil.buildPollOptionsFromRequest;
+import static com.tamnara.backend.poll.util.PollBuilder.buildPollFromRequest;
+import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequest;
 
 @Service
 @RequiredArgsConstructor
