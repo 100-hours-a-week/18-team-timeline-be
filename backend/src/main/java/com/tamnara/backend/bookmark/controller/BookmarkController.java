@@ -26,7 +26,10 @@ public class BookmarkController {
     private final BookmarkService bookmarkService;
 
     @PostMapping
-    public ResponseEntity<WrappedDTO<BookmarkAddResponse>> addBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<BookmarkAddResponse>> addBookmark(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
@@ -34,7 +37,7 @@ public class BookmarkController {
 
             Long userId = userDetails.getUser().getId();
 
-            BookmarkAddResponse bookmarkAddResponse = bookmarkService.addBookmark(userId, newsId);
+            BookmarkAddResponse bookmarkAddResponse = bookmarkService.save(userId, newsId);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
@@ -54,14 +57,17 @@ public class BookmarkController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteBookmark(@PathVariable Long newsId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<Void> deleteBookmark(
+            @PathVariable Long newsId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
             }
 
             Long userId = userDetails.getUser().getId();
-            bookmarkService.deleteBookmark(userId, newsId);
+            bookmarkService.delete(userId, newsId);
 
             return ResponseEntity.noContent().build();
 

@@ -3,7 +3,10 @@ package com.tamnara.backend.user.service;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.UserInfo;
+import com.tamnara.backend.user.dto.UserWithdrawInfo;
+import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
+import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -83,7 +87,7 @@ class UserServiceTest {
 
         // when, then
         assertThatThrownBy(() -> userService.getCurrentUserInfo(1L))
-                .isInstanceOf(UserNotFoundException.class);
+                .isInstanceOf(InactiveUserException.class);
     }
 
     @Test
@@ -115,4 +119,39 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.updateUsername(1L, "existing"))
                 .isInstanceOf(DuplicateUsernameException.class);
     }
+
+    @Test
+    @DisplayName("회원 탈퇴에 성공한다 (상태: DELETED, withdrawnAt 설정됨)")
+    void withdrawUser_success() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .state(State.ACTIVE)
+                .build();
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        // when
+        UserWithdrawInfoWrapper response = userService.withdrawUser(1L);
+
+        // then
+        assertThat(user.getState()).isEqualTo(State.DELETED);
+        assertThat(user.getWithdrawnAt()).isNotNull();
+        assertThat(user.getWithdrawnAt()).isBeforeOrEqualTo(LocalDateTime.now());
+
+        UserWithdrawInfo userInfo = response.user();
+        assertThat(userInfo.userId()).isEqualTo(1L);
+        assertThat(userInfo.withdrawnAt()).isEqualTo(user.getWithdrawnAt());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 회원 탈퇴 시 예외가 발생한다")
+    void withdrawUser_userNotFound_throwsException() {
+        // given
+        Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // when, then
+        assertThatThrownBy(() -> userService.withdrawUser(999L))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
 }
