@@ -17,7 +17,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.util.List;
 
-import static com.tamnara.backend.utils.CreateUserUtils.createActiveUser;
+import static com.tamnara.backend.global.util.CreateUserUtil.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
