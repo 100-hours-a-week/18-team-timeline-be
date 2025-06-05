@@ -221,7 +221,7 @@ public class NewsServiceImpl implements NewsService {
         Optional<News> optionalNews = newsRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
         if (optionalNews.isPresent()) {
             Long newsId = optionalNews.get().getId();
-            return update(newsId, userId);
+            return update(newsId, userId, isHotissue);
         }
 
         // 1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
@@ -331,7 +331,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailDTO update(Long newsId, Long userId) {
+    public NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
@@ -399,6 +399,7 @@ public class NewsServiceImpl implements NewsService {
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         news.setSummary(aiNewsResponse.getSummary());
+        news.setIsHotissue(isHotissue);
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         if (statistics != null) {

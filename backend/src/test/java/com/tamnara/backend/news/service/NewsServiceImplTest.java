@@ -750,7 +750,7 @@ class NewsServiceImplTest {
         when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
-        NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId());
+        NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId(), false);
 
         // then
         assertEquals(createAiNewsResponse.getData().getTitle(), response.getTitle());
@@ -770,7 +770,7 @@ class NewsServiceImplTest {
 
         // when
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            newsServiceImpl.update(news.getId(), user.getId());
+            newsServiceImpl.update(news.getId(), user.getId(), false);
         });
 
         // then

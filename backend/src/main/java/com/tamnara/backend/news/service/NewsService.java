@@ -15,6 +15,6 @@ public interface NewsService {
     NewsListResponse getSearchNewsCardPage(Long userId, List<String> tags, Integer offset);
     NewsDetailDTO getNewsDetail(Long newsId, Long userId);
     NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req);
-    NewsDetailDTO update(Long newsId, Long userId);
+    NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue);
     void delete(Long newsId, Long userId);
 }

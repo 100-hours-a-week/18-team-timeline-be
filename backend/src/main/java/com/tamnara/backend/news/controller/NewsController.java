@@ -205,7 +205,7 @@ public class NewsController {
 
             Long userId = userDetails.getUser().getId();
 
-            NewsDetailDTO newsDetailDTO = newsService.update(newsId, userId);
+            NewsDetailDTO newsDetailDTO = newsService.update(newsId, userId, false);
             if (newsDetailDTO == null) {
                 return ResponseEntity.noContent().build();
             }
