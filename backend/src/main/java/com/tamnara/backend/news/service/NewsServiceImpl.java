@@ -332,14 +332,30 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        User user = null;
+        if (!isHotissue) {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        }
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS))) {
+            if (isHotissue) {
+                news.setIsHotissue(true);
+                newsRepository.save(news);
+                return new NewsDetailDTO(
+                        news.getId(),
+                        news.getTitle(),
+                        news.getSummary(),
+                        news.getUpdatedAt(),
+                        false,
+                        getTimelineCardDTOList(news),
+                        getStatisticsDTO(news)
+                );
+            }
             throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_UPDATE_CONFLICT);
         }
 
