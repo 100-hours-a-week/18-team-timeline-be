@@ -754,7 +754,7 @@ public class NewsControllerTest {
         // given
         Long newsId = 1L;
         NewsDetailDTO response = createNewsDetailDTO(newsId, true);
-        given(newsService.update(eq(newsId), eq(USER_ID))).willReturn(response);
+        given(newsService.update(eq(newsId), eq(USER_ID), eq(false))).willReturn(response);
 
         // when & then
         mockMvc.perform(patch("/news/{newsId}", newsId))

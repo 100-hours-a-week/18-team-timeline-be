@@ -20,6 +20,7 @@ import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
@@ -175,6 +176,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
@@ -210,14 +212,17 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        User user = null;
+        if (!isHotissue) {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        }
 
         // 0. 뉴스 생성 키워드 목록과 기존 뉴스의 태그 목록이 일치할 경우, 기존 뉴스를 업데이트한다.
         Optional<News> optionalNews = newsRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
         if (optionalNews.isPresent()) {
             Long newsId = optionalNews.get().getId();
-            return update(newsId, userId);
+            return update(newsId, userId, isHotissue);
         }
 
         // 1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
@@ -306,10 +311,12 @@ public class NewsServiceImpl implements NewsService {
         });
 
         // 6. 생성된 뉴스에 대해 북마크 설정한다.
-        Bookmark bookmark = new Bookmark();
-        bookmark.setUser(user);
-        bookmark.setNews(news);
-        bookmarkRepository.save(bookmark);
+        if (!isHotissue) {
+            Bookmark bookmark = new Bookmark();
+            bookmark.setUser(user);
+            bookmark.setNews(news);
+            bookmarkRepository.save(bookmark);
+        }
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
@@ -325,15 +332,31 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
-    public NewsDetailDTO update(Long newsId, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+    public NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue) {
+        User user = null;
+        if (!isHotissue) {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        }
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS))) {
+            if (isHotissue) {
+                news.setIsHotissue(true);
+                newsRepository.save(news);
+                return new NewsDetailDTO(
+                        news.getId(),
+                        news.getTitle(),
+                        news.getSummary(),
+                        news.getUpdatedAt(),
+                        false,
+                        getTimelineCardDTOList(news),
+                        getStatisticsDTO(news)
+                );
+            }
             throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_UPDATE_CONFLICT);
         }
 
@@ -393,6 +416,7 @@ public class NewsServiceImpl implements NewsService {
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
         news.setSummary(aiNewsResponse.getSummary());
+        news.setIsHotissue(isHotissue);
 
         news.setUpdateCount(news.getUpdateCount() + 1);
         if (statistics != null) {
@@ -454,6 +478,30 @@ public class NewsServiceImpl implements NewsService {
         }
 
         newsRepository.delete(news);
+    }
+
+    @Override
+    @Transactional
+    public void createHotissueNews() {
+        AIHotissueResponse aiHotissueResponse;
+        WrappedDTO<AIHotissueResponse> res = aiService.createAIHotissueKeywords();
+        aiHotissueResponse = res.getData();
+
+        List<News> previousHotissuesList = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged()).getContent();
+        for (News news : previousHotissuesList) {
+            newsRepository.updateIsHotissue(news.getId(), false);
+        }
+
+        for (String keyword : aiHotissueResponse.getKeywords()) {
+            NewsCreateRequest req = new NewsCreateRequest(List.of(keyword));
+            save(null, true, req);
+        }
+    }
+
+    @Override
+    public void deleteOldNewsAndOrphanTags() {
+        newsRepository.deleteAllOlderThan(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
+        tagRepository.deleteAllOrphan();
     }
 
 
