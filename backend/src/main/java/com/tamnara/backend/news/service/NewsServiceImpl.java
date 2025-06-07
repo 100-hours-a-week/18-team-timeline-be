@@ -498,6 +498,12 @@ public class NewsServiceImpl implements NewsService {
         }
     }
 
+    @Override
+    public void deleteOldNewsAndOrphanTags() {
+        newsRepository.deleteAllOlderThan(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
+        tagRepository.deleteAllOrphan();
+    }
+
 
     /*
         함수 편의용

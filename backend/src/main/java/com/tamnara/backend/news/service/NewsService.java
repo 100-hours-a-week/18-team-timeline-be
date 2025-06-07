@@ -19,4 +19,5 @@ public interface NewsService {
     void delete(Long newsId, Long userId);
 
     void createHotissueNews();
+    void deleteOldNewsAndOrphanTags();
 }
