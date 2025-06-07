@@ -1046,13 +1046,14 @@ class NewsServiceImplTest {
     }
 
     @Test
-    void 핫이슈_생성_시_기존_핫이슈_뉴스들은_일반_뉴스로_전환_검증() {// given
+    void 핫이슈_생성_시_기존_핫이슈_뉴스들은_일반_뉴스로_전환_검증() {
+        // given
         AIHotissueResponse aiHotissueResponse = new AIHotissueResponse(List.of());
         WrappedDTO<AIHotissueResponse> WrappedResponse = new WrappedDTO<>(true, "메시지", aiHotissueResponse);
 
         News news1 = createNews(1L, "제목1", "미리보기 내용2", true, user, ktb);
         News news2 = createNews(2L, "제목2", "미리보기 내용2", true, user, economy);
-        News news3 = createNews(2L, "제목3", "미리보기 내용3", true, user, sports);
+        News news3 = createNews(3L, "제목3", "미리보기 내용3", true, user, sports);
         Page<News> previousNewsPage = new PageImpl<>(Arrays.asList(news1, news2, news3));
 
         when(aiService.createAIHotissueKeywords()).thenReturn(WrappedResponse);
@@ -1062,9 +1063,8 @@ class NewsServiceImplTest {
         newsServiceImpl.createHotissueNews();
 
         // then
-        verify(newsRepository, times(3)).save(any(News.class));
-        assertFalse(news1.getIsHotissue());
-        assertFalse(news2.getIsHotissue());
-        assertFalse(news3.getIsHotissue());
+        verify(newsRepository).updateIsHotissue(news1.getId(), false);
+        verify(newsRepository).updateIsHotissue(news2.getId(), false);
+        verify(newsRepository).updateIsHotissue(news3.getId(), false);
     }
 }
