@@ -487,6 +487,11 @@ public class NewsServiceImpl implements NewsService {
         WrappedDTO<AIHotissueResponse> res = aiService.createAIHotissueKeywords();
         aiHotissueResponse = res.getData();
 
+        List<News> previousHotissuesList = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged()).getContent();
+        for (News news : previousHotissuesList) {
+            newsRepository.updateIsHotissue(news.getId(), false);
+        }
+
         for (String keyword : aiHotissueResponse.getKeywords()) {
             NewsCreateRequest req = new NewsCreateRequest(List.of(keyword));
             save(null, true, req);
