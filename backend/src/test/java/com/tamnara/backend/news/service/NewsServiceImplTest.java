@@ -1067,4 +1067,14 @@ class NewsServiceImplTest {
         verify(newsRepository).updateIsHotissue(news2.getId(), false);
         verify(newsRepository).updateIsHotissue(news3.getId(), false);
     }
+
+    @Test
+    void 오래된_뉴스_및_고아_태그_삭제_검증() {
+        // when
+        newsServiceImpl.deleteOldNewsAndOrphanTags();
+
+        // then
+        verify(newsRepository, times(1)).deleteAllOlderThan(any(LocalDateTime.class));
+        verify(tagRepository, times(1)).deleteAllOrphan();
+    }
 }
