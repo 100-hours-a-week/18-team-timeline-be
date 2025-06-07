@@ -20,6 +20,7 @@ import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
@@ -477,6 +478,19 @@ public class NewsServiceImpl implements NewsService {
         }
 
         newsRepository.delete(news);
+    }
+
+    @Override
+    @Transactional
+    public void createHotissueNews() {
+        AIHotissueResponse aiHotissueResponse;
+        WrappedDTO<AIHotissueResponse> res = aiService.createAIHotissueKeywords();
+        aiHotissueResponse = res.getData();
+
+        for (String keyword : aiHotissueResponse.getKeywords()) {
+            NewsCreateRequest req = new NewsCreateRequest(List.of(keyword));
+            save(null, true, req);
+        }
     }
 
 
