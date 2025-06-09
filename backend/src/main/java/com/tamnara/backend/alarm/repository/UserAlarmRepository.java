@@ -14,7 +14,20 @@ import java.time.LocalDateTime;
 @Repository
 public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
     Page<UserAlarm> findByUserIdOrderByIdDesc(Long userId, Pageable pageable);
-    Boolean existsByIdAndIsCheckedTrue(Long userAlarmId);
+
+    @Query("""
+        SELECT ua FROM UserAlarm ua
+        JOIN ua.alarm a
+        JOIN Bookmark b ON b.news.id = a.targetId
+        WHERE ua.user.id = :userId
+          AND b.user.id = :userId
+          AND a.targetType = com.tamnara.backend.alarm.domain.AlarmType.NEWS
+        ORDER BY ua.id DESC
+    """)
+    Page<UserAlarm> findBookmarkAlarms(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 
     @Modifying
     @Query("""
