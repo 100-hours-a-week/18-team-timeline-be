@@ -112,9 +112,8 @@ public class PollController {
     @GetMapping("/{pollId}/stats")
     public ResponseEntity<WrappedDTO<PollStatisticsResponse>> getPollStatistics(
             @PathVariable Long pollId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails
-    ) {
-        log.info("userDetails: {}", userDetails);
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
         User user = userDetails.getUser();
 
         if (user == null) {
@@ -132,5 +131,31 @@ public class PollController {
         PollStatisticsResponse response = voteStatisticsService.getPollStatistics(pollId);
 
         return ResponseEntity.ok(new WrappedDTO<>(true, POLL_OK, response));
+    }
+
+    @PostMapping("/{pollId}/schedule")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<WrappedDTO<Void>> schedule(
+            @PathVariable Long pollId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        User user = userDetails.getUser();
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
+            );
+        }
+
+        if (user.getState() != State.ACTIVE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+            );
+        }
+
+        Poll poll = pollService.getPollById(pollId);
+        pollService.schedulePoll(poll);
+
+        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_SCHEDULED, null));
     }
 }

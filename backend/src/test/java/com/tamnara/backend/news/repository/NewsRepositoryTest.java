@@ -260,20 +260,33 @@ public class NewsRepositoryTest {
     }
 
     @Test
-    void 뉴스_핫이슈_전환_검증() {
+    void 뉴스_핫이슈_전환_시_수정일자_변경되지_않고_유지_검증() {
         // given
-        News news = createNews("제목", "미리보기 내용", user, category);
-        news.setIsHotissue(true);
-        newsRepository.save(news);
+        News news1 = createNews("제목1", "미리보기 내용1", user, category);
+        news1.setIsHotissue(true);
+        newsRepository.save(news1);
+        LocalDateTime news1UpdatedAt = news1.getUpdatedAt();
+
+        News news2 = createNews("제목2", "미리보기 내용2", user, category);
+        news2.setIsHotissue(false);
+        newsRepository.save(news2);
+        LocalDateTime news2UpdatedAt = news2.getUpdatedAt();
+
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
 
         // when
-        News findNews = newsRepository.findById(news.getId()).get();
-        findNews.setIsHotissue(false);
-        newsRepository.save(findNews);
+        newsRepository.updateIsHotissue(news1.getId(), false);
+        newsRepository.updateIsHotissue(news2.getId(), true);
+        em.clear();
 
         // then
-        News updatedNews = newsRepository.findById(news.getId()).get();
-        assertFalse(updatedNews.getIsHotissue());
+        News updatedNews1 = newsRepository.findById(news1.getId()).get();
+        assertFalse(updatedNews1.getIsHotissue());
+        assertEquals(news1UpdatedAt.truncatedTo(ChronoUnit.SECONDS), updatedNews1.getUpdatedAt().truncatedTo(ChronoUnit.SECONDS));
+
+        News updatedNews2 = newsRepository.findById(news2.getId()).get();
+        assertTrue(updatedNews2.getIsHotissue());
+        assertEquals(news2UpdatedAt.truncatedTo(ChronoUnit.SECONDS), updatedNews2.getUpdatedAt().truncatedTo(ChronoUnit.SECONDS));
     }
 
     @Test
