@@ -10,6 +10,7 @@ import com.tamnara.backend.alarm.repository.AlarmRepository;
 import com.tamnara.backend.alarm.repository.UserAlarmRepository;
 import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -59,6 +60,7 @@ public class AlarmServiceImpl implements AlarmService {
     }
 
     @Override
+    @Transactional
     public Long checkUserAlarm(Long userAlarmId, Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
