@@ -14,7 +14,7 @@ import java.io.IOException;
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // 수동 생성 or 주입
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void commence(
