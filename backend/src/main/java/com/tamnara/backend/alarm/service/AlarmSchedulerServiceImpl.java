@@ -17,7 +17,7 @@ public class AlarmSchedulerServiceImpl implements AlarmSchedulerService {
 
     @Override
     @Async
-    @Scheduled(cron = "0 3 16 * * *")
+    @Scheduled(cron = "0 0 9 * * *")
     public void deleteOldAlarms() {
         try {
             log.info("[INFO] 오래된 알림 일괄 삭제 시작");
