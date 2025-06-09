@@ -43,7 +43,8 @@ public class PollService {
     }
 
     public Poll getPollById(Long pollId) {
-        return pollRepository.findById(pollId).orElse(null);
+        return pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
     }
 
     @Transactional
