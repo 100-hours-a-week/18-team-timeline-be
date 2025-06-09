@@ -24,4 +24,13 @@ public class NewsSchedulerServiceImplTest {
         // then
         verify(newsService, times(1)).createHotissueNews();
     }
+
+    @Test
+    void 오래된_뉴스_및_고아_태그_삭제_검증() {
+        // when
+        newsSchedulerService.deleteOldNewsAndOrphanTags();
+
+        // then
+        verify(newsService, times(1)).deleteOldNewsAndOrphanTags();
+    }
 }
