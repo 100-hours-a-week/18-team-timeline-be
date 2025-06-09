@@ -1,6 +1,5 @@
 package com.tamnara.backend.poll.service;
 
-import com.tamnara.backend.global.util.CreateUserUtil;
 import com.tamnara.backend.poll.domain.*;
 import com.tamnara.backend.poll.exception.*;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
