@@ -6,7 +6,10 @@ import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -41,5 +44,29 @@ public class PollService {
 
     public Poll getPollById(Long pollId) {
         return pollRepository.findById(pollId).orElse(null);
+    }
+
+    @Transactional
+    public void schedulePoll(Poll poll) {
+        poll.changeState(PollState.SCHEDULED);
+        pollRepository.save(poll);
+    }
+
+    @Transactional
+    public void publishPoll(Poll poll) {
+        if (pollRepository.existsByState(PollState.PUBLISHED)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    PUBLISHED_POLL_ALREADY_EXISTS
+            );
+        }
+        poll.changeState(PollState.PUBLISHED);
+        pollRepository.save(poll);
+    }
+
+    @Transactional
+    public void deletePoll(Poll poll) {
+        poll.changeState(PollState.DELETED);
+        pollRepository.save(poll);
     }
 }
