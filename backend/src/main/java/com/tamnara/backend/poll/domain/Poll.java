@@ -40,10 +40,15 @@ public class Poll {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    private PollState state;
+    private PollState state = PollState.DRAFT;
 
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PollOption> options;
+
+    public void changeState(PollState state) {
+        this.state = state;
+    }
 }
