@@ -47,6 +47,12 @@ public class PollService {
     }
 
     @Transactional
+    public void schedulePoll(Poll poll) {
+        poll.changeState(PollState.SCHEDULED);
+        pollRepository.save(poll);
+    }
+
+    @Transactional
     public void publishPoll(Poll poll) {
         if (pollRepository.existsByState(PollState.PUBLISHED)) {
             throw new ResponseStatusException(

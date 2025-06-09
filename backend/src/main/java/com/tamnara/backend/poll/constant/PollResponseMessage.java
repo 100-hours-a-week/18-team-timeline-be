@@ -2,6 +2,7 @@ package com.tamnara.backend.poll.constant;
 
 public class PollResponseMessage {
     public static final String POLL_CREATED = "투표가 성공적으로 생성되었습니다.";
+    public static final String POLL_SCHEDULED = "투표가 성공적으로 SCHEDULED 처리되었습니다.";
     public static final String POLL_OK = "요청하신 정보를 성공적으로 불러왔습니다.";
     public static final String VOTE_SUCCESS = "투표가 완료되었습니다.";
 
