@@ -1,19 +1,30 @@
 package com.tamnara.backend.poll.service;
 
-import com.tamnara.backend.poll.domain.*;
-import com.tamnara.backend.poll.dto.*;
-import com.tamnara.backend.poll.repository.PollRepository;
+import com.tamnara.backend.alarm.constant.AlarmMessage;
+import com.tamnara.backend.alarm.domain.AlarmType;
+import com.tamnara.backend.alarm.event.AlarmEvent;
+import com.tamnara.backend.poll.domain.Poll;
+import com.tamnara.backend.poll.domain.PollOption;
+import com.tamnara.backend.poll.domain.PollState;
+import com.tamnara.backend.poll.dto.PollCreateRequest;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
+import com.tamnara.backend.poll.repository.PollRepository;
+import com.tamnara.backend.user.domain.User;
+import com.tamnara.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.PUBLISHED_POLL_ALREADY_EXISTS;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_LATER_THAN_END_DATE;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollFromRequest;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequest;
 
@@ -21,8 +32,11 @@ import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequ
 @RequiredArgsConstructor
 public class PollService {
 
+    private final ApplicationEventPublisher eventPublisher;
+
     private final PollRepository pollRepository;
     private final PollOptionRepository pollOptionRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public Long createPoll(PollCreateRequest request) {
@@ -38,6 +52,15 @@ public class PollService {
 
         List<PollOption> options = buildPollOptionsFromRequest(request.getOptions(), savedPoll);
         pollOptionRepository.saveAll(options);
+
+        // 알림 이벤트 발행 추가
+        publishAlarm(
+                userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                AlarmMessage.POLL_START_TITLE,
+                String.format(AlarmMessage.POLL_START_CONTENT, poll.getTitle()),
+                AlarmType.POLLS,
+                poll.getId()
+        );
 
         return savedPoll.getId();
     }
@@ -69,5 +92,20 @@ public class PollService {
     public void deletePoll(Poll poll) {
         poll.changeState(PollState.DELETED);
         pollRepository.save(poll);
+    }
+
+
+    /**
+     * 알림 발행 헬퍼 메서드
+     */
+    private void publishAlarm(List<Long> userIdList, String title, String content, AlarmType targetType, Long targetId) {
+        AlarmEvent event = new AlarmEvent(
+                userIdList,
+                title,
+                content,
+                targetType,
+                targetId
+        );
+        eventPublisher.publishEvent(event);
     }
 }
