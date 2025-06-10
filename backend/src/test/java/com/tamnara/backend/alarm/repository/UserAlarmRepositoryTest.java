@@ -61,6 +61,7 @@ public class UserAlarmRepositoryTest {
         userRepository.deleteAll();
         alarmRepository.deleteAll();
         userAlarmRepository.deleteAll();
+        em.clear();
 
         user = User.builder()
                 .email("이메일")
