@@ -1,7 +1,6 @@
 package com.tamnara.backend.news.repository;
 
-import com.tamnara.backend.global.config.JpaConfig;
-import com.tamnara.backend.global.config.QuerydslConfig;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
@@ -42,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
-@Import({JpaConfig.class, QuerydslConfig.class})
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class NewsRepositoryTest {
