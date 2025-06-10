@@ -4,6 +4,7 @@ import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollState;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 public class PollTestBuilder {
 
@@ -22,6 +23,7 @@ public class PollTestBuilder {
                 .startAt(startAt)
                 .endAt(endAt)
                 .state(state)
+                .options(new ArrayList<>())
                 .build();
     }
 

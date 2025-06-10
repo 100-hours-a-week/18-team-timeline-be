@@ -2,12 +2,14 @@ package com.tamnara.backend.poll.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
+@Builder
 public class PollCreateRequest {
 
     @NotBlank
