@@ -30,4 +30,16 @@ public class CreateUserUtil {
                 .lastActiveAt(LocalDateTime.now())
                 .build();
     }
+
+    public static User createActiveAdmin() {
+        return User.builder()
+                .email("admin@test.com")
+                .username("admin1")
+                .provider("KAKAO")
+                .providerId("99999")
+                .role(Role.ADMIN)
+                .state(State.ACTIVE)
+                .lastActiveAt(LocalDateTime.now())
+                .build();
+    }
 }
