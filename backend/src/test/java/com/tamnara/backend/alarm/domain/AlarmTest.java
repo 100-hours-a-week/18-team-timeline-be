@@ -63,7 +63,7 @@ public class AlarmTest {
         // then
         assertThat(values).containsExactlyInAnyOrder(
                 AlarmType.NEWS,
-                AlarmType.POLL
+                AlarmType.POLLS
         );
     }
 
@@ -71,7 +71,7 @@ public class AlarmTest {
     void 문자열로부터_enum_변환_검증() {
         // given
         String input1 = "NEWS";
-        String input2 = "POLL";
+        String input2 = "POLLS";
 
         // when
         AlarmType result1 = AlarmType.valueOf(input1);
@@ -79,7 +79,7 @@ public class AlarmTest {
 
         // then
         assertEquals(AlarmType.NEWS, result1);
-        assertEquals(AlarmType.POLL, result2);
+        assertEquals(AlarmType.POLLS, result2);
     }
 
     @Test
