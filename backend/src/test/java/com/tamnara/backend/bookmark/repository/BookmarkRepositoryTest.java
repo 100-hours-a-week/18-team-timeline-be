@@ -80,6 +80,20 @@ public class BookmarkRepositoryTest {
         return bookmark;
     }
 
+    private User createUser(Long id) {
+        return userRepository.saveAndFlush(
+                User.builder()
+                        .email("이메일" + id)
+                        .password("비밀번호" + id)
+                        .username("이름" + id)
+                        .provider("LOCAL")
+                        .providerId(String.valueOf(id))
+                        .role(Role.USER)
+                        .state(State.ACTIVE)
+                        .build()
+        );
+    }
+
     @Test
     void 북마크_생성_성공_검증() {
         // given
@@ -205,6 +219,32 @@ public class BookmarkRepositoryTest {
         assertEquals(bookmark3, bookmarkList.get(0));
         assertEquals(bookmark2, bookmarkList.get(1));
         assertEquals(bookmark1, bookmarkList.get(2));
+    }
+
+    @Test
+    void 뉴스를_북마크한_모든_회원_ID_목록_조회_검증() {
+        // given
+        User user1 = createUser(1L);
+        User user2 = createUser(2L);
+        User user3 = createUser(3L);
+        em.clear();
+
+        Bookmark bookmark1 = createBookmark(news, user1);
+        bookmarkRepository.saveAndFlush(bookmark1);
+        Bookmark bookmark2 = createBookmark(news, user2);
+        bookmarkRepository.saveAndFlush(bookmark2);
+        Bookmark bookmark3 = createBookmark(news, user3);
+        bookmarkRepository.saveAndFlush(bookmark3);
+        em.clear();
+
+        // when
+        List<Long> receiverIdList = bookmarkRepository.findUsersByNews(news);
+
+        // then
+        assertEquals(3, receiverIdList.size());
+        assertEquals(user1.getId(), receiverIdList.get(0));
+        assertEquals(user2.getId(), receiverIdList.get(1));
+        assertEquals(user3.getId(), receiverIdList.get(2));
     }
 
     @Test
