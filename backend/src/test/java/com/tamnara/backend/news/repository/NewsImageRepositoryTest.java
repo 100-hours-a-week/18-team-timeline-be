@@ -1,6 +1,7 @@
 package com.tamnara.backend.news.repository;
 
 import com.tamnara.backend.global.config.JpaConfig;
+import com.tamnara.backend.global.config.QuerydslConfig;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.domain.NewsImage;
 import jakarta.persistence.EntityManager;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
-@Import(JpaConfig.class)
+@Import({JpaConfig.class, QuerydslConfig.class})
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class NewsImageRepositoryTest {
