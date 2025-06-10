@@ -336,7 +336,7 @@ public class NewsRepositoryTest {
     }
 
     @Test
-    void 수정일자가_기준시간보다_오래된_뉴스_일괄_삭제_검증() {
+    void 수정시간이_기준시간보다_오래된_뉴스_일괄_조회_검증() {
         // given
         News news1 = createNews("제목", "미리보기 내용", user, category);
         news1.setIsHotissue(true);
@@ -346,6 +346,38 @@ public class NewsRepositoryTest {
         news2.setIsHotissue(true);
         newsRepository.saveAndFlush(news2);
 
+        LocalDateTime cutoff;
+        try {
+            Thread.sleep(1000); // 1초
+            cutoff = LocalDateTime.now();
+            Thread.sleep(1000); // 1초
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        News news3 = createNews("제목", "미리보기 내용", user, category);
+        news3.setIsHotissue(true);
+        newsRepository.saveAndFlush(news3);
+
+        // when
+        List<News> newsList = newsRepository.findAllOlderThan(cutoff);
+
+        // then
+        assertEquals(2, newsList.size());
+        assertEquals(news1.getId(), newsList.get(0).getId());
+        assertEquals(news2.getId(), newsList.get(1).getId());
+    }
+
+    @Test
+    void 수정시간이_기준시간보다_오래된_뉴스_일괄_삭제_검증() {
+        // given
+        News news1 = createNews("제목", "미리보기 내용", user, category);
+        news1.setIsHotissue(true);
+        newsRepository.saveAndFlush(news1);
+
+        News news2 = createNews("제목", "미리보기 내용", user, category);
+        news2.setIsHotissue(true);
+        newsRepository.saveAndFlush(news2);
 
         LocalDateTime cutoff;
         try {
