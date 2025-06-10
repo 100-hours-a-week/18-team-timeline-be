@@ -87,10 +87,10 @@ public class AlarmServiceImplTest {
     void 전체_알림_목록_조회_검증() {
         // given
         Alarm alarm1 = createAlarm("제목1", "내용1", AlarmType.NEWS.toString(), 1L);
-        Alarm alarm2 = createAlarm("제목2", "내용2", AlarmType.POLL.toString(), 1L);
+        Alarm alarm2 = createAlarm("제목2", "내용2", AlarmType.POLLS.toString(), 1L);
         Alarm alarm3 = createAlarm("제목3", "내용3", null, null);
         Alarm alarm4 = createAlarm("제목4", "내용4", AlarmType.NEWS.toString(), 2L);
-        Alarm alarm5 = createAlarm("제목5", "내용5", AlarmType.POLL.toString(), 2L);
+        Alarm alarm5 = createAlarm("제목5", "내용5", AlarmType.POLLS.toString(), 2L);
 
         UserAlarm userAlarm1 = createUserAlarm(true, alarm1);
         UserAlarm userAlarm2 = createUserAlarm(false, alarm2);

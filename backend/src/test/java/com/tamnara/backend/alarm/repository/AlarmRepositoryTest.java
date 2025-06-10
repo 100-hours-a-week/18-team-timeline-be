@@ -204,7 +204,7 @@ public class AlarmRepositoryTest {
         Alarm findAlarm = alarmRepository.findById(alarm.getId()).get();
         findAlarm.setTitle("새로운 제목");
         findAlarm.setContent("새로운 내용");
-        findAlarm.setTargetType(AlarmType.POLL);
+        findAlarm.setTargetType(AlarmType.POLLS);
         findAlarm.setTargetId(2L);
         alarmRepository.saveAndFlush(findAlarm);
         em.clear();
@@ -328,7 +328,7 @@ public class AlarmRepositoryTest {
             throw new RuntimeException(e);
         }
 
-        Alarm alarm3 = createAlarm("제목3", "내용3", AlarmType.POLL.toString(), 2L);
+        Alarm alarm3 = createAlarm("제목3", "내용3", AlarmType.POLLS.toString(), 2L);
         alarmRepository.saveAndFlush(alarm3);
         em.clear();
 

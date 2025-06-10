@@ -89,8 +89,8 @@ public class AlarmControllerTest {
         // given
         AlarmCardDTO alarmCardDTO1 = createAlarmCardDTO(1L, false, AlarmType.NEWS.toString(), 1L);
         AlarmCardDTO alarmCardDTO2 = createAlarmCardDTO(2L, false, AlarmType.NEWS.toString(), 1L);
-        AlarmCardDTO alarmCardDTO3 = createAlarmCardDTO(3L, false, AlarmType.POLL.toString(), 1L);
-        AlarmCardDTO alarmCardDTO4 = createAlarmCardDTO(4L, false, AlarmType.POLL.toString(), 1L);
+        AlarmCardDTO alarmCardDTO3 = createAlarmCardDTO(3L, false, AlarmType.POLLS.toString(), 1L);
+        AlarmCardDTO alarmCardDTO4 = createAlarmCardDTO(4L, false, AlarmType.POLLS.toString(), 1L);
         AlarmCardDTO alarmCardDTO5 = createAlarmCardDTO(5L, false, null, null);
         List<AlarmCardDTO> allAlarmCardDTOList = List.of(alarmCardDTO1, alarmCardDTO2, alarmCardDTO3, alarmCardDTO4, alarmCardDTO5);
         List<AlarmCardDTO> bookmarkAlarmCardDTOList = List.of(alarmCardDTO1, alarmCardDTO2);
