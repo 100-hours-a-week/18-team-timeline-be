@@ -222,7 +222,7 @@ public class BookmarkRepositoryTest {
     }
 
     @Test
-    void 뉴스로_북마크한_회원_ID_목록_조회_검증() {
+    void 뉴스를_북마크한_모든_회원_ID_목록_조회_검증() {
         // given
         User user1 = createUser(1L);
         User user2 = createUser(2L);
