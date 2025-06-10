@@ -2,7 +2,7 @@ package com.tamnara.backend.bookmark.repository;
 
 import com.tamnara.backend.bookmark.constant.BookmarkServiceConstant;
 import com.tamnara.backend.bookmark.domain.Bookmark;
-import com.tamnara.backend.global.config.JpaConfig;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.user.domain.Role;
@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
-@Import(JpaConfig.class)
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class BookmarkRepositoryTest {
