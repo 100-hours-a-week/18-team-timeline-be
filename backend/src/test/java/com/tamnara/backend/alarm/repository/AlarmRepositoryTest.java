@@ -3,8 +3,7 @@ package com.tamnara.backend.alarm.repository;
 import com.tamnara.backend.alarm.domain.Alarm;
 import com.tamnara.backend.alarm.domain.AlarmType;
 import com.tamnara.backend.alarm.domain.UserAlarm;
-import com.tamnara.backend.global.config.JpaConfig;
-import com.tamnara.backend.global.config.QuerydslConfig;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -32,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
-@Import({JpaConfig.class, QuerydslConfig.class})
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class AlarmRepositoryTest {
