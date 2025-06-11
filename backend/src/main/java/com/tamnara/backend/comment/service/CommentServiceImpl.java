@@ -47,6 +47,7 @@ public class CommentServiceImpl implements CommentService {
             CommentDTO dto = new CommentDTO(
                     c.getId(),
                     c.getUser().getId(),
+                    c.getUser().getUsername(),
                     c.getContent(),
                     c.getCreatedAt()
             );
