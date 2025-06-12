@@ -3,11 +3,16 @@ name: Backend CI - Static Analysis, Build & Docker Push
 on:
   push:
     branches: [ 'develop', 'release/**', 'main' ]
-    paths: [ 'backend/**' ]
+    paths:
+      - 'backend/**'
+      - '.github/**'
+
 
   pull_request:
     branches: [ 'develop', 'release/**', 'main'  ]
-    paths: [ 'backend/**' ]
+    paths:
+      - 'backend/**'
+      - '.github/**'
 
   create:
     branches:
@@ -251,3 +256,34 @@ jobs:
 
           chmod +x .github/scripts/discord_notify.sh
           .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+  notify-success:
+    name: Notify Discord on Success
+    runs-on: ubuntu-latest
+    if: success()
+    needs: [ci-check, build-image, deploy-ecs]
+
+    steps:
+      - name: Notify Discord on CI Success
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          TAG=$(echo "${{ github.sha }}" | cut -c1-7)
+          REPO="346011888304.dkr.ecr.ap-northeast-2.amazonaws.com/tamnara/be:$TAG"
+          ECR_URL="https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/private/346011888304/tamnara/be?region=ap-northeast-2"
+
+          # ✅ 첫 번째 메시지: ECR Push 완료
+          TITLE1="*ECR Push 완료!*"
+          MSG1="📦 Repository: \`${REPO}\`\n👉 [ECR 보기]($ECR_URL)"
+
+          # ✅ 두 번째 메시지: ECR + ECS 배포 완료
+          TITLE2="*ECR + ECS 배포 완료!*"
+          MSG2="📦 \`${REPO}\`\n👉 [ECR 보기]($ECR_URL)"
+
+          chmod +x .github/scripts/discord_notify.sh
+          .github/scripts/discord_notify.sh success "$TITLE1" "$MSG1" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          sleep 1
+          .github/scripts/discord_notify.sh success "$TITLE2" "$MSG2" "${{ secrets.DISCORD_WEBHOOK_URL }}"
