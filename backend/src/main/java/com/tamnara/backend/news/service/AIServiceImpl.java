@@ -6,10 +6,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
+import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.AIHotissueRequest;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
+import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -67,6 +70,28 @@ public class AIServiceImpl implements AIService {
                 && (tc.getStartAt().isBefore(LocalDate.now().minusMonths(3))));
 
         return timeline;
+    }
+
+    @Override
+    public WrappedDTO<AIHotissueResponse> createAIHotissueKeywords() {
+        AIHotissueRequest aiHotissueRequest = new AIHotissueRequest(NewsServiceConstant.HOTISSUE_CREATE_CNT);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        return aiWebClient.post()
+                .uri(NewsExternalApiEndpoint.HOTISSUE_AI_ENDPOINT)
+                .bodyValue(aiHotissueRequest)
+                .retrieve()
+                .onStatus(
+                        HttpStatusCode::isError,
+                        clientResponse -> clientResponse
+                                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AIHotissueResponse>>() {})
+                                .flatMap(errorBody -> Mono.error(new AIException(clientResponse.statusCode(), errorBody)))
+                )
+                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AIHotissueResponse>>() {})
+                .block();
     }
 
     private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {

@@ -45,6 +45,16 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsSearchRep
     """, nativeQuery = true)
     Optional<News> findNewsByExactlyMatchingTags(@Param("keywords") List<String> keywords, @Param("size") Integer size);
 
+    @Query("""
+        SELECT n FROM News n
+        WHERE n.updatedAt < :cutoff
+    """)
+    List<News> findAllOlderThan(@Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying
+    @Query("UPDATE News n SET n.isHotissue = :isHotissue WHERE n.id = :newsId")
+    void updateIsHotissue(@Param("newsId") Long newsId, @Param("isHotissue") boolean isHotissue);
+
     @Modifying
     @Query("UPDATE News n SET n.viewCount = n.viewCount + 1 WHERE n.id = :newsId")
     void increaseViewCount(@Param("newsId") Long newsId);

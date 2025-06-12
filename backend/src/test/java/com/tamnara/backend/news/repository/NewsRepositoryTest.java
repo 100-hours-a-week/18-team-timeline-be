@@ -1,7 +1,6 @@
 package com.tamnara.backend.news.repository;
 
-import com.tamnara.backend.global.config.JpaConfig;
-import com.tamnara.backend.global.config.QuerydslConfig;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
 import com.tamnara.backend.news.domain.CategoryType;
@@ -42,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
-@Import({JpaConfig.class, QuerydslConfig.class})
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class NewsRepositoryTest {
@@ -260,20 +259,33 @@ public class NewsRepositoryTest {
     }
 
     @Test
-    void 뉴스_핫이슈_전환_검증() {
+    void 뉴스_핫이슈_전환_시_수정일자_변경되지_않고_유지_검증() {
         // given
-        News news = createNews("제목", "미리보기 내용", user, category);
-        news.setIsHotissue(true);
-        newsRepository.save(news);
+        News news1 = createNews("제목1", "미리보기 내용1", user, category);
+        news1.setIsHotissue(true);
+        newsRepository.save(news1);
+        LocalDateTime news1UpdatedAt = news1.getUpdatedAt();
+
+        News news2 = createNews("제목2", "미리보기 내용2", user, category);
+        news2.setIsHotissue(false);
+        newsRepository.save(news2);
+        LocalDateTime news2UpdatedAt = news2.getUpdatedAt();
+
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
 
         // when
-        News findNews = newsRepository.findById(news.getId()).get();
-        findNews.setIsHotissue(false);
-        newsRepository.save(findNews);
+        newsRepository.updateIsHotissue(news1.getId(), false);
+        newsRepository.updateIsHotissue(news2.getId(), true);
+        em.clear();
 
         // then
-        News updatedNews = newsRepository.findById(news.getId()).get();
-        assertFalse(updatedNews.getIsHotissue());
+        News updatedNews1 = newsRepository.findById(news1.getId()).get();
+        assertFalse(updatedNews1.getIsHotissue());
+        assertEquals(news1UpdatedAt.truncatedTo(ChronoUnit.SECONDS), updatedNews1.getUpdatedAt().truncatedTo(ChronoUnit.SECONDS));
+
+        News updatedNews2 = newsRepository.findById(news2.getId()).get();
+        assertTrue(updatedNews2.getIsHotissue());
+        assertEquals(news2UpdatedAt.truncatedTo(ChronoUnit.SECONDS), updatedNews2.getUpdatedAt().truncatedTo(ChronoUnit.SECONDS));
     }
 
     @Test
@@ -324,7 +336,7 @@ public class NewsRepositoryTest {
     }
 
     @Test
-    void 수정일자가_기준시간보다_오래된_뉴스_일괄_삭제_검증() {
+    void 수정시간이_기준시간보다_오래된_뉴스_일괄_조회_검증() {
         // given
         News news1 = createNews("제목", "미리보기 내용", user, category);
         news1.setIsHotissue(true);
@@ -334,6 +346,38 @@ public class NewsRepositoryTest {
         news2.setIsHotissue(true);
         newsRepository.saveAndFlush(news2);
 
+        LocalDateTime cutoff;
+        try {
+            Thread.sleep(1000); // 1초
+            cutoff = LocalDateTime.now();
+            Thread.sleep(1000); // 1초
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        News news3 = createNews("제목", "미리보기 내용", user, category);
+        news3.setIsHotissue(true);
+        newsRepository.saveAndFlush(news3);
+
+        // when
+        List<News> newsList = newsRepository.findAllOlderThan(cutoff);
+
+        // then
+        assertEquals(2, newsList.size());
+        assertEquals(news1.getId(), newsList.get(0).getId());
+        assertEquals(news2.getId(), newsList.get(1).getId());
+    }
+
+    @Test
+    void 수정시간이_기준시간보다_오래된_뉴스_일괄_삭제_검증() {
+        // given
+        News news1 = createNews("제목", "미리보기 내용", user, category);
+        news1.setIsHotissue(true);
+        newsRepository.saveAndFlush(news1);
+
+        News news2 = createNews("제목", "미리보기 내용", user, category);
+        news2.setIsHotissue(true);
+        newsRepository.saveAndFlush(news2);
 
         LocalDateTime cutoff;
         try {

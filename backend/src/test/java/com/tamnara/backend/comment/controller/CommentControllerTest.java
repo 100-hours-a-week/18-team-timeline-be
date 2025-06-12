@@ -45,13 +45,13 @@ public class CommentControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private CommentService commentService;
 
-    private static final Long USER_ID = 1L;
+    User user;
     private static final Long NEWS_ID = 1L;
 
     @BeforeEach
     void setupSecurityContext() {
-        User user = User.builder()
-                .id(USER_ID)
+        user = User.builder()
+                .id(1L)
                 .username("테스트유저")
                 .role(Role.USER)
                 .build();
@@ -66,7 +66,8 @@ public class CommentControllerTest {
     private CommentDTO createCommentDTO(Long id, LocalDateTime createdAt) {
         return new CommentDTO(
                 id,
-                USER_ID,
+                user.getId(),
+                user.getUsername(),
                 "댓글 내용",
                 createdAt
         );

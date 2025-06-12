@@ -45,16 +45,13 @@ public class CommentServiceImplTest {
     private User user;
     private News news;
 
-    private static final Long USER_ID = 1L;
-    private static final Long NEWS_ID = 1L;
-
     @BeforeEach
     void setUp() {
         user = mock(User.class);
-        lenient().when(user.getId()).thenReturn(USER_ID);
+        lenient().when(user.getId()).thenReturn(1L);
 
         news = mock(News.class);
-        lenient().when(news.getId()).thenReturn(NEWS_ID);
+        lenient().when(news.getId()).thenReturn(1L);
     }
 
     private Comment createComment(User user, News news) {
@@ -74,11 +71,11 @@ public class CommentServiceImplTest {
         Page<Comment> commentPage = new PageImpl<>(Arrays.asList(comment1, comment2, comment3));
 
         when(newsRepository.existsById(1L)).thenReturn(true);
-        when(commentRepository.findAllByNewsIdOrderByIdAsc(NEWS_ID, PageRequest.of(0, CommentServiceConstant.PAGE_SIZE))).thenReturn(commentPage);
-        when(commentRepository.findAllByNewsIdOrderByIdAsc(NEWS_ID, PageRequest.of(1, CommentServiceConstant.PAGE_SIZE))).thenReturn(Page.empty());
+        when(commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), PageRequest.of(0, CommentServiceConstant.PAGE_SIZE))).thenReturn(commentPage);
+        when(commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), PageRequest.of(1, CommentServiceConstant.PAGE_SIZE))).thenReturn(Page.empty());
 
         // when
-        CommentListResponse response = commentServiceImpl.getComments(NEWS_ID, 0);
+        CommentListResponse response = commentServiceImpl.getComments(news.getId(), 0);
 
         // then
         assertEquals(3, response.getComments().size());
@@ -93,8 +90,8 @@ public class CommentServiceImplTest {
         Comment comment = createComment(user, news);
         CommentCreateRequest request = new CommentCreateRequest(comment.getContent());
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(newsRepository.findById(NEWS_ID)).thenReturn(Optional.of(news));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment savedComment = invocation.getArgument(0);
             savedComment.setId(commentId);
@@ -102,7 +99,7 @@ public class CommentServiceImplTest {
         });
 
         // when
-        Long returnedCommentId = commentServiceImpl.save(USER_ID, NEWS_ID, request);
+        Long returnedCommentId = commentServiceImpl.save(user.getId(), news.getId(), request);
 
         // then
         assertEquals(commentId, returnedCommentId);
@@ -114,12 +111,12 @@ public class CommentServiceImplTest {
         Comment comment = createComment(user, news);
         comment.setId(1L);
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(newsRepository.findById(NEWS_ID)).thenReturn(Optional.of(news));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
         when(commentRepository.findById(comment.getId())).thenReturn(Optional.of(comment));
 
         // when
-        commentServiceImpl.delete(USER_ID, NEWS_ID, comment.getId());
+        commentServiceImpl.delete(user.getId(), news.getId(), comment.getId());
 
         // then
         assertFalse(commentRepository.existsById(comment.getId()));
@@ -129,12 +126,12 @@ public class CommentServiceImplTest {
     void 내_댓글_아닌_댓글_삭제_불가_검증() {
         // given
         User writer = User.builder()
-                .id(USER_ID)
+                .id(user.getId())
                 .username("작성자")
                 .build();
 
         User anotherUser = User.builder()
-                .id(USER_ID + 1)
+                .id(user.getId() + 1)
                 .username("다른 사용자")
                 .build();
 
@@ -142,12 +139,12 @@ public class CommentServiceImplTest {
         comment.setId(1L);
 
         when(userRepository.findById(anotherUser.getId())).thenReturn(Optional.of(anotherUser));
-        when(newsRepository.findById(NEWS_ID)).thenReturn(Optional.of(news));
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
         when(commentRepository.findById(comment.getId())).thenReturn(Optional.of(comment));
 
         // when
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            commentServiceImpl.delete(anotherUser.getId(), NEWS_ID, comment.getId());
+            commentServiceImpl.delete(anotherUser.getId(), news.getId(), comment.getId());
         });
 
         // then

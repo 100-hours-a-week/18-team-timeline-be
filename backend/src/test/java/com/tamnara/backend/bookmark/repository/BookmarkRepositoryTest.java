@@ -2,7 +2,7 @@ package com.tamnara.backend.bookmark.repository;
 
 import com.tamnara.backend.bookmark.constant.BookmarkServiceConstant;
 import com.tamnara.backend.bookmark.domain.Bookmark;
-import com.tamnara.backend.global.config.JpaConfig;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.news.domain.News;
 import com.tamnara.backend.news.repository.NewsRepository;
 import com.tamnara.backend.user.domain.Role;
@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
-@Import(JpaConfig.class)
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class BookmarkRepositoryTest {
@@ -78,6 +78,20 @@ public class BookmarkRepositoryTest {
         bookmark.setNews(news);
         bookmark.setUser(user);
         return bookmark;
+    }
+
+    private User createUser(Long id) {
+        return userRepository.saveAndFlush(
+                User.builder()
+                        .email("이메일" + id)
+                        .password("비밀번호" + id)
+                        .username("이름" + id)
+                        .provider("LOCAL")
+                        .providerId(String.valueOf(id))
+                        .role(Role.USER)
+                        .state(State.ACTIVE)
+                        .build()
+        );
     }
 
     @Test
@@ -205,6 +219,32 @@ public class BookmarkRepositoryTest {
         assertEquals(bookmark3, bookmarkList.get(0));
         assertEquals(bookmark2, bookmarkList.get(1));
         assertEquals(bookmark1, bookmarkList.get(2));
+    }
+
+    @Test
+    void 뉴스를_북마크한_모든_회원_ID_목록_조회_검증() {
+        // given
+        User user1 = createUser(1L);
+        User user2 = createUser(2L);
+        User user3 = createUser(3L);
+        em.clear();
+
+        Bookmark bookmark1 = createBookmark(news, user1);
+        bookmarkRepository.saveAndFlush(bookmark1);
+        Bookmark bookmark2 = createBookmark(news, user2);
+        bookmarkRepository.saveAndFlush(bookmark2);
+        Bookmark bookmark3 = createBookmark(news, user3);
+        bookmarkRepository.saveAndFlush(bookmark3);
+        em.clear();
+
+        // when
+        List<Long> receiverIdList = bookmarkRepository.findUsersByNews(news);
+
+        // then
+        assertEquals(3, receiverIdList.size());
+        assertEquals(user1.getId(), receiverIdList.get(0));
+        assertEquals(user2.getId(), receiverIdList.get(1));
+        assertEquals(user3.getId(), receiverIdList.get(2));
     }
 
     @Test
