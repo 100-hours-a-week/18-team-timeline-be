@@ -105,7 +105,7 @@ jobs:
           docker push $ECR_URI_DEV:latest
 
   # ─────────────────────────────────────────────────────
-  # 4. 원격 EC2 인스턴스에 SSH 배포
+  # 3. 원격 EC2 인스턴스에 SSH 배포
   # ─────────────────────────────────────────────────────=
   remote-deploy:
     name: SSH into Peered Instance and Deploy
@@ -116,6 +116,20 @@ jobs:
       TAG: ${{ needs.docker-build.outputs.tag }}
 
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 📦 dev-deploy.sh를 EC2로 복사
+      - name: Upload dev-deploy.sh to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.PEER_HOST }}
+          username: ${{ secrets.PEER_USER }}
+          key: ${{ secrets.PEER_SSH_KEY }}
+          source: ".github/scripts/dev-deploy.sh"
+          target: "~/" # 홈 디렉토리에 복사
+
+      # 🚀 복사된 dev-deploy.sh 실행
       - name: Execute dev-deploy.sh on peered instance
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -127,11 +141,11 @@ jobs:
             echo "🔄 실행 중: dev-deploy.sh"
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
-            bash ~/dev-deploy.sh 
-
+            chmod +x ~/dev-deploy.sh
+            bash ~/dev-deploy.sh
 
   # ─────────────────────────────────────────────
-  # ✅ Step 4: 실패 시 Discord 알림
+  # Step 4: 실패 시 Discord 알림
   # ─────────────────────────────────────────────
   notify-failure:
     name: Notify Discord on Failure
