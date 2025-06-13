@@ -127,7 +127,7 @@ jobs:
           username: ${{ secrets.PEER_USER }}
           key: ${{ secrets.PEER_SSH_KEY }}
           source: ".github/scripts/dev-deploy.sh"
-          target: "~/" # 홈 디렉토리에 복사
+          target: "/home/ubuntu/"  # 경로 명확히 지정
 
       # 🚀 복사된 dev-deploy.sh 실행
       - name: Execute dev-deploy.sh on peered instance
@@ -141,8 +141,8 @@ jobs:
             echo "🔄 실행 중: dev-deploy.sh"
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
-            chmod +x ~/dev-deploy.sh
-            bash ~/dev-deploy.sh
+            chmod +x /home/ubuntu/dev-deploy.sh
+            bash /home/ubuntu/dev-deploy.sh
 
   # ─────────────────────────────────────────────
   # Step 4: 실패 시 Discord 알림
