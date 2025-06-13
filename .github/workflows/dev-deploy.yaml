@@ -53,57 +53,12 @@ jobs:
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
   # ─────────────────────────────────────────────────────
-  # 2. Docker 이미지 빌드
+  # 2. Docker Build & ECR Push
   # ─────────────────────────────────────────────────────
-  docker-build:
+  build-image:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: ci-check
-#    outputs:
-#      tag: ${{ steps.meta.outputs.tag }}
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
-
-       # OTEL Java Agent 다운로드 (이미지에 포함)
-      - name: Download OTEL Java Agent
-        working-directory: ./backend
-        run: |
-          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
-
-      - name: Set TAG env from SHA
-        run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
-
-      - name: Build Docker Image
-        working-directory: ./backend
-        run: |
-          echo "🐳 Docker Build"
-          docker build -t tamnara-be-dev:$TAG .
-#      - name: Get short SHA
-#        id: meta
-#        run: |
-#          echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
-#          echo "::set-output name=tag::$(echo $GITHUB_SHA | cut -c1-7)"
-#
-#      - name: Build Docker Image
-#        working-directory: ./backend
-#        env:
-#          TAG: ${{ steps.meta.outputs.tag || 'latest' }}
-#        run: |
-#          echo "🐳 Docker Build"
-#          docker build -t tamnara-be:$TAG .
-
-      - name: Save Tag Output
-        run: echo "TAG=${{ steps.meta.outputs.tag }}" >> $GITHUB_ENV
-
-  # ─────────────────────────────────────────────────────
-  # 3. ECR에 Push
-  # ─────────────────────────────────────────────────────
-  ecr-push:
-    name: Push Docker Image to ECR
-    runs-on: ubuntu-latest
-    needs: docker-build
 
     permissions:
       id-token: write
@@ -111,53 +66,43 @@ jobs:
       checks: write
       pull-requests: write
 
-#    env:
-#      TAG: ${{ needs.docker-build.outputs.tag }}
-
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::346011888304:role/github-action-role
           aws-region: ap-northeast-2
 
+      # 🔢 커밋 SHA 기반 태그 생성
+      - name: Get short commit SHA
+        id: meta
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      # 🔐 ECR 로그인
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Push Docker Image
-        env:
-          TAG: ${{ env.TAG }}
+       # OTEL Java Agent 다운로드 (이미지에 포함)
+      - name: Download OTEL Java Agent
+        working-directory: ./backend
         run: |
-          echo "🚀 Push to ECR"
-          docker tag tamnara-be:${{ env.TAG }} ${{ secrets.ECR_URI_DEV }}:${{ env.TAG }}
-          docker push ${{ secrets.ECR_URI_DEV }}:${{ env.TAG }}
+          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
 
-  # ─────────────────────────────────────────────────────
-  # 4. 원격 EC2 인스턴스에 SSH 배포
-  # ─────────────────────────────────────────────────────=
-  remote-deploy:
-    name: SSH into Peered Instance and Deploy
-    runs-on: ubuntu-latest
-    needs: ecr-push
-
-    env:
-      TAG: ${{ needs.docker-build.outputs.tag }}
-
-    steps:
-      - name: Execute dev-deploy.sh on peered instance
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PEER_HOST }}
-          username: ${{ secrets.PEER_USER }}
-          key: ${{ secrets.PEER_SSH_KEY }}
-          envs: TAG,BACKEND_EC2_IP,ECR_URI_DEV
-          script: |
-            echo "🔄 실행 중: dev-deploy.sh"
-            BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
-            ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
-            bash ~/dev-deploy.sh 
-
-
+      # 🐳 Docker 이미지 빌드 및 ECR 푸시
+      - name: Build and Push Docker Image
+        working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          ECR_URI_DEV: ${{ secrets.ECR_URI_DEV }}
+        run: |
+          chmod +x ../scripts/build.sh
+          ../scripts/build.sh $ECR_URI_DEV $TAG
+          docker push $ECR_URI_DEV:$TAG
+          docker tag $ECR_URI_DEV:$TAG $ECR_URI:latest
+          docker push $ECR_URI_DEV:latest
 
   # ─────────────────────────────────────────────
   # ✅ Step 4: 실패 시 Discord 알림
@@ -166,7 +111,7 @@ jobs:
     name: Notify Discord on Failure
     runs-on: ubuntu-latest
     if: failure()
-    needs: [ci-check, ecr-push]
+    needs: [ci-check, build-image]
 
     steps:
       - name: Checkout source code
@@ -213,7 +158,7 @@ jobs:
     name: Notify Discord on Success
     runs-on: ubuntu-latest
     if: success()
-    needs: [ci-check, ecr-push]
+    needs: [ci-check, build-image]
     env:
       TAG: ${{ needs.docker-build.outputs.tag }}
 
