@@ -103,6 +103,13 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
+      # OTEL Java Agent 다운로드 (이미지에 포함)
+      - name: Download OTEL Java Agent
+        working-directory: ./backend
+        run: |
+          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
+
+
       - name: Push Docker Image
         run: |
           echo "🚀 Push to ECR"
