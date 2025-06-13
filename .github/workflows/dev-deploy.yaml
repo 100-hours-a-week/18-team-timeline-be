@@ -60,10 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci-check
 
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
-
 
        # OTEL Java Agent 다운로드 (이미지에 포함)
       - name: Download OTEL Java Agent
@@ -102,6 +104,9 @@ jobs:
       checks: write
       pull-requests: write
 
+    env:
+      TAG: ${{ needs.docker-build.outputs.tag }}
+
     steps:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
@@ -111,12 +116,6 @@ jobs:
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
-
-#      # OTEL Java Agent 다운로드 (이미지에 포함)
-#      - name: Download OTEL Java Agent
-#        run: |
-#          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
-
 
       - name: Push Docker Image
         run: |
@@ -131,6 +130,9 @@ jobs:
     name: SSH into Peered Instance and Deploy
     runs-on: ubuntu-latest
     needs: ecr-push
+
+    env:
+      TAG: ${{ needs.docker-build.outputs.tag }}
 
     steps:
       - name: Execute dev-deploy.sh on peered instance
@@ -203,6 +205,8 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     needs: [ci-check, ecr-push]
+    env:
+      TAG: ${{ needs.docker-build.outputs.tag }}
 
     steps:
       - name: Checkout source code
