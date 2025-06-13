@@ -142,7 +142,7 @@ jobs:
               -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
               -e ECR_URI_DEV=$ECR_URI_DEV \
               $ECR_URI_DEV:latest
-
+            
             # 컨테이너 내부에서 배포 스크립트 실행
             docker exec dev-backend bash /app/dev-deploy.sh
 
