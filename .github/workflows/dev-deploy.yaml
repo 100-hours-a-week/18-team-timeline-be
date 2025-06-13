@@ -73,12 +73,14 @@ jobs:
 
       - name: Get short SHA
         id: meta
-        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: |
+          echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+          echo "::set-output name=tag::$(echo $GITHUB_SHA | cut -c1-7)"
 
       - name: Build Docker Image
         working-directory: ./backend
         env:
-          TAG: ${{ steps.meta.outputs.tag }}
+          TAG: ${{ steps.meta.outputs.tag || 'latest' }}
         run: |
           echo "🐳 Docker Build"
           docker build -t tamnara-be:$TAG .
