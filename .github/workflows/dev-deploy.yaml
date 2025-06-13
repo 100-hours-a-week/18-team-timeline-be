@@ -121,7 +121,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # 🚀 EC2 인스턴스에 접속하여 Docker 컨테이너 실행 및 내부에서 dev-deploy.sh 실행
+      # 🚀 EC2 인스턴스에 접속하여 Docker 로그인 및 컨테이너 실행, dev-deploy.sh 포함 이미지 사용
       - name: Run dev-deploy.sh inside Docker container on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -134,15 +134,19 @@ jobs:
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
 
+            # ECR 인증
+            aws ecr get-login-password --region ap-northeast-2 | \
+              docker login --username AWS --password-stdin $ECR_URI_DEV
+
             # 기존 컨테이너 종료 및 제거
             docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
 
-             # 최신 버전(:latest) 이미지로 새 컨테이너 실행
+            # 최신 버전(:latest) 이미지로 새 컨테이너 실행
             docker run -d --name dev-backend \
               -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
               -e ECR_URI_DEV=$ECR_URI_DEV \
               $ECR_URI_DEV:latest
-            
+
             # 컨테이너 내부에서 배포 스크립트 실행
             docker exec dev-backend bash /app/dev-deploy.sh
 
