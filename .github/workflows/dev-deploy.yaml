@@ -59,6 +59,8 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: ci-check
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
 
     permissions:
       id-token: write
@@ -135,12 +137,11 @@ jobs:
             # 기존 컨테이너 종료 및 제거
             docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
 
-            # 새 컨테이너 실행 (스크립트 포함된 이미지 사용)
+             # 최신 버전(:latest) 이미지로 새 컨테이너 실행
             docker run -d --name dev-backend \
-              -e TAG=$TAG \
               -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
               -e ECR_URI_DEV=$ECR_URI_DEV \
-              $ECR_URI_DEV:$TAG
+              $ECR_URI_DEV:latest
 
             # 컨테이너 내부에서 배포 스크립트 실행
             docker exec dev-backend bash /app/dev-deploy.sh
