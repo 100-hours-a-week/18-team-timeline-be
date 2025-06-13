@@ -9,6 +9,13 @@ COPY . .
 # OTEL Agent JAR 복사
 COPY opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 
+# ⚠️ dev-deploy.sh 스크립트 복사 (scripts 폴더 기준)
+COPY scripts/dev-deploy.sh /app/dev-deploy.sh
+
+# 실행 권한 부여
+RUN chmod +x /app/dev-deploy.sh
+
+
 # GitHub Actions에서 전달받을 ARG 정의
 ARG DB_URL
 ARG DB_USERNAME
