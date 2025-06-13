@@ -101,7 +101,7 @@ jobs:
           chmod +x ../scripts/build.sh
           ../scripts/build.sh $ECR_URI_DEV $TAG
           docker push $ECR_URI_DEV:$TAG
-          docker tag $ECR_URI_DEV:$TAG $ECR_URI:latest
+          docker tag $ECR_URI_DEV:$TAG $ECR_URI_DEV:latest
           docker push $ECR_URI_DEV:latest
 
   # ─────────────────────────────────────────────
