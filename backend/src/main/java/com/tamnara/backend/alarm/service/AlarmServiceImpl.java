@@ -95,7 +95,7 @@ public class AlarmServiceImpl implements AlarmService {
                     alarm.getTitle(),
                     alarm.getContent(),
                     userAlarm.getIsChecked(),
-                    userAlarm.getCheckedAt(),
+                    alarm.getCreatedAt(),
                     alarm.getTargetType() == null ? null : alarm.getTargetType().toString(),
                     alarm.getTargetId()
             );
