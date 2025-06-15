@@ -20,7 +20,7 @@ public class AlarmCardDTO {
     private String content;
 
     private Boolean isChecked;
-    private LocalDateTime checkedAt;
+    private LocalDateTime createdAt;
 
     @ValueOfEnum(enumClass = AlarmType.class, message = "타겟 종류 값이 올바르지 않습니다.")
     private String targetType;

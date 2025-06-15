@@ -83,6 +83,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
+	implementation 'io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:1.32.0-alpha'
+
 }
 
 tasks.named('test') {
