@@ -2,6 +2,7 @@ package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.global.dto.WrappedDTO;
+import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.Category;
@@ -535,8 +536,9 @@ class NewsServiceImplTest {
         NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
 
         // then
-        assertEquals(createAiNewsResponse.getData().getTitle(), response.getTitle());
-        assertEquals(mergeAiNewsResponse.getFirst(), response.getTimeline().getFirst());
+        verify(aiService, atLeastOnce()).createAINews(query, localDate.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS), localDate);
+        verify(aiService, atLeastOnce()).mergeTimelineCards(dayCardDTOs);
+        verify(asyncAiService, times(1)).getAIStatistics(query);
         assertEquals(statisticsDTO.getData().getPositive(), response.getStatistics().getPositive());
         assertEquals(statisticsDTO.getData().getNeutral(), response.getStatistics().getNeutral());
         assertEquals(statisticsDTO.getData().getNegative(), response.getStatistics().getNegative());
@@ -658,6 +660,84 @@ class NewsServiceImplTest {
     }
 
     @Test
+    void 여론_통계_생성_API가_404_반환_시_뉴스_생성_성공_검증() {
+        // given
+        List<String> query = List.of("키워드1", "키워드2", "키워드3");
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(newsRepository.findNewsByExactlyMatchingTags(query, query.size())).thenReturn(Optional.empty());
+
+        // 타임라인 생성
+        NewsCreateRequest newsCreateRequest = new NewsCreateRequest(query);
+        List<TimelineCardDTO> dayCardDTOs = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            LocalDate localDate = LocalDate.now().minusDays(i);
+
+            TimelineCardDTO dayCardDTO = new TimelineCardDTO(
+                    "제목",
+                    "내용",
+                    List.of("source1", "source2"),
+                    TimelineCardType.DAY.toString(),
+                    localDate,
+                    localDate
+            );
+
+            dayCardDTOs.add(dayCardDTO);
+        }
+        WrappedDTO<AINewsResponse> createAiNewsResponse = new WrappedDTO<>(
+                true,
+                "메시지",
+                new AINewsResponse(
+                        "제목",
+                        "미리보기 내용",
+                        "이미지",
+                        CategoryType.SPORTS.toString(),
+                        dayCardDTOs
+                )
+        );
+        LocalDate localDate = LocalDate.now();
+        when(aiService.createAINews(query, localDate.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS), localDate)).thenReturn(createAiNewsResponse);
+
+        // 타임라인 병합
+        TimelineCardDTO weekCardDTO = new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("source1", "source2"),
+                TimelineCardType.WEEK.toString(),
+                dayCardDTOs.getLast().getStartAt(),
+                dayCardDTOs.getFirst().getStartAt()
+        );
+        List<TimelineCardDTO> mergeAiNewsResponse = List.of(weekCardDTO);
+        when(aiService.mergeTimelineCards(dayCardDTOs)).thenReturn(mergeAiNewsResponse);
+
+        // 여론 통계 생성
+        WrappedDTO<StatisticsDTO> statisticsDTO = new WrappedDTO<>(
+                false,
+                "메시지",
+                null
+        );
+        when(asyncAiService.getAIStatistics(query)).thenReturn(
+                CompletableFuture.failedFuture(new AIException(HttpStatus.NOT_FOUND, statisticsDTO))
+        );
+
+        // 뉴스 태그 저장
+        Tag tag = new Tag();
+        tag.setId(1L);
+        tag.setName("태그명");
+        when(tagRepository.findByName(any(String.class))).thenReturn(Optional.of(tag));
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
+
+        // then
+        verify(aiService, atLeastOnce()).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
+        verify(aiService, atLeastOnce()).mergeTimelineCards(anyList());
+        verify(asyncAiService, times(1)).getAIStatistics(anyList());
+        assertEquals(0, response.getStatistics().getPositive());
+        assertEquals(0, response.getStatistics().getNeutral());
+        assertEquals(0, response.getStatistics().getNegative());
+    }
+
+    @Test
     void 뉴스_업데이트_검증() {
         // given
         News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
@@ -764,6 +844,112 @@ class NewsServiceImplTest {
         assertEquals(statisticsDTO.getData().getPositive(), response.getStatistics().getPositive());
         assertEquals(statisticsDTO.getData().getNeutral(), response.getStatistics().getNeutral());
         assertEquals(statisticsDTO.getData().getNegative(), response.getStatistics().getNegative());
+    }
+
+    @Test
+    void 여론_통계_생성_API가_404_반환_시_뉴스_업데이트_성공_검증() {
+        // given
+        News news = createNews(1L, "제목", "미리보기 내용", false, user, ktb);
+        news.setUpdatedAt(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS));
+
+        NewsImage newsImage = createNewsImage(1L, news, "url");
+
+        NewsTag newsTag1 = createNewsTag(1L, news, createTag(1L, "태그1"));
+        NewsTag newsTag2 = createNewsTag(1L, news, createTag(2L, "태그2"));
+        List<NewsTag> newsTags = List.of(newsTag1, newsTag2);
+
+        List<String> query = List.of(newsTag1.getTag().getName(), newsTag2.getTag().getName());
+
+        TimelineCard weekCard = createTimelineCard(
+                news,
+                "제목",
+                "내용",
+                List.of("source1", "source2"),
+                TimelineCardType.WEEK.toString(),
+                LocalDate.now().minusDays(13),
+                LocalDate.now().minusDays(7)
+        );
+        List<TimelineCard> timelineCards = List.of(weekCard);
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(newsRepository.findById(news.getId())).thenReturn(Optional.of(news));
+        when(timelineCardRepository.findAllByNewsIdOrderByStartAtDesc(news.getId())).thenReturn(timelineCards);
+        when(newsTagRepository.findByNewsId(news.getId())).thenReturn(newsTags);
+        when(newsImageRepository.findByNewsId(news.getId())).thenReturn(Optional.of(newsImage));
+        when(bookmarkRepository.findByUserAndNews(user, news)).thenReturn(Optional.empty());
+
+        // 타임라인 생성
+        List<TimelineCardDTO> dayCardDTOs = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            LocalDate localDate = LocalDate.now().minusDays(i);
+
+            TimelineCardDTO dayCardDTO = new TimelineCardDTO(
+                    "제목",
+                    "내용",
+                    List.of("source1", "source2"),
+                    TimelineCardType.DAY.toString(),
+                    localDate,
+                    localDate
+            );
+
+            dayCardDTOs.add(dayCardDTO);
+        }
+
+        WrappedDTO<AINewsResponse> createAiNewsResponse = new WrappedDTO<>(
+                true,
+                "메시지",
+                new AINewsResponse(
+                        "제목",
+                        "미리보기 내용",
+                        "이미지",
+                        CategoryType.SPORTS.toString(),
+                        dayCardDTOs
+                )
+        );
+        when(aiService.createAINews(eq(query), eq(timelineCards.getFirst().getEndAt().plusDays(1)), eq(LocalDate.now())))
+                .thenReturn(createAiNewsResponse);
+
+        // 타임라인 병합
+        TimelineCardDTO weekCardDTO = new TimelineCardDTO(
+                weekCard.getTitle(),
+                weekCard.getContent(),
+                weekCard.getSource(),
+                weekCard.getDuration().toString(),
+                weekCard.getStartAt(),
+                weekCard.getEndAt()
+        );
+        TimelineCardDTO mergedTimelineCard = new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("source1", "source2"),
+                TimelineCardType.WEEK.toString(),
+                LocalDate.now().minusDays(6),
+                LocalDate.now()
+        );
+        List<TimelineCardDTO> mergedResponse = List.of(mergedTimelineCard, weekCardDTO);
+        when(aiService.mergeTimelineCards(argThat(list -> list.size() == 8)))
+                .thenReturn(mergedResponse);
+
+        // 여론 통계 생성
+        WrappedDTO<StatisticsDTO> statisticsDTO = new WrappedDTO<>(
+                false,
+                "메시지",
+                null
+        );
+        when(asyncAiService.getAIStatistics(query)).thenReturn(
+                CompletableFuture.failedFuture(new AIException(HttpStatus.NOT_FOUND, statisticsDTO))
+        );
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId(), false);
+
+        // then
+        verify(aiService, atLeastOnce()).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
+        verify(aiService, atLeastOnce()).mergeTimelineCards(anyList());
+        verify(asyncAiService, times(1)).getAIStatistics(anyList());
+        assertEquals(0, response.getStatistics().getPositive());
+        assertEquals(0, response.getStatistics().getNeutral());
+        assertEquals(0, response.getStatistics().getNegative());
     }
 
     @Test
