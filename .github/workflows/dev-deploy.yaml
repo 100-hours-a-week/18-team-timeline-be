@@ -121,8 +121,8 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # 🚀 EC2 인스턴스에 접속하여 Docker 컨테이너 실행 및 내부에서 dev-deploy.sh 실행
-      - name: Run dev-deploy.sh inside Docker container on EC2
+      # 🚀 피어링된 EC2 인스턴스에 SSH로 접속한 후, 백엔드 EC2에 다시 SSH로 접속
+      - name: SSH into Peered EC2 and deploy to Backend EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PEER_HOST }}
@@ -130,37 +130,42 @@ jobs:
           key: ${{ secrets.PEER_SSH_KEY }}
           envs: TAG,BACKEND_EC2_IP,ECR_URI_DEV
           script: |
-            echo "🔄 컨테이너 실행 및 dev-deploy.sh 실행 시작"
+            echo "🔄 피어링 인스턴스 접속 완료 - 백엔드 EC2로 SSH 진입"
+  
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
   
-            # 🐳 Docker 설치 (없을 경우 대비)
-            if ! command -v docker &> /dev/null; then
-              echo "Docker not found. Installing..."
-              sudo apt update
-              sudo apt install docker.io -y
-              sudo systemctl start docker
-              sudo systemctl enable docker
+            # 백엔드 EC2 접속용 키 파일이 ~/.ssh/backend_key.pem 위치에 있다고 가정
+            if [ ! -f ~/.ssh/backend_key.pem ]; then
+              echo "❗ 백엔드 EC2 접속용 키가 없습니다: ~/.ssh/backend_key.pem"
+              exit 1
             fi
-
-            # 🔐 ECR 로그인
-            aws ecr get-login-password --region ap-northeast-2 \
-              | sudo docker login --username AWS --password-stdin $ECR_URI_DEV
+            chmod 400 ~/.ssh/backend_key.pem
   
-            # ⬇️ 최신 이미지 Pull (명시적)
-            sudo docker pull $ECR_URI_DEV:latest
-
-            # 🧹 기존 컨테이너 종료 및 제거
-            docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
+            # SSH로 백엔드 서버에 접속하여 Docker 배포 명령 실행
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << 'EOF'
+              echo "🚀 백엔드 EC2에서 Docker Pull 및 컨테이너 실행 시작"
+              ECR_URI_DEV=${ECR_URI_DEV}
   
-            # 🚀 새 컨테이너 실행
-            docker run -d --name dev-backend \
-              -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
-              -e ECR_URI_DEV=$ECR_URI_DEV \
-              $ECR_URI_DEV:latest
+              # 🔐 ECR 로그인
+              aws ecr get-login-password --region ap-northeast-2 \
+                | docker login --username AWS --password-stdin $ECR_URI_DEV
   
-            # 🛠 컨테이너 내부에서 배포 스크립트 실행
-            docker exec dev-backend bash /app/dev-deploy.sh
+              # ⬇️ 최신 이미지 Pull
+              docker pull $ECR_URI_DEV:latest
+  
+              # 🧹 기존 컨테이너 종료 및 제거
+              docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
+  
+              # 🚀 새 컨테이너 실행
+              docker run -d --name dev-backend \
+                -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
+                -e ECR_URI_DEV=$ECR_URI_DEV \
+                $ECR_URI_DEV:latest
+  
+              # 🛠 컨테이너 내부에서 배포 스크립트 실행
+              docker exec dev-backend bash /app/dev-deploy.sh
+            EOF
 
   # ─────────────────────────────────────────────
   # Step 4: 실패 시 Discord 알림
@@ -218,7 +223,7 @@ jobs:
     if: success()
     needs: [ci-check, build-image]
     env:
-      TAG: ${{ needs.docker-build.outputs.tag }}
+      TAG: ${{ needs.build-image.outputs.tag }}
 
     steps:
       - name: Checkout source code
