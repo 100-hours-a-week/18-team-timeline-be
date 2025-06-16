@@ -59,7 +59,7 @@ public class PollService {
                 AlarmMessage.POLL_START_TITLE,
                 String.format(AlarmMessage.POLL_START_CONTENT, poll.getTitle()),
                 AlarmType.POLLS,
-                poll.getId()
+                null
         );
 
         return savedPoll.getId();
