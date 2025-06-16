@@ -59,6 +59,8 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: ci-check
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
 
     permissions:
       id-token: write
@@ -105,18 +107,22 @@ jobs:
           docker push $ECR_URI_DEV:latest
 
   # ─────────────────────────────────────────────────────
-  # 4. 원격 EC2 인스턴스에 SSH 배포
-  # ─────────────────────────────────────────────────────=
+  # 3. 원격 EC2 인스턴스에 SSH 배포 (dev-deploy.sh는 이미지에 포함됨)
+  # ─────────────────────────────────────────────────────
   remote-deploy:
     name: SSH into Peered Instance and Deploy
     runs-on: ubuntu-latest
     needs: build-image
 
     env:
-      TAG: ${{ needs.docker-build.outputs.tag }}
+      TAG: ${{ needs.build-image.outputs.tag }}
 
     steps:
-      - name: Execute dev-deploy.sh on peered instance
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 🚀 EC2 인스턴스에 접속하여 Docker 컨테이너 실행 및 내부에서 dev-deploy.sh 실행
+      - name: Run dev-deploy.sh inside Docker container on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PEER_HOST }}
@@ -124,14 +130,40 @@ jobs:
           key: ${{ secrets.PEER_SSH_KEY }}
           envs: TAG,BACKEND_EC2_IP,ECR_URI_DEV
           script: |
-            echo "🔄 실행 중: dev-deploy.sh"
+            echo "🔄 컨테이너 실행 및 dev-deploy.sh 실행 시작"
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
-            bash ~/dev-deploy.sh 
+  
+            # 🐳 Docker 설치 (없을 경우 대비)
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found. Installing..."
+              sudo apt update
+              sudo apt install docker.io -y
+              sudo systemctl start docker
+              sudo systemctl enable docker
+            fi
 
+            # 🔐 ECR 로그인
+            aws ecr get-login-password --region ap-northeast-2 \
+              | sudo docker login --username AWS --password-stdin $ECR_URI_DEV
+  
+            # ⬇️ 최신 이미지 Pull (명시적)
+            sudo docker pull $ECR_URI_DEV:latest
+
+            # 🧹 기존 컨테이너 종료 및 제거
+            docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
+  
+            # 🚀 새 컨테이너 실행
+            docker run -d --name dev-backend \
+              -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
+              -e ECR_URI_DEV=$ECR_URI_DEV \
+              $ECR_URI_DEV:latest
+  
+            # 🛠 컨테이너 내부에서 배포 스크립트 실행
+            docker exec dev-backend bash /app/dev-deploy.sh
 
   # ─────────────────────────────────────────────
-  # ✅ Step 4: 실패 시 Discord 알림
+  # Step 4: 실패 시 Discord 알림
   # ─────────────────────────────────────────────
   notify-failure:
     name: Notify Discord on Failure

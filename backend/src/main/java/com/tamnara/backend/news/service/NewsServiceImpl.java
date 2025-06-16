@@ -44,6 +44,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -230,8 +231,11 @@ public class NewsServiceImpl implements NewsService {
                 .getAIStatistics(req.getKeywords())
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
-                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
-                        return null;
+                    if (cause instanceof AIException aiEx) {
+                        HttpStatusCode status = aiEx.getStatus();
+                        if (status.is4xxClientError()) {
+                            return null;
+                        }
                     }
                     throw new CompletionException(cause);
                 });
@@ -326,7 +330,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getUpdatedAt(),
                 true,
                 timeline,
-                statistics
+                statistics != null ? statistics : new StatisticsDTO(0, 0, 0)
         );
     }
 
@@ -385,8 +389,11 @@ public class NewsServiceImpl implements NewsService {
                 .getAIStatistics(keywords)
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
-                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
-                        return null;
+                    if (cause instanceof AIException aiEx) {
+                        HttpStatusCode status = aiEx.getStatus();
+                        if (status.is4xxClientError()) {
+                            return null;
+                        }
                     }
                     throw new CompletionException(cause);
                 });
@@ -457,7 +464,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getUpdatedAt(),
                 true,
                 newTimeline,
-                statistics
+                statistics != null ? statistics : new StatisticsDTO(0, 0, 0)
         );
     }
 
