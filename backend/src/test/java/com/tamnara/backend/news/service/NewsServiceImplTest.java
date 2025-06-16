@@ -16,6 +16,7 @@ import com.tamnara.backend.news.domain.TimelineCardType;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
@@ -34,7 +35,6 @@ import com.tamnara.backend.news.repository.NewsTagRepository;
 import com.tamnara.backend.news.repository.TagRepository;
 import com.tamnara.backend.news.repository.TimelineCardRepository;
 import com.tamnara.backend.user.domain.Role;
-import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,6 +92,7 @@ class NewsServiceImplTest {
     @InjectMocks private NewsServiceImpl newsServiceImpl;
 
     User user;
+    User admin;
     Category economy;
     Category entertainment;
     Category sports;
@@ -101,13 +102,11 @@ class NewsServiceImplTest {
     void setUp() {
         user = mock(User.class);
         lenient().when(user.getId()).thenReturn(1L);
-        lenient().when(user.getEmail()).thenReturn("이메일");
-        lenient().when(user.getPassword()).thenReturn("비밀번호");
-        lenient().when(user.getUsername()).thenReturn("이름");
-        lenient().when(user.getProvider()).thenReturn("LOCAL");
-        lenient().when(user.getProviderId()).thenReturn(null);
         lenient().when(user.getRole()).thenReturn(Role.USER);
-        lenient().when(user.getState()).thenReturn(State.ACTIVE);
+
+        admin = mock(User.class);
+        lenient().when(admin.getId()).thenReturn(2L);
+        lenient().when(admin.getRole()).thenReturn(Role.ADMIN);
 
         economy = mock(Category.class);
         lenient().when(economy.getName()).thenReturn(CategoryType.ECONOMY);
@@ -735,6 +734,93 @@ class NewsServiceImplTest {
         assertEquals(0, response.getStatistics().getPositive());
         assertEquals(0, response.getStatistics().getNeutral());
         assertEquals(0, response.getStatistics().getNegative());
+    }
+
+    @Test
+    void KTB_뉴스_생성_검증() {
+        // given
+        TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("출처1", "출처2"),
+                TimelineCardType.WEEK.toString(),
+                LocalDate.now(),
+                LocalDate.now()
+        );
+        KtbNewsCreateRequest ktbNewsCreateRequest = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                "이미지 url",
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+
+        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.saveKtbNews(admin.getId(), ktbNewsCreateRequest);
+
+        // then
+        verify(newsRepository, times(1)).save(any(News.class));
+        verify(newsImageRepository, times(1)).save(any(NewsImage.class));
+        verify(timelineCardRepository, atLeastOnce()).save(any(TimelineCard.class));
+    }
+
+    @Test
+    void KTB_뉴스_이미지_없이_생성_검증() {
+        // given
+        TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
+                "제목",
+                "내용",
+                List.of("출처1", "출처2"),
+                TimelineCardType.WEEK.toString(),
+                LocalDate.now(),
+                LocalDate.now()
+        );
+        KtbNewsCreateRequest ktbNewsCreateRequest = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                null,
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+
+        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.saveKtbNews(admin.getId(), ktbNewsCreateRequest);
+
+        // then
+        verify(newsRepository, times(1)).save(any(News.class));
+        verify(newsImageRepository, times(0)).save(any(NewsImage.class));
+        verify(timelineCardRepository, atLeastOnce()).save(any(TimelineCard.class));
+    }
+
+    @Test
+    void KTB_뉴스_타임라인_카드_출처_없이_생성_검증() {
+        // given
+        TimelineCardDTO timelineCardDTO = new TimelineCardDTO(
+                "제목",
+                "내용",
+                null,
+                TimelineCardType.DAY.toString(),
+                LocalDate.now(),
+                LocalDate.now()
+        );
+        KtbNewsCreateRequest ktbNewsCreateRequest = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                "이미지 url",
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+
+        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+
+        // when
+        NewsDetailDTO response = newsServiceImpl.saveKtbNews(admin.getId(), ktbNewsCreateRequest);
+
+        // then
+        verify(newsRepository, times(1)).save(any(News.class));
+        verify(newsImageRepository, times(1)).save(any(NewsImage.class));
+        verify(timelineCardRepository, atLeastOnce()).save(any(TimelineCard.class));
     }
 
     @Test
