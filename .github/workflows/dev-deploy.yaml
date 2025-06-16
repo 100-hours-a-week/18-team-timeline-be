@@ -165,9 +165,10 @@ jobs:
               sudo docker pull $ECR_URI_DEV:latest
 
               # 🧹 기존 컨테이너 종료 및 제거
-              sudo docker ps -q --filter "name=dev-backend" | grep -q . && docker stop dev-backend && docker rm dev-backend
+              sudo docker ps -a -q --filter "name=dev-backend" | grep -q . && sudo docker rm -f dev-backend
+  
 
-              # 🚀 새 컨테이너 실행
+  # 🚀 새 컨테이너 실행
               sudo docker run -d --name dev-backend \
                 -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
                 -e ECR_URI_DEV=$ECR_URI_DEV \
