@@ -153,7 +153,7 @@ jobs:
             chmod 400 ~/.ssh/backend_key.pem
 
             # SSH로 백엔드 서버에 접속하여 Docker 배포 명령 실행
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << 'EOF'
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << EOF
               echo "🚀 백엔드 EC2에서 Docker Pull 및 컨테이너 실행 시작"
 
               # 🔐 ECR 로그인
