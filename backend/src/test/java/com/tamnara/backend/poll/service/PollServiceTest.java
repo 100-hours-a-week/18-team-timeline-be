@@ -38,6 +38,7 @@ import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_L
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -230,7 +231,7 @@ class PollServiceTest {
         when(pollOptionRepository.saveAll(Mockito.anyList())).thenReturn(Arrays.asList(option));
 
         // when
-        Long pollId = pollService.createPoll(request);
+        pollService.createPoll(request);
 
         // then
         Mockito.verify(userRepository, Mockito.times(1)).findAll();
@@ -243,6 +244,6 @@ class PollServiceTest {
         assertEquals(AlarmMessage.POLL_START_TITLE, event.getTitle());
         assertEquals(String.format(AlarmMessage.POLL_START_CONTENT, pollTitle), event.getContent());
         assertEquals(AlarmType.POLLS, event.getTargetType());
-        assertEquals(pollId, event.getTargetId());
+        assertNull(event.getTargetId());
     }
 }
