@@ -52,6 +52,9 @@ public class News {
     @Column(name = "is_hotissue", nullable = false)
     private Boolean isHotissue = false;
 
+    @Column(name = "is_public", nullable = true)
+    private Boolean isPublic = true;
+
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 1L;
 
