@@ -50,7 +50,7 @@ RUN ./gradlew build -x test -x compileTestJava -x processTestResources
 # OTEL Agent와 함께 Spring Boot 실행
 CMD java \
   -javaagent:/app/opentelemetry-javaagent.jar \
-  -Dotel.service.name=backend-service \
+  -Dotel.service.name=$OTEL_SERVICE_NAME  \
   -Dotel.exporter.otlp.endpoint=$OTEL_EXPORTER_OTLP_ENDPOINT \
   -Dotel.metrics.exporter=none \
   -Dspring.datasource.url="$DB_URL" \
