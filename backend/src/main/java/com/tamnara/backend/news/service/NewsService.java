@@ -1,6 +1,7 @@
 package com.tamnara.backend.news.service;
 
 import com.tamnara.backend.news.dto.NewsDetailDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
@@ -15,6 +16,7 @@ public interface NewsService {
     NewsListResponse getSearchNewsCardPage(Long userId, List<String> tags, Integer offset);
     NewsDetailDTO getNewsDetail(Long newsId, Long userId);
     NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req);
+    NewsDetailDTO saveKtbNews(Long userId, KtbNewsCreateRequest req);
     NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue);
     void delete(Long newsId, Long userId);
 
