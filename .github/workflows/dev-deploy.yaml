@@ -155,9 +155,9 @@ jobs:
             # SSH로 백엔드 서버에 접속하여 Docker 배포 명령 실행
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << 'EOF'
               echo "🚀 백엔드 EC2에서 Docker Pull 및 컨테이너 실행 시작"
-              ECR_URI_DEV=${ECR_URI_DEV}
 
               # 🔐 ECR 로그인
+              echo "ECR URI 확인: $ECR_URI_DEV" 
               aws ecr get-login-password --region ap-northeast-2 \
                 | docker login --username AWS --password-stdin $ECR_URI_DEV
 
