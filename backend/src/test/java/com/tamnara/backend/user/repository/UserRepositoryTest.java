@@ -1,6 +1,6 @@
 package com.tamnara.backend.user.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -17,16 +17,13 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles("test")
 @DataJpaTest
+@Import(TestConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class UserRepositoryTest {
 
-    @MockBean
-    private JPAQueryFactory jpaQueryFactory;
-
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
     private User createTestUser() {
         return User.builder()
@@ -44,7 +41,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("이메일 중복 여부를 확인할 수 있다")
+    @DisplayName("이메일 중복 여부 확인")
     void existsByEmail_success() {
         // given
         User user = createTestUser();
@@ -58,7 +55,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("닉네임 중복 여부를 확인할 수 있다")
+    @DisplayName("닉네임 중복 여부 확인")
     void existsByUsername_success() {
         // given
         User user = createTestUser();
@@ -72,7 +69,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("이메일과 provider로 유저를 조회할 수 있다")
+    @DisplayName("이메일과 provider로 회원 조회")
     void findByEmailAndProvider_success() {
         // given
         User user = createTestUser();
@@ -87,7 +84,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("provider와 providerId로 유저를 조회할 수 있다")
+    @DisplayName("provider와 providerId로 유저 조회")
     void findByProviderAndProviderId_success() {
         // given
         User user = createTestUser();
@@ -101,4 +98,3 @@ class UserRepositoryTest {
         assertThat(result.get().getEmail()).isEqualTo("test@example.com");
     }
 }
-
