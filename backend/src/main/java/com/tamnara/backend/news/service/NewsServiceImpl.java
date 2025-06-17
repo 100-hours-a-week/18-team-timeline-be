@@ -19,6 +19,7 @@ import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
@@ -336,6 +337,52 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     @Transactional
+    public NewsDetailDTO saveKtbNews(Long userId, KtbNewsCreateRequest req) {
+        User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+
+        if (user.getRole() != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
+        }
+
+        News news = new News();
+        news.setTitle(req.getTitle());
+        news.setSummary(req.getSummary());
+        news.setIsPublic(false);
+        news.setCategory(categoryRepository.findByName(CategoryType.KTB).orElse(null));
+        newsRepository.save(news);
+
+        if (req.getImage() != null) {
+            NewsImage newsImage = new NewsImage();
+            newsImage.setNews(news);
+            newsImage.setUrl(req.getImage());
+            newsImageRepository.save(newsImage);
+        }
+
+        for (TimelineCardDTO dto : req.getTimeline()) {
+            TimelineCard timelineCard = new TimelineCard();
+            timelineCard.setNews(news);
+            timelineCard.setTitle(dto.getTitle());
+            timelineCard.setContent(dto.getContent());
+            timelineCard.setDuration(TimelineCardType.DAY);
+            timelineCard.setStartAt(dto.getStartAt());
+            timelineCard.setEndAt(dto.getEndAt());
+            timelineCardRepository.save(timelineCard);
+        }
+
+        return new NewsDetailDTO(
+          news.getId(),
+          news.getTitle(),
+          req.getImage(),
+          news.getUpdatedAt(),
+          false,
+          req.getTimeline(),
+          getStatisticsDTO(news)
+        );
+    }
+
+    @Override
+    @Transactional
     public NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue) {
         User user = null;
         if (!isHotissue) {
@@ -509,6 +556,16 @@ public class NewsServiceImpl implements NewsService {
     public void deleteOldNewsAndOrphanTags() {
         newsRepository.deleteAllOlderThan(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
         tagRepository.deleteAllOrphan();
+    }
+
+    @Override
+    @Transactional
+    public void makeNewsPublic() {
+        List<News> newsList = newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc();
+        for (News news : newsList) {
+            news.setIsPublic(true);
+            newsRepository.save(news);
+        }
     }
 
 

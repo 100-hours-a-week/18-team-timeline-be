@@ -48,7 +48,7 @@ public class PollController {
 
         if (user.getState() != State.ACTIVE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         }
 
@@ -97,7 +97,7 @@ public class PollController {
 
         if (user.getState() != State.ACTIVE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         }
 
@@ -124,7 +124,7 @@ public class PollController {
 
         if (user.getState() != State.ACTIVE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         }
 
@@ -149,7 +149,7 @@ public class PollController {
 
         if (user.getState() != State.ACTIVE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         }
 

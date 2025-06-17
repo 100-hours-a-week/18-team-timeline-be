@@ -641,4 +641,35 @@ public class NewsRepositoryTest {
         assertEquals(news3.getId(), newsList.get(1).getId());
         assertEquals(news2.getId(), newsList.get(2).getId());
     }
+
+    @Test
+    void 비공개_뉴스_전체_조회_검증() {
+        // given
+        News news1 = createNews("제목1", "미리보기 내용1", user, category);
+        news1.setIsPublic(false);
+        newsRepository.saveAndFlush(news1);
+
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+
+        News news2 = createNews("제목2", "미리보기 내용2", user, null);
+        news2.setIsPublic(false);
+        newsRepository.saveAndFlush(news2);
+
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+
+        News news3 = createNews("제목3", "미리보기 내용3", user, category);
+        news3.setIsPublic(false);
+        newsRepository.saveAndFlush(news3);
+
+        em.clear();
+
+        // when
+        List<News> newsList = newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc();
+
+        // then
+        assertEquals(3, newsList.size());
+        assertEquals(news3.getId(), newsList.get(0).getId());
+        assertEquals(news2.getId(), newsList.get(1).getId());
+        assertEquals(news1.getId(), newsList.get(2).getId());
+    }
 }
