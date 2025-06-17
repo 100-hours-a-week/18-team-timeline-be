@@ -22,4 +22,5 @@ public interface NewsService {
 
     void createHotissueNews();
     void deleteOldNewsAndOrphanTags();
+    void makeNewsPublic();
 }

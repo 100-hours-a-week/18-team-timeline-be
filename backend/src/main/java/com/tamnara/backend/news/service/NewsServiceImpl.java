@@ -558,6 +558,16 @@ public class NewsServiceImpl implements NewsService {
         tagRepository.deleteAllOrphan();
     }
 
+    @Override
+    @Transactional
+    public void makeNewsPublic() {
+        List<News> newsList = newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc();
+        for (News news : newsList) {
+            news.setIsPublic(true);
+            newsRepository.save(news);
+        }
+    }
+
 
     /*
         함수 편의용
