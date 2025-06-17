@@ -1,6 +1,6 @@
 package com.tamnara.backend.poll.scheduler;
 
-import com.tamnara.backend.poll.service.VoteStatisticsService;
+import com.tamnara.backend.poll.service.VoteStatisticsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class VoteStatisticsScheduler {
 
-    private final VoteStatisticsService voteStatisticsService;
+    private final VoteStatisticsServiceImpl voteStatisticsService;
 
     @Scheduled(cron = "0 */10 * * * *")
     public void generateVoteStatistics() {

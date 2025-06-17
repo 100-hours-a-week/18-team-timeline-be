@@ -5,6 +5,7 @@ import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.domain.Vote;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
+import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
@@ -34,7 +35,7 @@ public class VoteServiceImpl implements VoteService {
     private final VoteRepository voteRepository;
 
     @Transactional
-    public void vote(User user, VoteRequest voteRequest) {
+    public PollIdResponse vote(User user, VoteRequest voteRequest) {
         // 1. 투표가 유효한지 체크
         Poll poll = pollRepository.findLatestPollByPublishedPoll()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
@@ -83,5 +84,7 @@ public class VoteServiceImpl implements VoteService {
                 .toList();
 
         voteRepository.saveAll(votes);
+
+        return new PollIdResponse(poll.getId());
     }
 }

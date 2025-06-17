@@ -1,14 +1,15 @@
 package com.tamnara.backend.poll.controller;
 
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
-import com.tamnara.backend.poll.domain.Poll;
-import com.tamnara.backend.poll.domain.PollState;
-import com.tamnara.backend.poll.dto.*;
+import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.poll.dto.request.PollCreateRequest;
+import com.tamnara.backend.poll.dto.request.VoteRequest;
+import com.tamnara.backend.poll.dto.response.PollIdResponse;
+import com.tamnara.backend.poll.dto.response.PollInfoResponse;
 import com.tamnara.backend.poll.service.PollService;
 import com.tamnara.backend.poll.service.VoteService;
-import com.tamnara.backend.poll.service.VoteStatisticsService;
 import com.tamnara.backend.user.domain.State;
-import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,11 +17,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
-import static com.tamnara.backend.global.constant.ResponseMessage.*;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
+import java.net.URI;
+
+import static com.tamnara.backend.global.constant.ResponseMessage.USER_FORBIDDEN;
+import static com.tamnara.backend.global.constant.ResponseMessage.USER_NOT_FOUND;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_CREATED;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_OK;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_SCHEDULED;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.VOTE_SUCCESS;
 
 @Slf4j
 @RestController
@@ -30,107 +43,90 @@ public class PollController {
 
     private final PollService pollService;
     private final VoteService voteService;
-    private final VoteStatisticsService voteStatisticsService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<WrappedDTO<PollCreateResponse>> createPoll(
+    public ResponseEntity<WrappedDTO<PollIdResponse>> createPoll(
         @Valid @RequestBody PollCreateRequest request,
-        @AuthenticationPrincipal UserDetailsImpl userDetails) {
-
-        User user = userDetails.getUser();
-
-        if (user == null) {
+        @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        if (userDetails.getUser() == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     new WrappedDTO<>(false, USER_NOT_FOUND, null)
             );
         }
 
-        if (user.getState() != State.ACTIVE) {
+        if (userDetails.getUser().getState() != State.ACTIVE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                     new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         }
 
         Long pollId = pollService.createPoll(request);
-        PollCreateResponse response = new PollCreateResponse(pollId);
+        PollIdResponse response = new PollIdResponse(pollId);
 
-        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_CREATED, response));
+        URI location = URI.create("/polls");
+        return ResponseEntity
+                .created(location)
+                .body(new WrappedDTO<>(true, POLL_CREATED, response));
+
     }
 
-    @GetMapping("/{pollId}")
+    @GetMapping()
     public ResponseEntity<WrappedDTO<PollInfoResponse>> getPollInfo(
-            @PathVariable Long pollId) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        try {
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    POLL_OK,
+                    pollService.getLatestPublishedPoll(userDetails.getUser().getId())
+            ));
 
-        Poll poll = pollService.getPollById(pollId);
-
-        if (poll == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, POLL_NOT_FOUND, null)
-            );
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
-
-        if (poll.getState() == PollState.DRAFT || poll.getState() == PollState.SCHEDULED || poll.getState() == PollState.DELETED) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, POLL_NOT_PUBLISHED, null)
-            );
-        }
-
-        PollInfoResponse pollInfoResponse = new PollInfoResponse(poll);
-
-        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_OK, pollInfoResponse));
     }
 
-    @PostMapping("/{pollId}/vote")
-    public ResponseEntity<WrappedDTO<Void>> vote(
-            @PathVariable Long pollId,
-            @Valid @RequestBody VoteRequest pollVoteRequest,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    @PostMapping("/vote")
+    public ResponseEntity<WrappedDTO<PollIdResponse>> vote(
+            @Valid @RequestBody VoteRequest voteRequest,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        try {
+            if (userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new WrappedDTO<>(false, USER_NOT_FOUND, null)
+                );
+            }
 
-        User user = userDetails.getUser();
+            if (userDetails.getUser().getState() != State.ACTIVE) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        new WrappedDTO<>(false, USER_FORBIDDEN, null)
+                );
+            }
 
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            PollIdResponse response = voteService.vote(userDetails.getUser(), voteRequest);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new WrappedDTO<>(
+                            true,
+                            VOTE_SUCCESS,
+                            response
+                    ));
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
-
-        if (user.getState() != State.ACTIVE) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
-        }
-
-        voteService.vote(pollId, user, pollVoteRequest.getOptionIds());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                new WrappedDTO<>(true, VOTE_SUCCESS, null)
-        );
-    }
-
-
-    @GetMapping("/{pollId}/stats")
-    public ResponseEntity<WrappedDTO<PollStatisticsResponse>> getPollStatistics(
-            @PathVariable Long pollId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-
-        User user = userDetails.getUser();
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
-        }
-
-        if (user.getState() != State.ACTIVE) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
-        }
-
-        PollStatisticsResponse response = voteStatisticsService.getPollStatistics(pollId);
-
-        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_OK, response));
     }
 
     @PostMapping("/{pollId}/schedule")
@@ -139,23 +135,30 @@ public class PollController {
             @PathVariable Long pollId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        User user = userDetails.getUser();
+        try {
+            if (userDetails.getUser() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        new WrappedDTO<>(false, USER_NOT_FOUND, null)
+                );
+            }
 
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            if (userDetails.getUser().getState() != State.ACTIVE) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        new WrappedDTO<>(false, USER_FORBIDDEN, null)
+                );
+            }
+
+            pollService.schedulePoll(pollService.getPollById(pollId).getId());
+
+            return ResponseEntity.ok(new WrappedDTO<>(true, POLL_SCHEDULED, null));
+
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
-
-        if (user.getState() != State.ACTIVE) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
-        }
-
-        Poll poll = pollService.getPollById(pollId);
-        pollService.schedulePoll(poll);
-
-        return ResponseEntity.ok(new WrappedDTO<>(true, POLL_SCHEDULED, null));
     }
 }

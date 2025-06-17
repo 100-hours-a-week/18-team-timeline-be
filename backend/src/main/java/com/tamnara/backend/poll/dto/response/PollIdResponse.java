@@ -5,6 +5,6 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class PollCreateResponse {
+public class PollIdResponse {
     private Long pollId;
 }
