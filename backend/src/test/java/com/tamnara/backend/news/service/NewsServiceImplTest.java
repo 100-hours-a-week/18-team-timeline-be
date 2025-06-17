@@ -1349,4 +1349,25 @@ class NewsServiceImplTest {
         verify(newsRepository, times(1)).deleteAllOlderThan(any(LocalDateTime.class));
         verify(tagRepository, times(1)).deleteAllOrphan();
     }
+
+    @Test
+    void 비공개_뉴스를_공개로_전환_검증() {
+        // given
+        News news1 = createNews(1L, "제목1", "미리보기 내용2", true, user, ktb);
+        news1.setIsPublic(false);
+        News news2 = createNews(2L, "제목2", "미리보기 내용2", true, user, economy);
+        news2.setIsPublic(false);
+        News news3 = createNews(3L, "제목3", "미리보기 내용3", true, user, sports);
+        news3.setIsPublic(false);
+        List<News> previousNewsList = List.of(news1, news2, news3);
+
+        when(newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc()).thenReturn(previousNewsList);
+
+        // when
+        newsServiceImpl.makeNewsPublic();
+
+        // then
+        verify(newsRepository, times(1)).findAllByIsPublicFalseOrderByUpdatedAtDesc();
+        verify(newsRepository, times(3)).save(any(News.class));
+    }
 }
