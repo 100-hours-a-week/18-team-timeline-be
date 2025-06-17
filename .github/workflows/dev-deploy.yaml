@@ -100,6 +100,7 @@ jobs:
         env:
           TAG: ${{ steps.meta.outputs.tag }}
           ECR_URI_DEV: ${{ secrets.ECR_URI_DEV }}
+          OTEL_SERVICE_NAME: dev-backend-service
         run: |
           chmod +x ../scripts/build.sh
           ../scripts/build.sh $ECR_URI_DEV $TAG
