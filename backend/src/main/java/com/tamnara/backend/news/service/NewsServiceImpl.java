@@ -336,12 +336,13 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
+    @Transactional
     public NewsDetailDTO saveKtbNews(Long userId, KtbNewsCreateRequest req) {
         User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
 
         if (user.getRole() != Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.ACCOUNT_FORBIDDEN);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
         }
 
         News news = new News();

@@ -140,7 +140,7 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(get("/users/me")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 
     @Test
@@ -179,7 +179,7 @@ public class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 
     @Test
@@ -233,6 +233,6 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(patch("/users/me/state")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 }
