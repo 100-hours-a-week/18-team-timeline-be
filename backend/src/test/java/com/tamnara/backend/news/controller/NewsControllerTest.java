@@ -11,6 +11,7 @@ import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsListResponse;
@@ -30,10 +31,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -730,6 +733,86 @@ public class NewsControllerTest {
                 post("/news")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(NewsResponseMessage.NEWS_CREATED_SUCCESS))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.news.id").value(newsId));
+    }
+
+    @Test
+    void 로그아웃_상태에서_KTB_뉴스_생성_불가_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        // when & then
+        TimelineCardDTO timelineCardDTO = createTimelineCardDTO();
+        KtbNewsCreateRequest request = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                "이미지 url",
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+        mockMvc.perform(
+                        post("/news/ktb")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 일반_회원_KTB_뉴스_생성_불가_검증() throws Exception {
+        // given
+        given(newsService.saveKtbNews(eq(USER_ID), any(KtbNewsCreateRequest.class)))
+                .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.USER_NOT_CERTIFICATION));
+
+        // when & then
+        TimelineCardDTO timelineCardDTO = createTimelineCardDTO();
+        KtbNewsCreateRequest request = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                "이미지 url",
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+        mockMvc.perform(
+                        post("/news/ktb")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 관리자_회원_KTB_뉴스_생성_검증() throws Exception {
+        // given
+        User admin = User.builder()
+                .id(2L)
+                .username("관리자")
+                .role(Role.ADMIN)
+                .build();
+        UserDetailsImpl principal = new UserDetailsImpl(admin);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+
+        Long newsId = 1L;
+        NewsDetailDTO response = createNewsDetailDTO(newsId, false);
+        given(newsService.saveKtbNews(eq(admin.getId()), any(KtbNewsCreateRequest.class))).willReturn(response);
+
+        // when & then
+        TimelineCardDTO timelineCardDTO = createTimelineCardDTO();
+        KtbNewsCreateRequest request = new KtbNewsCreateRequest(
+                "제목",
+                "미리보기 내용",
+                "이미지 url",
+                List.of(timelineCardDTO, timelineCardDTO, timelineCardDTO)
+        );
+        mockMvc.perform(
+                        post("/news/ktb")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))

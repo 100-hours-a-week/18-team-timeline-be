@@ -33,4 +33,13 @@ public class NewsSchedulerServiceImplTest {
         // then
         verify(newsService, times(1)).deleteOldNewsAndOrphanTags();
     }
+
+    @Test
+    void 비공개_뉴스를_공개로_전환_검증() {
+        // when
+        newsSchedulerService.makeNewsPublic();
+
+        // then
+        verify(newsService, times(1)).makeNewsPublic();
+    }
 }
