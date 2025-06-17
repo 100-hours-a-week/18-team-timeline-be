@@ -1,0 +1,277 @@
+name: Dev CI/CD - CI Test, Build, Push & Remote Deploy
+
+on:
+  push:
+    branches: [ 'develop' ]
+
+jobs:
+  # ─────────────────────────────────────────────────────
+  # 1. 정적 분석, 타입 검사, 빌드 확인
+  # ─────────────────────────────────────────────────────
+  ci-check:
+    name: Run Static Analysis and Type Check
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Gradle Build (No Tests)
+        working-directory: ./backend
+        env:
+          DB_URL: ${{ secrets.DEV_DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.DEV_FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.DEV_BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.DEV_EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.DEV_EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          OTEL_SERVICE_NAME: dev-backend-service
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
+
+  # ─────────────────────────────────────────────────────
+  # 2. Docker Build & ECR Push
+  # ─────────────────────────────────────────────────────
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: ci-check
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      # 🔢 커밋 SHA 기반 태그 생성
+      - name: Get short commit SHA
+        id: meta
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      # 🔐 ECR 로그인
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+       # OTEL Java Agent 다운로드 (이미지에 포함)
+      - name: Download OTEL Java Agent
+        working-directory: ./backend
+        run: |
+          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
+
+      # 🐳 Docker 이미지 빌드 및 ECR 푸시
+      - name: Build and Push Docker Image
+        working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          ECR_URI_DEV: ${{ secrets.ECR_URI_DEV }}
+        run: |
+          chmod +x ../scripts/build.sh
+          ../scripts/build.sh $ECR_URI_DEV $TAG
+          docker push $ECR_URI_DEV:$TAG
+          docker tag $ECR_URI_DEV:$TAG $ECR_URI_DEV:latest
+          docker push $ECR_URI_DEV:latest
+  # ─────────────────────────────────────────────────────
+  # 3. 원격 EC2 인스턴스에 SSH 배포 (dev-deploy.sh는 이미지에 포함됨)
+  # ─────────────────────────────────────────────────────
+  remote-deploy:
+    name: SSH into Peered Instance and Deploy
+    runs-on: ubuntu-latest
+    needs: build-image
+
+    env:
+      TAG: ${{ needs.build-image.outputs.tag }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 🚀 피어링된 EC2 인스턴스에 SSH로 접속한 후, 백엔드 EC2에 다시 SSH로 접속
+      - name: SSH into Peered EC2 and deploy to Backend EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PEER_HOST }}
+          username: ${{ secrets.PEER_USER }}
+          key: ${{ secrets.PEER_SSH_KEY }}
+          envs: |
+            OTEL_SERVICE_NAME,
+            TAG,
+            BACKEND_EC2_IP,
+            ECR_URI_DEV,
+            DB_URL,DB_USERNAME,DB_PASSWORD,
+            OTEL_EXPORTER_OTLP_ENDPOINT,
+            KAKAO_CLIENT_ID,KAKAO_REDIRECT_URI,
+            JWT_SECRET_CODE,
+            FE_BASE_URL,BE_BASE_URL,AI_BASE_URL,
+            EC2_PUBLIC_URL_1,EC2_PUBLIC_URL_2,EC2_PUBLIC_URL_3
+          script: |
+            echo "🔄 피어링 인스턴스 접속 완료 - 백엔드 EC2로 SSH 진입"
+
+            BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
+            ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
+
+            # 백엔드 EC2 접속용 키 파일이 ~/.ssh/backend_key.pem 위치에 있다고 가정
+            if [ ! -f ~/.ssh/backend_key.pem ]; then
+              echo "❗ 백엔드 EC2 접속용 키가 없습니다: ~/.ssh/backend_key.pem"
+              exit 1
+            fi
+            chmod 400 ~/.ssh/backend_key.pem
+
+            # SSH로 백엔드 서버에 접속하여 Docker 배포 명령 실행
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << EOF
+              echo "🚀 백엔드 EC2에서 Docker Pull 및 컨테이너 실행 시작"
+
+              # 🔐 ECR 로그인
+              echo "ECR URI 확인: $ECR_URI_DEV" 
+              aws ecr get-login-password --region ap-northeast-2 \
+                | docker login --username AWS --password-stdin $ECR_URI_DEV
+
+              # ⬇️ 최신 이미지 Pull
+              sudo docker pull $ECR_URI_DEV:latest
+
+              # 🔥 실행 중이든 종료됐든, 이름 dev-backend인 건 무조건 지운다
+              sudo docker ps -a -q --filter "name=dev-backend" | grep -q . && sudo docker rm -f dev-backend
+
+              # 🚀 새 컨테이너 실행
+              sudo docker run -d --name dev-backend \
+                -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
+                -e ECR_URI_DEV=$ECR_URI_DEV \
+                -e DB_URL=$DB_URL \
+                -e DB_USERNAME=$DB_USERNAME \
+                -e DB_PASSWORD=$DB_PASSWORD \
+                -e OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT \
+                -e KAKAO_CLIENT_ID=$KAKAO_CLIENT_ID \
+                -e KAKAO_REDIRECT_URI=$KAKAO_REDIRECT_URI \
+                -e JWT_SECRET_CODE=$JWT_SECRET_CODE \
+                -e FE_BASE_URL=$FE_BASE_URL \
+                -e BE_BASE_URL=$BE_BASE_URL \
+                -e AI_BASE_URL=$AI_BASE_URL \
+                -e EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
+                -e EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
+                -e EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
+                $ECR_URI_DEV:latest
+
+              # 🛠 컨테이너 내부에서 배포 스크립트 실행
+              docker exec dev-backend bash /app/dev-deploy.sh
+            EOF
+
+  # ─────────────────────────────────────────────
+  # Step 4: 실패 시 Discord 알림
+  # ─────────────────────────────────────────────
+  notify-failure:
+    name: Notify Discord on Failure
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [ci-check, build-image]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Notify Discord on CI Failure
+        run: |
+          # ⛔ Checkstyle 에러 수집
+          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
+
+          # ⛔ Gradle 빌드 에러 수집
+          GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
+            grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
+
+          # 📌 브랜치명 추출
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          # 📢 에러 메시지 생성
+          ERROR_MSG=""
+          if [ -n "$CHECKSTYLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
+          fi
+          if [ -n "$GRADLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패*:\n$GRADLE_ERRORS\n"
+          fi
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*"
+          fi
+
+          # Discord 메시지 전송
+          ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
+          TITLE="*백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+          chmod +x .github/scripts/discord_notify.sh
+          .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+  # ─────────────────────────────────────────────
+  # ✅ Step 5: 성공 시 Discord 알림
+  # ─────────────────────────────────────────────
+  notify-success:
+    name: Notify Discord on Success
+    runs-on: ubuntu-latest
+    if: success()
+    needs: [ci-check, build-image]
+    env:
+      TAG: ${{ needs.build-image.outputs.tag }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Notify Discord on CI Success
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          TAG=$(echo "${{ github.sha }}" | cut -c1-7)
+          ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
+          ECR_URL="https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/private/${ECR_URI#*/}?region=ap-northeast-2"
+
+          # 🎉 성공 메시지 1: ECR Push 완료
+          TITLE1="*DEV ECR Push 완료!*"
+          MSG1="📦 Repository: \`${ECR_URI_DEV}:$TAG\`\n👉 [ECR 보기]($ECR_URL)"
+
+          # 🎉 성공 메시지 2: ECS 배포 완료
+          TITLE2="*DEV ECR + ECS 배포 완료!*"
+          MSG2="📦 \`${ECR_URI_DEV}:$TAG\`\n👉 [ECR 보기]($ECR_URL)"
+
+          chmod +x .github/scripts/discord_notify.sh
+          .github/scripts/discord_notify.sh success "$TITLE1" "$MSG1" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          sleep 1
+          .github/scripts/discord_notify.sh success "$TITLE2" "$MSG2" "${{ secrets.DISCORD_WEBHOOK_URL }}"

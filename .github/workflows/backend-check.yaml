@@ -1,64 +1,287 @@
-# GitHub Actions Workflow: 백엔드 정적 분석 및 타입 검사
-# 목적: feature → develop 브랜치로 PR 생성 또는 병합 시 자동 검사 수행
+name: Backend CI - Static Analysis, Build & Docker Push
 
-name: Backend Static Analysis & Type Check
-
+# 워크플로 실행 조건 설정
 on:
   push:
-    branches: [ develop ]
-  pull_request:
-    # 대상 브랜치가 develop일 때만 실행
-    branches: [develop]
-    # backend 폴더 내부 코드가 변경된 경우에만 실행
+    branches: [ 'develop', 'release/**', 'main' ]
     paths:
       - 'backend/**'
+      - '.github/**'
+
+  pull_request:
+    branches: [ 'develop', 'release/**', 'main' ]
+    paths:
+      - 'backend/**'
+      - '.github/**'
+
+  create:
+    branches:
+      - 'release/**'
 
 jobs:
-  check-backend:
-    # GitHub Actions가 제공하는 리눅스 환경에서 실행
+  # ─────────────────────────────────────────────
+  # ✅ Step 1: 정적 분석 및 빌드 검증 Job
+  # ─────────────────────────────────────────────
+  ci-check:
+    name: Run Static Analysis and Type Check
     runs-on: ubuntu-latest
-    name: Run Checkstyle and Compile
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
 
     steps:
-      # 1. PR의 코드 받아오기 (GitHub에서 checkout)
-      - name: Checkout code
+      # 🔄 소스 코드 체크아웃
+      - name: Checkout source code
         uses: actions/checkout@v3
 
-      # 2. Java 21 설치 (Temurin은 OpenJDK의 공식 배포판 중 하나)
+      # 🔐 AWS OIDC 기반 IAM Role 인증
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      # ☕ Java 21 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
-          java-version: '21'         # Java 21로 설정
-          distribution: 'temurin'    # 무료 OpenJDK 배포판
+          java-version: '21'
+          distribution: 'temurin'
 
-      # 3. Checkstyle 실행 (정적 분석 수행)
-      - name: Run Checkstyle
-        working-directory: ./backend # backend 폴더 기준으로 실행
-        run: ./gradlew checkstyleMain
-
-      # 4. Java 컴파일만 수행 (타입 에러 확인용)
-      - name: Type Check (Compile Only)
+      # 🔍 Gradle 빌드 (테스트, checkstyle 제외)
+      - name: Build without Tests
         working-directory: ./backend
-        run: ./gradlew compileJava
-          
-      # 5. 실패 시 Discord 알림 전송 , 에러 메세지 전송
-      - name: Notify Discord on Checkstyle failure
-        if: failure()
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          OTEL_SERVICE_NAME: backend-service
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
+
+  # ─────────────────────────────────────────────
+  # ✅ Step 2: Docker Build & ECR Push (main 브랜치에서만)
+  # ─────────────────────────────────────────────
+  build-image:
+    name: Docker Build & ECR Push
+    runs-on: ubuntu-latest
+    needs: [ci-check]
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      # 🔢 커밋 SHA 기반 태그 생성
+      - name: Get short commit SHA
+        id: meta
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      # 🔐 ECR 로그인
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # 📥 OTEL Java Agent 다운로드 (이미지에 포함)
+      - name: Download OTEL Java Agent
+        working-directory: ./backend
         run: |
-          echo "🚨 Checkstyle 실패: 위반 내역을 Discord에 전송합니다."
-          
-          # Checkstyle 오류 추출: 메시지, 줄번호 추출
-          ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml | \
-            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ \2 (Line \1)/p' | \
-            head -n 3)
-          
-          # 줄바꿈 처리
-          ERROR_MSG=$(echo "$ERRORS" | sed ':a;N;$!ba;s/\n/\\n/g')
-          
-          # Discord 전송
-          curl -X POST -H "Content-Type: application/json" \
-            -d "{\"content\": \"🚨 Checkstyle 오류 발생 (최대 3건):\\n$ERROR_MSG\\n👉 자세한 내용은 GitHub Actions 로그에서 확인하세요.\"}" \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
-     
-      
- 
+          curl -Lo opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.32.0/opentelemetry-javaagent.jar
+
+      # 🐳 Docker 이미지 빌드 및 ECR 푸시
+      - name: Build and Push Docker Image
+        working-directory: ./backend
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          ECR_URI: ${{ secrets.ECR_URI }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          chmod +x ../scripts/build.sh
+          ../scripts/build.sh $ECR_URI $TAG
+          docker push $ECR_URI:$TAG
+          docker tag $ECR_URI:$TAG $ECR_URI:latest
+          docker push $ECR_URI:latest
+
+  # ─────────────────────────────────────────────
+  # ✅ Step 3: ECS 서비스에 새 이미지 배포
+  # ─────────────────────────────────────────────
+  deploy-ecs:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: build-image
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::346011888304:role/github-action-role
+          aws-region: ap-northeast-2
+
+      # 🚀 ECS 태스크 정의 수정 및 서비스 업데이트
+      - name: Deploy to ECS
+        env:
+          AWS_REGION: ap-northeast-2
+          ECR_URI: ${{ secrets.ECR_URI }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          FAMILY="docker-v1-backend-cluster"
+          SERVICE="${FAMILY}-service"
+          CONTAINER_NAME="docker-v1-backend"
+          IMAGE="$ECR_URI:latest"
+
+          TASK=$(aws ecs describe-task-definition --task-definition $FAMILY)
+
+          NEW_DEF=$(echo $TASK | jq --arg IMAGE "$IMAGE" --arg CONTAINER_NAME "$CONTAINER_NAME" '.taskDefinition |
+            {
+              family: .family,
+              networkMode: .networkMode,
+              executionRoleArn: .executionRoleArn,
+              containerDefinitions: (
+                .containerDefinitions | map(
+                  if .name == $CONTAINER_NAME then
+                    .image = $IMAGE 
+                  else .
+                  end
+                )
+              ),
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }')
+
+          echo "$NEW_DEF" > new-task-def.json
+
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json \
+            | jq -r '.taskDefinition.taskDefinitionArn')
+
+          aws ecs update-service \
+            --cluster $FAMILY \
+            --service $SERVICE \
+            --task-definition $NEW_TASK_ARN
+
+  # ─────────────────────────────────────────────
+  # ✅ Step 4: 실패 시 Discord 알림
+  # ─────────────────────────────────────────────
+  notify-failure:
+    name: Notify Discord on Failure
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [ci-check, build-image, deploy-ecs]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Notify Discord on CI Failure
+        run: |
+          # ⛔ Checkstyle 에러 수집
+          CHECKSTYLE_ERRORS=$(grep '<error ' backend/build/reports/checkstyle/*.xml 2>/dev/null | \
+            sed -n 's/.*line="\([0-9]\+\)".*message="\([^"]\+\)".*/❌ Checkstyle: \2 (Line \1)/p' | head -n 5)
+
+          # ⛔ Gradle 빌드 에러 수집
+          GRADLE_ERRORS=$(find backend/build -name '*.log' -exec tail -n 200 {} \; 2>/dev/null | \
+            grep -iE 'FAILURE|error|exception' | grep -v 'deprecated' | head -n 5)
+
+          # 📌 브랜치명 추출
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          # 📢 에러 메시지 생성
+          ERROR_MSG=""
+          if [ -n "$CHECKSTYLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🔍 *Checkstyle 오류*:\n$CHECKSTYLE_ERRORS\n"
+          fi
+          if [ -n "$GRADLE_ERRORS" ]; then
+            ERROR_MSG="${ERROR_MSG}🧪 *Gradle 빌드 실패*:\n$GRADLE_ERRORS\n"
+          fi
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="❓ *구체적인 오류를 찾을 수 없습니다.*"
+          fi
+
+          # Discord 메시지 전송
+          ERROR_MSG=$(echo -e "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
+          TITLE="*백엔드 CI 실패 알림* (브랜치: $BRANCH_NAME)"
+          chmod +x .github/scripts/discord_notify.sh
+          .github/scripts/discord_notify.sh failure "$TITLE" "$ERROR_MSG" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+  # ─────────────────────────────────────────────
+  # ✅ Step 5: 성공 시 Discord 알림
+  # ─────────────────────────────────────────────
+  notify-success:
+    name: Notify Discord on Success
+    runs-on: ubuntu-latest
+    if: success()
+    needs: [ci-check, build-image, deploy-ecs]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Notify Discord on CI Success
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="${{ github.head_ref || github.base_ref }}"
+          fi
+
+          TAG=$(echo "${{ github.sha }}" | cut -c1-7)
+          ECR_URI=${{ secrets.ECR_URI }}
+          ECR_URL="https://ap-northeast-2.console.aws.amazon.com/ecr/repositories/private/${ECR_URI#*/}?region=ap-northeast-2"
+
+          # 🎉 성공 메시지 1: ECR Push 완료
+          TITLE1="*ECR Push 완료!*"
+          MSG1="📦 Repository: \`${ECR_URI}:$TAG\`\n👉 [ECR 보기]($ECR_URL)"
+
+          # 🎉 성공 메시지 2: ECS 배포 완료
+          TITLE2="*ECR + ECS 배포 완료!*"
+          MSG2="📦 \`${ECR_URI}:$TAG\`\n👉 [ECR 보기]($ECR_URL)"
+
+          chmod +x .github/scripts/discord_notify.sh
+          .github/scripts/discord_notify.sh success "$TITLE1" "$MSG1" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          sleep 1
+          .github/scripts/discord_notify.sh success "$TITLE2" "$MSG2" "${{ secrets.DISCORD_WEBHOOK_URL }}"

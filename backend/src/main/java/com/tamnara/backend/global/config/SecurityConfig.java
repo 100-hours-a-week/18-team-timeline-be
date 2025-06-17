@@ -1,15 +1,18 @@
 package com.tamnara.backend.global.config;
 
 import com.tamnara.backend.global.jwt.JwtProvider;
+import com.tamnara.backend.global.security.CustomAuthenticationEntryPoint;
 import com.tamnara.backend.global.security.JwtAuthenticationFilter;
 import com.tamnara.backend.user.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +30,7 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final UserDetailsServiceImpl userDetailsService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     private final String FRONTEND_BASE_URL_LOCAL = "http://localhost:5173";
     @Value("${FE_BASE_URL}") private String FRONTEND_BASE_URL_PROD;
@@ -38,22 +42,28 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .formLogin(form -> form.disable())
-                .httpBasic(httpBasic -> httpBasic.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers(
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html",
-                                        "/v3/api-docs/**",
-                                        "/swagger-resources/**",
-                                        "/webjars/**",
-                                        "/auth/**",  // 로그인, 회원가입 등은 인증 없이 허용
-                                        "/news/**"
-                                ).permitAll()
-                                .anyRequest().authenticated() // 나머지는 인증 필요
-//                                .anyRequest().permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/auth/**",
+                                "/users/check-email",
+                                "/users/check-nickname",
+                                "/health"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/news/**",
+                                "/polls/*"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, userDetailsService),
@@ -72,7 +82,7 @@ public class SecurityConfig {
                 EC2_PUBLIC_URL_2,
                 EC2_PUBLIC_URL_3
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
