@@ -159,7 +159,7 @@ jobs:
               # 🔐 ECR 로그인
               echo "ECR URI 확인: $ECR_URI_DEV" 
               aws ecr get-login-password --region ap-northeast-2 \
-                | docker login --username AWS --password-stdin $ECR_URI_DEV
+                | sudo docker login --username AWS --password-stdin $ECR_URI_DEV
 
               # ⬇️ 최신 이미지 Pull
               sudo docker pull $ECR_URI_DEV:latest
