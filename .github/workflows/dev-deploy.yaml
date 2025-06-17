@@ -116,6 +116,19 @@ jobs:
 
     env:
       TAG: ${{ needs.build-image.outputs.tag }}
+      DB_URL: ${{ secrets.DEV_DB_URL }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+      KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+      KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+      JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+      FE_BASE_URL: ${{ secrets.DEV_FE_BASE_URL }}
+      BE_BASE_URL: ${{ secrets.DEV_BE_BASE_URL }}
+      AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+      EC2_PUBLIC_URL_1: ${{ secrets.DEV_EC2_PUBLIC_URL_1 }}
+      EC2_PUBLIC_URL_2: ${{ secrets.DEV_EC2_PUBLIC_URL_2 }}
+      EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
 
     steps:
       - name: Checkout source code
@@ -145,7 +158,7 @@ jobs:
             BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
             
-                        # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
+            # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
             DB_URL=$DB_URL
             DB_USERNAME=$DB_USERNAME
             DB_PASSWORD=$DB_PASSWORD
@@ -206,92 +219,6 @@ jobs:
               sudo docker exec dev-backend bash /app/dev-deploy.sh
             EOF
 
-#  remote-deploy:
-#    name: SSH into Peered Instance and Deploy
-#    runs-on: ubuntu-latest
-#    needs: build-image
-#
-#    env:
-#      TAG: ${{ needs.build-image.outputs.tag }}
-#
-#    steps:
-#      - name: Checkout source code
-#        uses: actions/checkout@v3
-#
-#      - name: SSH into Peered EC2 and deploy to Backend EC2
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.PEER_HOST }}
-#          username: ${{ secrets.PEER_USER }}
-#          key: ${{ secrets.PEER_SSH_KEY }}
-#          envs: |
-#            OTEL_SERVICE_NAME,
-#            TAG,
-#            BACKEND_EC2_IP,
-#            ECR_URI_DEV,
-#            DB_URL,DB_USERNAME,DB_PASSWORD,
-#            OTEL_EXPORTER_OTLP_ENDPOINT,
-#            KAKAO_CLIENT_ID,KAKAO_REDIRECT_URI,
-#            JWT_SECRET_CODE,
-#            FE_BASE_URL,BE_BASE_URL,AI_BASE_URL,
-#            EC2_PUBLIC_URL_1,EC2_PUBLIC_URL_2,EC2_PUBLIC_URL_3
-#          script: |
-#            echo "🔄 피어링 인스턴스 접속 완료 - 백엔드 EC2로 SSH 진입"
-#
-#            BACKEND_EC2_IP=${{ secrets.BACKEND_EC2_IP }}
-#            ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
-#
-#            # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
-#            DB_URL=$DB_URL
-#            DB_USERNAME=$DB_USERNAME
-#            DB_PASSWORD=$DB_PASSWORD
-#            OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT
-#            KAKAO_CLIENT_ID=$KAKAO_CLIENT_ID
-#            KAKAO_REDIRECT_URI=$KAKAO_REDIRECT_URI
-#            JWT_SECRET_CODE=$JWT_SECRET_CODE
-#            FE_BASE_URL=$FE_BASE_URL
-#            BE_BASE_URL=$BE_BASE_URL
-#            AI_BASE_URL=$AI_BASE_URL
-#            EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1
-#            EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2
-#            EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3
-#
-#            # 🔑 백엔드 EC2 접근용 키 확인
-#            if [ ! -f ~/.ssh/backend_key.pem ]; then
-#              echo "❗ 백엔드 EC2 접속용 키가 없습니다: ~/.ssh/backend_key.pem"
-#              exit 1
-#            fi
-#            chmod 400 ~/.ssh/backend_key.pem
-#
-#            # 백엔드 EC2 SSH 접속 및 Docker 배포
-#            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/backend_key.pem ubuntu@$BACKEND_EC2_IP << EOF
-#              echo "🚀 백엔드 EC2에서 Docker Pull 및 컨테이너 실행 시작"
-#
-#              aws ecr get-login-password --region ap-northeast-2 \
-#                | sudo docker login --username AWS --password-stdin $ECR_URI_DEV
-#
-#              sudo docker pull $ECR_URI_DEV:latest
-#
-#              sudo docker ps -a -q --filter "name=dev-backend" | grep -q . && sudo docker rm -f dev-backend
-#
-#              sudo docker run -d --name dev-backend \
-#                -e DB_URL="$DB_URL" \
-#                -e DB_USERNAME="$DB_USERNAME" \
-#                -e DB_PASSWORD="$DB_PASSWORD" \
-#                -e OTEL_EXPORTER_OTLP_ENDPOINT="$OTEL_EXPORTER_OTLP_ENDPOINT" \
-#                -e KAKAO_CLIENT_ID="$KAKAO_CLIENT_ID" \
-#                -e KAKAO_REDIRECT_URI="$KAKAO_REDIRECT_URI" \
-#                -e JWT_SECRET_CODE="$JWT_SECRET_CODE" \
-#                -e FE_BASE_URL="$FE_BASE_URL" \
-#                -e BE_BASE_URL="$BE_BASE_URL" \
-#                -e AI_BASE_URL="$AI_BASE_URL" \
-#                -e EC2_PUBLIC_URL_1="$EC2_PUBLIC_URL_1" \
-#                -e EC2_PUBLIC_URL_2="$EC2_PUBLIC_URL_2" \
-#                -e EC2_PUBLIC_URL_3="$EC2_PUBLIC_URL_3" \
-#                $ECR_URI_DEV:latest
-#
-#              docker exec dev-backend bash /app/dev-deploy.sh
-#            EOF
 
   # ─────────────────────────────────────────────
   # Step 4: 실패 시 Discord 알림
