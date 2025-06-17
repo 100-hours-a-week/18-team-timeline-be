@@ -1,6 +1,8 @@
 package com.tamnara.backend.comment.constant;
 
-public class CommentResponseMessage {
+public final class CommentResponseMessage {
+    private CommentResponseMessage() {}
+
     // 댓글 성공 메시지
     public static final String COMMENT_LIST_FETCH_SUCCESS = "요청하신 댓글 목록을 성공적으로 불러왔습니다.";
     public static final String COMMENT_CREATED_SUCCESS = "댓글이 성공적으로 생성되었습니다.";

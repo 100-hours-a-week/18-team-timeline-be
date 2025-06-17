@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.tamnara.backend.user.constant.UserResponseMessage.*;
+import static com.tamnara.backend.global.constant.ResponseMessage.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -139,7 +140,7 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(get("/users/me")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 
     @Test
@@ -178,7 +179,7 @@ public class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 
     @Test
@@ -232,6 +233,6 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(patch("/users/me/state")
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value(ACCOUNT_FORBIDDEN));
+                .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
     }
 }

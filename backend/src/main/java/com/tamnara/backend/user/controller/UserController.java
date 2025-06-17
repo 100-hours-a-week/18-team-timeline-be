@@ -127,7 +127,7 @@ public class UserController {
 
         } catch (InactiveUserException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -172,14 +172,13 @@ public class UserController {
                     new WrappedDTO<>(true, USER_INFO_MODIFIED,
                             new UserUpdateResponse(updatedUser.getId()))
             );
-
         } catch (DuplicateUsernameException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
                     new WrappedDTO<>(false, NICKNAME_UNAVAILABLE, null)
             );
         } catch (InactiveUserException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -218,7 +217,7 @@ public class UserController {
 
             if (userDetails.getUser().getState() != State.ACTIVE) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                        new WrappedDTO<>(false, USER_FORBIDDEN, null)
                 );
             }
 
@@ -268,7 +267,7 @@ public class UserController {
 
         } catch (InactiveUserException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, ACCOUNT_FORBIDDEN, null)
+                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
             );
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
