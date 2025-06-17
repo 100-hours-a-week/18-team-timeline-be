@@ -68,7 +68,7 @@ public class VoteServiceImpl implements VoteService {
         }
 
         // 6. 이미 투표한 사용자인지 확인
-        if (!voteRepository.hasVotedLatestPublishedPoll(user.getId())) {
+        if (voteRepository.hasVotedLatestPublishedPoll(user.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, POLL_ALREADY_VOTED);
         }
 
