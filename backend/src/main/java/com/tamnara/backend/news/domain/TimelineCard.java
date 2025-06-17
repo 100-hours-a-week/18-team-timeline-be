@@ -26,7 +26,7 @@ public class TimelineCard {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private News news;
 
-    @Column(name = "title", length = 18, nullable = false)
+    @Column(name = "title", length = 255, nullable = false)
     private String title;
 
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)

@@ -26,7 +26,6 @@ public class JwtProvider {
     @PostConstruct
     protected void init() {
         // 시크릿 키를 바이트로 인코딩해서 Key 객체로 변환
-        System.out.println("✅ JWT_SECRET_CODE from env: " + secretKeyString); // 임시 출력
         this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -34,7 +33,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("role", user.getRole().toString())
-                .claim("name", user.getUsername())
+                .claim("username", user.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
                 .signWith(secretKey)

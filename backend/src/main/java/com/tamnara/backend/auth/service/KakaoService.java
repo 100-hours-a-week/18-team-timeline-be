@@ -1,7 +1,8 @@
-package com.tamnara.backend.user.service;
+package com.tamnara.backend.auth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
@@ -34,7 +35,7 @@ public class KakaoService {
     private String redirectUri;
 
     public String buildKakaoLoginUrl() {
-        return UriComponentsBuilder.fromHttpUrl("https://kauth.kakao.com/oauth/authorize")
+        return UriComponentsBuilder.fromUriString("https://kauth.kakao.com/oauth/authorize")
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
@@ -42,7 +43,7 @@ public class KakaoService {
                 .toUriString();
     }
 
-    public ResponseEntity<?> kakaoLogin(String code) {
+    public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
@@ -120,21 +121,22 @@ public class KakaoService {
 
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
 
-            return ResponseEntity.ok().body(Map.of(
-                    "access_token", tamnaraAccessToken,
-                    "user_id", user.getId(),
-                    "username", user.getUsername()
-            ));
+            // 콘솔에 access token 출력 (로컬 디버깅용)
+//            System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
+                    .body(new WrappedDTO<>(true, "카카오 로그인이 성공적으로 완료되었습니다.", null));
 
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("❌ JSON 파싱 오류: " + e.getMessage());
+                    .body(new WrappedDTO<>(false, "❌ JSON 파싱 오류: " + e.getMessage(), null));
         } catch (RestClientException e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body("❌ 카카오 서버 요청 실패: " + e.getMessage());
+                    .body(new WrappedDTO<>(false, "❌ 카카오 서버 요청 실패: " + e.getMessage(), null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("❌ 예상치 못한 오류 발생: " + e.getMessage());
+                    .body(new WrappedDTO<>(false, "❌ 예상치 못한 오류 발생: " + e.getMessage(), null));
         }
     }
 }

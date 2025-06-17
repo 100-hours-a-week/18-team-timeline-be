@@ -1,3 +1,9 @@
 package com.tamnara.backend.user.exception;
 
-public class DuplicateEmailException extends RuntimeException {}
+import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_UNAVAILABLE;
+
+public class DuplicateEmailException extends RuntimeException {
+    public DuplicateEmailException() {
+        super(EMAIL_UNAVAILABLE);
+    }
+}

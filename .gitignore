@@ -35,10 +35,3 @@ out/
 
 ### VS Code ###
 .vscode/
-.DS_Store
-backend/.DS_Store
-backend/src/.DS_Store
-
-### selina 개인 파일 ###
-backend/src/main/resources/kakao
-backend/jwt_code.sh

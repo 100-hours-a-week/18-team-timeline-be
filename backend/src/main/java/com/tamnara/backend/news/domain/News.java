@@ -41,10 +41,10 @@ public class News {
     @OnDelete(action = OnDeleteAction.RESTRICT)
     private Category category;
 
-    @Column(name = "title", length = 24, nullable = false)
+    @Column(name = "title", length = 255, nullable = false)
     private String title;
 
-    @Column(name = "summary", length = 36, nullable = false)
+    @Column(name = "summary", length = 255, nullable = false)
     private String summary;
 
     @Column(name = "is_hotissue", nullable = false)

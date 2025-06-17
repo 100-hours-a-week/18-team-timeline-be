@@ -1,18 +1,16 @@
 package com.tamnara.backend.news.service;
 
-import com.tamnara.backend.news.dto.*;
-import com.tamnara.backend.news.dto.request.*;
-import com.tamnara.backend.news.dto.response.*;
-
-import java.util.List;
-import java.util.Map;
+import com.tamnara.backend.news.dto.NewsDetailDTO;
+import com.tamnara.backend.news.dto.request.NewsCreateRequest;
+import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
+import com.tamnara.backend.news.dto.response.category.MultiCategoryResponse;
 
 public interface NewsService {
-    List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, Integer page, Integer size);
-    List<NewsCardDTO> getNewsCardPage(Long userId, boolean isHotissue, String category, Integer page, Integer size);
-    Map<String, List<NewsCardDTO>> getNormalNewsCardPages(Long userId, boolean isHotissue, Integer page, Integer size);
-    NewsDetailResponse getNewsDetail(Long newsId, Long userId);
-    NewsDetailResponse save(Long userId, boolean isHotissue, NewsCreateRequest req);
-    NewsDetailResponse update(Long newsId, Long userId);
-    Long delete(Long newsId, Long userId);
+    HotissueNewsListResponse getHotissueNewsCardPage();
+    MultiCategoryResponse getMultiCategoryPage(Long userId, Integer offset);
+    Object getSingleCategoryPage(Long userId, String category, Integer offset);
+    NewsDetailDTO getNewsDetail(Long newsId, Long userId);
+    NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req);
+    NewsDetailDTO update(Long newsId, Long userId);
+    void delete(Long newsId, Long userId);
 }
