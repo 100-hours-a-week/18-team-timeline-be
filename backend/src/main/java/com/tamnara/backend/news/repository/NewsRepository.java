@@ -17,6 +17,13 @@ import java.util.Optional;
 @Repository
 public interface NewsRepository extends JpaRepository<News, Long>, NewsSearchRepository {
     Page<News> findAllByIsHotissueTrueOrderByIdAsc(Pageable pageable);
+
+    @Query("""
+        SELECT n FROM News n
+        WHERE n.isHotissue = false
+        AND (n.isPublic IS NULL OR n.isPublic = true)
+        ORDER BY n.updatedAt DESC, n.id DESC
+    """)
     Page<News> findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(Pageable pageable);
 
     @Query("""
@@ -30,7 +37,6 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsSearchRep
         ORDER BY n.updatedAt DESC, n.id DESC
     """)
     Page<News> findByIsHotissueFalseAndCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
-
 
     @Query(value = """
         SELECT n.*
