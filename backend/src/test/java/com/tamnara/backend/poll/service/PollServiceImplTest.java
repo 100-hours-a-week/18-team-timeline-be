@@ -6,10 +6,12 @@ import com.tamnara.backend.alarm.event.AlarmEvent;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
-import com.tamnara.backend.poll.dto.PollCreateRequest;
-import com.tamnara.backend.poll.dto.PollOptionCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
+import com.tamnara.backend.poll.dto.response.PollInfoResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
+import com.tamnara.backend.poll.repository.VoteRepository;
 import com.tamnara.backend.poll.util.PollCreateRequestTestBuilder;
 import com.tamnara.backend.poll.util.PollOptionTestBuilder;
 import com.tamnara.backend.poll.util.PollTestBuilder;
@@ -25,6 +27,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -40,26 +43,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class PollServiceTest {
+class PollServiceImplTest {
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private PollRepository pollRepository;
+    @Mock private PollOptionRepository pollOptionRepository;
+    @Mock private VoteRepository voteRepository;
 
-    @Mock
-    private PollRepository pollRepository;
-
-    @Mock
-    private PollOptionRepository pollOptionRepository;
-
-    @InjectMocks
-    private PollService pollService;
+    @InjectMocks private PollServiceImpl pollServiceImpl;
 
     private Poll poll;
     private PollOption option;
@@ -67,11 +67,12 @@ class PollServiceTest {
     @BeforeEach
     void setUp() {
         poll = PollTestBuilder.defaultPoll();
+        ReflectionTestUtils.setField(poll, "id", 1L);
         option = PollOptionTestBuilder.defaultOption(poll);
     }
 
     @Test
-    @DisplayName("createPoll 실행에 성공한다")
+    @DisplayName("createPoll 실행 성공")
     void createPoll_success() {
         // given
         LocalDateTime now = LocalDateTime.now();
@@ -82,20 +83,20 @@ class PollServiceTest {
                         new PollOptionCreateRequest("Option 2", "url2")
                 ));
 
-        when(pollRepository.save(Mockito.any(Poll.class))).thenReturn(poll);
+        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
         when(pollOptionRepository.saveAll(Mockito.anyList())).thenReturn(Arrays.asList(option));
 
         // when
-        Long pollId = pollService.createPoll(request);
+        Long pollId = pollServiceImpl.createPoll(request);
 
         // then
         assertThat(pollId).isEqualTo(poll.getId());
-        Mockito.verify(pollRepository, Mockito.times(1)).save(Mockito.any(Poll.class));
-        Mockito.verify(pollOptionRepository, Mockito.times(1)).saveAll(Mockito.anyList());
+        Mockito.verify(pollRepository, times(1)).save(any(Poll.class));
+        Mockito.verify(pollOptionRepository, times(1)).saveAll(Mockito.anyList());
     }
 
     @Test
-    @DisplayName("createPoll 실행에서 minChoices가 maxChoices보다 큰 경우 400 에러가 발생한다")
+    @DisplayName("createPoll 실행에서 minChoices가 maxChoices보다 큰 경우 400 에러 발생")
     void createPoll_throwsException_whenMinChoicesExceedsMaxChoices() {
         // given
         LocalDateTime now = LocalDateTime.now();
@@ -107,13 +108,13 @@ class PollServiceTest {
                 ));
 
         // when & then
-        assertThatThrownBy(() -> pollService.createPoll(request))
+        assertThatThrownBy(() -> pollServiceImpl.createPoll(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(MIN_CHOICES_EXCEED_MAX);
     }
 
     @Test
-    @DisplayName("createPoll 실행에서 start_at이 end_at보다 나중인 경우 400 에러가 발생한다")
+    @DisplayName("createPoll 실행에서 start_at이 end_at보다 나중인 경우 400 에러 발생")
     void createPoll_throwsException_whenStartDateIsAfterEndDate() {
         // given
         LocalDateTime now = LocalDateTime.now();
@@ -125,97 +126,97 @@ class PollServiceTest {
                 ));
 
         // when & then
-        assertThatThrownBy(() -> pollService.createPoll(request))
+        assertThatThrownBy(() -> pollServiceImpl.createPoll(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(START_DATE_LATER_THAN_END_DATE);
     }
 
     @Test
-    @DisplayName("getPollById 실행에서 정상적으로 Poll이 반환된다")
-    void getPollById_returnsPoll_whenPollExists() {
+    @DisplayName("getLatestPublishedPoll 실행에서 정상적으로 Poll 반환")
+    void getLatestPublishedPoll_returnsPoll_whenPollExists() {
         // given
-        when(pollRepository.findById(1L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.ofNullable(poll));
 
         // when
-        Poll result = pollService.getPollById(1L);
+        PollInfoResponse response = pollServiceImpl.getLatestPublishedPoll(1L);
 
         // then
-        assertThat(result).isEqualTo(poll);
+        assertEquals(response.getPoll().getId(), poll.getId());
     }
 
     @Test
-    @DisplayName("getPollById 실행에서 PollId가 존재하지 않는 경우 예외가 발생한다")
-    void getPollById_returnsNull_whenPollDoesNotExist() {
+    @DisplayName("getLatestPublishedPoll 실행에서 PollId가 존재하지 않는 경우 예외 발생")
+    void getLatestPublishedPoll_returnsNull_whenPollDoesNotExist() {
         // given
-        when(pollRepository.findById(1L)).thenReturn(Optional.empty());
+        when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.empty());
 
-        // when & then
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> pollService.getPollById(1L)
-        );
+        // when
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            pollServiceImpl.getLatestPublishedPoll(poll.getId());
+        });
 
-        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(exception.getReason()).isEqualTo(POLL_NOT_FOUND);
+        // then
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(POLL_NOT_FOUND, exception.getReason());
     }
 
     @Test
-    @DisplayName("schedulePoll을 통해 state 변경에 성공한다")
+    @DisplayName("schedulePoll을 통해 state 변경 성공")
     void schedulePoll_changesStateToScheduled() {
         // given
-        when(pollRepository.save(Mockito.any(Poll.class))).thenReturn(poll);
+        when(pollRepository.findById(anyLong())).thenReturn(Optional.ofNullable(poll));
 
         // when
-        pollService.schedulePoll(poll);
+        pollServiceImpl.schedulePoll(poll.getId());
 
         // then
-        assertThat(poll.getState()).isEqualTo(PollState.SCHEDULED);
-        Mockito.verify(pollRepository, Mockito.times(1)).save(poll);
+        assertEquals(PollState.SCHEDULED, poll.getState());
+        verify(pollRepository, times(1)).save(poll);
     }
 
     @Test
-    @DisplayName("publishPoll을 통해 state 변경에 성공한다")
+    @DisplayName("publishPoll을 통해 state 변경 성공")
     void publishPoll_changesStateToPublished() {
         // given
         when(pollRepository.existsByState(PollState.PUBLISHED)).thenReturn(false);
-        when(pollRepository.save(Mockito.any(Poll.class))).thenReturn(poll);
+        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
 
         // when
-        pollService.publishPoll(poll);
+        pollServiceImpl.publishPoll(poll);
 
         // then
         assertThat(poll.getState()).isEqualTo(PollState.PUBLISHED);
-        Mockito.verify(pollRepository, Mockito.times(1)).save(poll);
+        Mockito.verify(pollRepository, times(1)).save(poll);
     }
 
     @Test
-    @DisplayName("publishPoll에서 이미 PUBLISHED 상태인 투표가 있을 경우 예외를 반환한다")
+    @DisplayName("publishPoll에서 이미 PUBLISHED 상태인 투표가 있을 경우 예외 반환")
     void publishPoll_throwsException_whenPollAlreadyPublished() {
         // given
         when(pollRepository.existsByState(PollState.PUBLISHED)).thenReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> pollService.publishPoll(poll))
+        assertThatThrownBy(() -> pollServiceImpl.publishPoll(poll))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining(PUBLISHED_POLL_ALREADY_EXISTS);
     }
 
     @Test
-    @DisplayName("deletePoll을 통해 state 변경에 성공한다")
+    @DisplayName("deletePoll을 통해 state 변경 성공")
     void deletePoll_changesStateToDeleted() {
         // given
-        when(pollRepository.save(Mockito.any(Poll.class))).thenReturn(poll);
+        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
 
         // when
-        pollService.deletePoll(poll);
+        pollServiceImpl.deletePoll(poll);
 
         // then
         assertThat(poll.getState()).isEqualTo(PollState.DELETED);
-        Mockito.verify(pollRepository, Mockito.times(1)).save(poll);
+        Mockito.verify(pollRepository, times(1)).save(poll);
     }
 
     @Test
-    @DisplayName("투표 생성 시 전체 알림 발행을 검증한다.")
+    @DisplayName("투표 생성 시 전체 알림 발행 검증")
     void createPoll_createAlarm_success() {
         // given
         String pollTitle = "Test Poll";
@@ -227,15 +228,15 @@ class PollServiceTest {
                         new PollOptionCreateRequest("Option 2", "url2")
                 ));
 
-        when(pollRepository.save(Mockito.any(Poll.class))).thenReturn(poll);
+        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
         when(pollOptionRepository.saveAll(Mockito.anyList())).thenReturn(Arrays.asList(option));
 
         // when
-        pollService.createPoll(request);
+        pollServiceImpl.createPoll(request);
 
         // then
-        Mockito.verify(userRepository, Mockito.times(1)).findAll();
-        Mockito.verify(pollOptionRepository, Mockito.times(1)).saveAll(Mockito.anyList());
+        Mockito.verify(userRepository, times(1)).findAll();
+        Mockito.verify(pollOptionRepository, times(1)).saveAll(Mockito.anyList());
 
         ArgumentCaptor<AlarmEvent> captor = ArgumentCaptor.forClass(AlarmEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
