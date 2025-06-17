@@ -1,31 +1,38 @@
 package com.tamnara.backend.poll.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.util.PollTestBuilder;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
+@Import(TestConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PollRepositoryTest {
-    @MockBean
-    private JPAQueryFactory jpaQueryFactory; // NewsSearchRepositoryImpl 로딩 시 필요
+
+    @PersistenceContext
+    private EntityManager em;
 
     @Autowired private PollRepository pollRepository;
 
     @Test
-    @DisplayName("Poll 저장 및 조회에 성공한다")
+    @DisplayName("Poll 저장 및 조회 성공")
     void saveAndFindPoll() {
         // given
         LocalDateTime now = LocalDateTime.now();
@@ -39,7 +46,8 @@ class PollRepositoryTest {
         );
 
         // when
-        Poll saved = pollRepository.save(poll);
+        Poll saved = pollRepository.saveAndFlush(poll);
+        em.clear();
         Poll found = pollRepository.findById(saved.getId()).orElseThrow();
 
         // then
@@ -49,11 +57,12 @@ class PollRepositoryTest {
     }
 
     @Test
-    @DisplayName("state==PUBLISHED인 투표 조회에 성공한다")
+    @DisplayName("state==PUBLISHED인 투표 조회 성공")
     void findByState() {
         // given
         Poll openPoll = PollTestBuilder.defaultPoll();
-        pollRepository.save(openPoll);
+        pollRepository.saveAndFlush(openPoll);
+        em.clear();
 
         // when
         List<Poll> result = pollRepository.findByState(PollState.PUBLISHED);
@@ -64,12 +73,13 @@ class PollRepositoryTest {
     }
 
     @Test
-    @DisplayName("종료 시간이 현재 이후인 투표 조회에 성공한다")
+    @DisplayName("종료 시간이 현재 이후인 투표 조회 성공")
     void findByEndAtAfter() {
         // given
         LocalDateTime now = LocalDateTime.now();
         Poll poll = PollTestBuilder.defaultPoll();
-        pollRepository.save(poll);
+        pollRepository.saveAndFlush(poll);
+        em.clear();
 
         // when
         List<Poll> result = pollRepository.findByEndAtAfter(now);
@@ -77,5 +87,22 @@ class PollRepositoryTest {
         // then
         assertThat(result).isNotEmpty();
         assertThat(result.get(0).getEndAt()).isAfter(now);
+    }
+
+    @Test
+    @DisplayName("최신 공개 투표 조회")
+    void findLatestPollByPublishedPoll() {
+        // given
+        Poll poll = PollTestBuilder.defaultPoll();
+        poll.changeState(PollState.PUBLISHED);
+        pollRepository.saveAndFlush(poll);
+        em.clear();
+        System.out.println(("poll.state:" + poll.getState()));
+
+        // when
+        Poll foundPoll = pollRepository.findLatestPollByPublishedPoll().get();
+
+        // then
+        assertEquals(poll.getId(), foundPoll.getId());
     }
 }
