@@ -7,6 +7,9 @@ import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.UserUpdateRequest;
 import com.tamnara.backend.user.repository.UserRepository;
+import com.tamnara.backend.user.security.UserDetailsImpl;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +19,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 public class UserControllerIntegrationTest {
 
+    @PersistenceContext
+    private EntityManager em;
+
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
@@ -49,7 +57,15 @@ public class UserControllerIntegrationTest {
                 .role(Role.USER)
                 .state(State.ACTIVE)
                 .build();
-        user = userRepository.save(user);
+        userRepository.save(user);
+        em.flush();
+        em.clear();
+
+        UserDetailsImpl principal = new UserDetailsImpl(user);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
     }
 
     private String getAccessToken(User user) {
