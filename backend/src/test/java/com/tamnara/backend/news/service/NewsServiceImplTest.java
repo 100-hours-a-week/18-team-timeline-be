@@ -1659,4 +1659,33 @@ class NewsServiceImplTest {
         assertNull(event3.getTargetId());
         assertNull(event4.getTargetId());
     }
+
+    @Test
+    void 투표_결과_공개_알림_발행_검증() {
+        // given
+        News news1 = createNews(1L, "제목1", "미리보기 내용2", true, user, ktb);
+        news1.setIsPublic(false);
+        News news2 = createNews(2L, "제목2", "미리보기 내용2", true, user, economy);
+        news2.setIsPublic(false);
+        News news3 = createNews(3L, "제목3", "미리보기 내용3", true, user, sports);
+        news3.setIsPublic(false);
+        List<News> previousNewsList = List.of(news1, news2, news3);
+
+        when(newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc()).thenReturn(previousNewsList);
+
+        // when
+        newsServiceImpl.makeNewsPublic();
+
+        // then
+        verify(userRepository, times(1)).findAll();
+
+        ArgumentCaptor<AlarmEvent> captor = ArgumentCaptor.forClass(AlarmEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(captor.capture());
+
+        AlarmEvent event = captor.getValue();
+        assertEquals(AlarmMessage.POLL_RESULT_TITLE, event.getTitle());
+        assertEquals(String.format(AlarmMessage.POLL_RESULT_CONTENT, news1.getTitle()), event.getContent());
+        assertEquals(AlarmType.NEWS, event.getTargetType());
+        assertEquals(news1.getId(), event.getTargetId());
+    }
 }
