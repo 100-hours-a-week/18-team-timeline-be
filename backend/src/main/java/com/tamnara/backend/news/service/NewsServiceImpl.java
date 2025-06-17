@@ -1,5 +1,8 @@
 package com.tamnara.backend.news.service;
 
+import com.tamnara.backend.alarm.constant.AlarmMessage;
+import com.tamnara.backend.alarm.domain.AlarmType;
+import com.tamnara.backend.alarm.event.AlarmEvent;
 import com.tamnara.backend.bookmark.domain.Bookmark;
 import com.tamnara.backend.bookmark.repository.BookmarkRepository;
 import com.tamnara.backend.global.constant.ResponseMessage;
@@ -19,6 +22,7 @@ import com.tamnara.backend.news.dto.NewsCardDTO;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
 import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
@@ -40,10 +44,12 @@ import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -56,10 +62,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class NewsServiceImpl implements NewsService {
+
+    private final ApplicationEventPublisher eventPublisher;
 
     private final AIService aiService;
     private final AsyncAIService asyncAiService;
@@ -230,8 +239,11 @@ public class NewsServiceImpl implements NewsService {
                 .getAIStatistics(req.getKeywords())
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
-                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
-                        return null;
+                    if (cause instanceof AIException aiEx) {
+                        HttpStatusCode status = aiEx.getStatus();
+                        if (status.is4xxClientError()) {
+                            return null;
+                        }
                     }
                     throw new CompletionException(cause);
                 });
@@ -326,7 +338,53 @@ public class NewsServiceImpl implements NewsService {
                 news.getUpdatedAt(),
                 true,
                 timeline,
-                statistics
+                statistics != null ? statistics : new StatisticsDTO(0, 0, 0)
+        );
+    }
+
+    @Override
+    @Transactional
+    public NewsDetailDTO saveKtbNews(Long userId, KtbNewsCreateRequest req) {
+        User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+
+        if (user.getRole() != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
+        }
+
+        News news = new News();
+        news.setTitle(req.getTitle());
+        news.setSummary(req.getSummary());
+        news.setIsPublic(false);
+        news.setCategory(categoryRepository.findByName(CategoryType.KTB).orElse(null));
+        newsRepository.save(news);
+
+        if (req.getImage() != null) {
+            NewsImage newsImage = new NewsImage();
+            newsImage.setNews(news);
+            newsImage.setUrl(req.getImage());
+            newsImageRepository.save(newsImage);
+        }
+
+        for (TimelineCardDTO dto : req.getTimeline()) {
+            TimelineCard timelineCard = new TimelineCard();
+            timelineCard.setNews(news);
+            timelineCard.setTitle(dto.getTitle());
+            timelineCard.setContent(dto.getContent());
+            timelineCard.setDuration(TimelineCardType.DAY);
+            timelineCard.setStartAt(dto.getStartAt());
+            timelineCard.setEndAt(dto.getEndAt());
+            timelineCardRepository.save(timelineCard);
+        }
+
+        return new NewsDetailDTO(
+          news.getId(),
+          news.getTitle(),
+          req.getImage(),
+          news.getUpdatedAt(),
+          false,
+          req.getTimeline(),
+          getStatisticsDTO(news)
         );
     }
 
@@ -385,8 +443,11 @@ public class NewsServiceImpl implements NewsService {
                 .getAIStatistics(keywords)
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
-                    if (cause instanceof AIException aiEx && aiEx.getStatus() == HttpStatus.NOT_FOUND) {
-                        return null;
+                    if (cause instanceof AIException aiEx) {
+                        HttpStatusCode status = aiEx.getStatus();
+                        if (status.is4xxClientError()) {
+                            return null;
+                        }
                     }
                     throw new CompletionException(cause);
                 });
@@ -440,7 +501,16 @@ public class NewsServiceImpl implements NewsService {
         updatedNewsImage.setUrl(aiNewsResponse.getImage());
         newsImageRepository.save(updatedNewsImage);
 
-        // 5. 생성된 뉴스에 대해 북마크 설정한다.
+        // 5. 기존에 북마크를 설정했던 회원들에게 알림 생성
+        publishAlarm(
+                bookmarkRepository.findUsersByNews(news),
+                AlarmMessage.BOOKMARK_UPDATE_TITLE,
+                String.format(AlarmMessage.BOOKMARK_UPDATE_CONTENT, news.getTitle()),
+                AlarmType.NEWS,
+                newsId
+        );
+
+        // 6. 생성된 뉴스에 대해 북마크 설정한다.
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
         if (bookmark.isEmpty()) {
             Bookmark savedBookmark = new Bookmark();
@@ -449,7 +519,7 @@ public class NewsServiceImpl implements NewsService {
             bookmarkRepository.save(savedBookmark);
         }
 
-        // 6. 뉴스의 상세 페이지 데이터를 반환한다.
+        // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
                 news.getId(),
                 news.getTitle(),
@@ -457,7 +527,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getUpdatedAt(),
                 true,
                 newTimeline,
-                statistics
+                statistics != null ? statistics : new StatisticsDTO(0, 0, 0)
         );
     }
 
@@ -476,6 +546,14 @@ public class NewsServiceImpl implements NewsService {
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_DELETE_CONFLICT);
         }
+
+        publishAlarm(
+                bookmarkRepository.findUsersByNews(news),
+                AlarmMessage.BOOKMARK_DELETION_TITLE,
+                String.format(AlarmMessage.BOOKMARK_DELETION_CONTENT, news.getTitle()),
+                null,
+                null
+        );
 
         newsRepository.delete(news);
     }
@@ -496,12 +574,66 @@ public class NewsServiceImpl implements NewsService {
             NewsCreateRequest req = new NewsCreateRequest(List.of(keyword));
             save(null, true, req);
         }
+
+        publishAlarm(
+                userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                AlarmMessage.HOTISSUE_CREATE_TITLE,
+                AlarmMessage.HOTISSUE_CREATE_CONTENT,
+                AlarmType.NEWS,
+                null
+        );
     }
 
     @Override
     public void deleteOldNewsAndOrphanTags() {
-        newsRepository.deleteAllOlderThan(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS));
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS);
+
+        // 삭제 예정
+        List<News> newsWarningList = newsRepository.findAllOlderThan(cutoff.plusDays(1));
+        for (News news : newsWarningList) {
+            publishAlarm(
+                    bookmarkRepository.findUsersByNews(news),
+                    AlarmMessage.BOOKMARK_DELETE_WARNING_TITLE,
+                    String.format(AlarmMessage.BOOKMARK_DELETE_WARNING_CONTENT, news.getTitle()),
+                    AlarmType.NEWS,
+                    news.getId()
+            );
+        }
+
+        // 삭제
+        List<News> newsDeletionList = newsRepository.findAllOlderThan(cutoff);
+        for (News news : newsDeletionList) {
+            publishAlarm(
+                    bookmarkRepository.findUsersByNews(news),
+                    AlarmMessage.BOOKMARK_DELETION_TITLE,
+                    String.format(AlarmMessage.BOOKMARK_DELETION_CONTENT, news.getTitle()),
+                    null,
+                    null
+            );
+        }
+
+        newsRepository.deleteAllOlderThan(cutoff);
         tagRepository.deleteAllOrphan();
+    }
+
+    @Override
+    @Transactional
+    public void makeNewsPublic() {
+        List<News> newsList = newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc();
+        for (News news : newsList) {
+            news.setIsPublic(true);
+            newsRepository.save(news);
+        }
+
+        if (!newsList.isEmpty()) {
+            publishAlarm(
+                    userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                    AlarmMessage.POLL_RESULT_TITLE,
+                    String.format(AlarmMessage.POLL_RESULT_CONTENT, newsList.getFirst().getTitle()),
+                    AlarmType.NEWS,
+                    newsList.getFirst().getId()
+            );
+        }
     }
 
 
@@ -631,5 +763,16 @@ public class NewsServiceImpl implements NewsService {
             categoryId = c.getId();
         }
         return categoryId;
+    }
+
+    private void publishAlarm(List<Long> userIdList, String title, String content, AlarmType targetType, Long targetId) {
+        AlarmEvent event = new AlarmEvent(
+                userIdList,
+                title,
+                content,
+                targetType,
+                targetId
+        );
+        eventPublisher.publishEvent(event);
     }
 }

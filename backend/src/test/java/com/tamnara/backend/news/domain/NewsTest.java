@@ -13,6 +13,7 @@ public class NewsTest {
 
         // then
         assertThat(news.getIsHotissue()).isFalse();
+        assertThat(news.getIsPublic()).isTrue();
         assertThat(news.getViewCount()).isEqualTo(1L);
         assertThat(news.getUpdateCount()).isEqualTo(1L);
         assertThat(news.getRatioPosi()).isZero();
@@ -21,7 +22,7 @@ public class NewsTest {
     }
 
     @Test
-    void 뉴스_제목과_미리보기_내용과_핫이슈_여부_설정_검증() {
+    void 뉴스_제목과_미리보기_내용과_핫이슈_여부와_공개_여부_설정_검증() {
         // given
         News news = new News();
 
@@ -29,11 +30,13 @@ public class NewsTest {
         news.setTitle("테스트 제목");
         news.setSummary("테스트 미리보기 내용");
         news.setIsHotissue(true);
+        news.setIsPublic(false);
 
         // then
         assertThat(news.getTitle()).isEqualTo("테스트 제목");
         assertThat(news.getSummary()).isEqualTo("테스트 미리보기 내용");
         assertThat(news.getIsHotissue()).isTrue();
+        assertThat(news.getIsPublic()).isFalse();
     }
 
     @Test
