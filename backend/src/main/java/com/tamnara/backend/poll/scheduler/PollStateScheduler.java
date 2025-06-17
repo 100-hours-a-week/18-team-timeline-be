@@ -3,7 +3,7 @@ package com.tamnara.backend.poll.scheduler;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.repository.PollRepository;
-import com.tamnara.backend.poll.service.PollService;
+import com.tamnara.backend.poll.service.PollServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,7 +19,7 @@ import java.util.List;
 public class PollStateScheduler {
 
     private final PollRepository pollRepository;
-    private final PollService pollService;
+    private final PollServiceImpl pollServiceImpl;
 
     @Scheduled(cron = "0 5/10 * * * *")
     public void updatePollStates() {
@@ -29,7 +29,7 @@ public class PollStateScheduler {
         // PUBLISHED → DELETED (endAt 지난 투표 모두 삭제 처리)
         List<Poll> toDelete = pollRepository.findByStateAndEndAtBefore(PollState.PUBLISHED, now);
         if (!toDelete.isEmpty()) {
-            toDelete.forEach(pollService::deletePoll);
+            toDelete.forEach(pollServiceImpl::deletePoll);
             log.info("[스케줄러] {}개의 투표를 DELETED 처리했습니다.", toDelete.size());
         }
 
@@ -40,7 +40,7 @@ public class PollStateScheduler {
         scheduled.stream()
                 .min(Comparator.comparing(Poll::getStartAt))
                 .ifPresent(poll -> {
-                    pollService.publishPoll(poll);
+                    pollServiceImpl.publishPoll(poll);
                     log.info("[스케줄러] 투표(ID={})를 PUBLISHED 처리했습니다.", poll.getId());
                 });
 

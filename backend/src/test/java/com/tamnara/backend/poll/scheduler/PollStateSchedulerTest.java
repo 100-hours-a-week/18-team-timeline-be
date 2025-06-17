@@ -3,8 +3,7 @@ package com.tamnara.backend.poll.scheduler;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.repository.PollRepository;
-import com.tamnara.backend.poll.service.PollService;
-import com.tamnara.backend.poll.util.PollTestBuilder;
+import com.tamnara.backend.poll.service.PollServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,29 +13,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PollStateSchedulerTest {
 
-    @Mock
-    private PollRepository pollRepository;
+    @Mock private PollRepository pollRepository;
+    @Mock private PollServiceImpl pollServiceImpl;
 
-    @Mock
-    private PollService pollService;
-
-    @InjectMocks
-    private PollStateScheduler pollStateScheduler;
+    @InjectMocks private PollStateScheduler pollStateScheduler;
 
     private Poll pollToDelete;
     private Poll pollToPublish;
 
     @BeforeEach
     void setUp() {
-        LocalDateTime now = LocalDateTime.now();
-
         pollToDelete = Poll.builder()
                 .id(1L)
                 .minChoices(1)
@@ -57,7 +49,7 @@ class PollStateSchedulerTest {
     }
 
     @Test
-    @DisplayName("종료된 PUBLISHED 투표는 DELETED 상태로 변경된다")
+    @DisplayName("종료된 PUBLISHED 투표는 DELETED 상태로 변경")
     void updatePollStates_deletesExpiredPolls() {
         // given
         when(pollRepository.findByStateAndEndAtBefore(eq(PollState.PUBLISHED), any()))
@@ -70,12 +62,12 @@ class PollStateSchedulerTest {
         pollStateScheduler.updatePollStates();
 
         // then
-        verify(pollService).deletePoll(pollToDelete);
-        verify(pollService, never()).publishPoll(any());
+        verify(pollServiceImpl).deletePoll(pollToDelete);
+        verify(pollServiceImpl, never()).publishPoll(any());
     }
 
     @Test
-    @DisplayName("시작 시간이 지난 SCHEDULED 투표 중 가장 빠른 투표를 PUBLISHED 상태로 변경한다")
+    @DisplayName("시작 시간이 지난 SCHEDULED 투표 중 가장 빠른 투표를 PUBLISHED 상태로 변경")
     void updatePollStates_publishesScheduledPoll() {
         // given
         when(pollRepository.findByStateAndEndAtBefore(eq(PollState.PUBLISHED), any()))
@@ -88,12 +80,12 @@ class PollStateSchedulerTest {
         pollStateScheduler.updatePollStates();
 
         // then
-        verify(pollService).publishPoll(pollToPublish);
-        verify(pollService, never()).deletePoll(any());
+        verify(pollServiceImpl).publishPoll(pollToPublish);
+        verify(pollServiceImpl, never()).deletePoll(any());
     }
 
     @Test
-    @DisplayName("변경할 투표가 없으면 아무 동작도 하지 않는다")
+    @DisplayName("변경할 투표가 없으면 미동작")
     void updatePollStates_noChanges() {
         // given
         when(pollRepository.findByStateAndEndAtBefore(eq(PollState.PUBLISHED), any()))
@@ -106,7 +98,7 @@ class PollStateSchedulerTest {
         pollStateScheduler.updatePollStates();
 
         // then
-        verify(pollService, never()).deletePoll(any());
-        verify(pollService, never()).publishPoll(any());
+        verify(pollServiceImpl, never()).deletePoll(any());
+        verify(pollServiceImpl, never()).publishPoll(any());
     }
 }

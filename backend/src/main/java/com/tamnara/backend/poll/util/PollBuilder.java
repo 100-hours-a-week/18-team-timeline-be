@@ -3,8 +3,8 @@ package com.tamnara.backend.poll.util;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
-import com.tamnara.backend.poll.dto.PollCreateRequest;
-import com.tamnara.backend.poll.dto.PollOptionCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
 
 import java.util.ArrayList;
 import java.util.List;

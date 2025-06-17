@@ -1,4 +1,4 @@
-package com.tamnara.backend.poll.dto;
+package com.tamnara.backend.poll.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

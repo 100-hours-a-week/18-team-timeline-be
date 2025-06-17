@@ -1,7 +1,9 @@
 package com.tamnara.backend.poll.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.tamnara.backend.poll.domain.*;
+import com.tamnara.backend.config.TestConfig;
+import com.tamnara.backend.poll.domain.Poll;
+import com.tamnara.backend.poll.domain.PollOption;
+import com.tamnara.backend.poll.domain.VoteStatistics;
 import com.tamnara.backend.poll.util.PollOptionTestBuilder;
 import com.tamnara.backend.poll.util.PollTestBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -9,7 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,18 +20,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@Import(TestConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class VoteStatisticsRepositoryTest {
-
-    @MockBean
-    private JPAQueryFactory jpaQueryFactory;
 
     @Autowired private PollRepository pollRepository;
     @Autowired private PollOptionRepository pollOptionRepository;
     @Autowired private VoteStatisticsRepository voteStatisticsRepository;
 
     @Test
-    @DisplayName("기본 통계 객체 생성과 저장, 조회에 성공한다")
+    @DisplayName("기본 통계 객체 생성과 저장, 조회 성공")
     void saveAndFindByPollId() {
         // given
         Poll poll = pollRepository.save(PollTestBuilder.defaultPoll());
@@ -45,7 +47,7 @@ class VoteStatisticsRepositoryTest {
     }
 
     @Test
-    @DisplayName("PollId + OptionId 조합으로 VoteStatistics 단건 조회에 성공한다")
+    @DisplayName("PollId + OptionId 조합으로 VoteStatistics 단건 조회 성공")
     void findByPollIdAndOptionId() {
         // given
         Poll poll = pollRepository.save(PollTestBuilder.defaultPoll());
@@ -61,7 +63,7 @@ class VoteStatisticsRepositoryTest {
     }
 
     @Test
-    @DisplayName("PollId + OptionId 중복 저장 시 예외가 발생한다")
+    @DisplayName("PollId + OptionId 중복 저장 시 예외 발생")
     void duplicatePollAndOptionThrowsException() {
         // given
         Poll poll = pollRepository.save(PollTestBuilder.defaultPoll());
