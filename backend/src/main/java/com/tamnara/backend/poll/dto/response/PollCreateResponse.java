@@ -1,4 +1,4 @@
-package com.tamnara.backend.poll.dto;
+package com.tamnara.backend.poll.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
