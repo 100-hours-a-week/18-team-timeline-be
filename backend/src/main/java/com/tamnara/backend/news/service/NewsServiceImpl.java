@@ -624,6 +624,16 @@ public class NewsServiceImpl implements NewsService {
             news.setIsPublic(true);
             newsRepository.save(news);
         }
+
+        if (!newsList.isEmpty()) {
+            publishAlarm(
+                    userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                    AlarmMessage.POLL_RESULT_TITLE,
+                    String.format(AlarmMessage.POLL_RESULT_CONTENT, newsList.getFirst().getTitle()),
+                    AlarmType.NEWS,
+                    newsList.getFirst().getId()
+            );
+        }
     }
 
 
