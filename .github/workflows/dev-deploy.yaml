@@ -119,6 +119,7 @@ jobs:
       DB_URL: ${{ secrets.DEV_DB_URL }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      OTEL_SERVICE_NAME: dev-backend-service
       OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
       KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
       KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
@@ -159,6 +160,7 @@ jobs:
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
             
             # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
+            OTEL_SERVICE_NAME = dev-backend-service
             DB_URL=$DB_URL
             DB_USERNAME=$DB_USERNAME
             DB_PASSWORD=$DB_PASSWORD
