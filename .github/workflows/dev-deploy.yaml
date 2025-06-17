@@ -276,7 +276,7 @@ jobs:
                 $ECR_URI_DEV:latest
 
               docker exec dev-backend bash /app/dev-deploy.sh
-  EOF
+            EOF
 
   # ─────────────────────────────────────────────
   # Step 4: 실패 시 Discord 알림
