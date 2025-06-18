@@ -2,6 +2,8 @@ package com.tamnara.backend.poll.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -30,10 +32,12 @@ public class VoteStatistics {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "poll_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Poll poll;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "option_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private PollOption option;
 
     public static VoteStatistics zero(Poll poll, PollOption option) {

@@ -2,6 +2,8 @@ package com.tamnara.backend.poll.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -20,7 +22,12 @@ public class PollOption {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 18)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "poll_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Poll poll;
+
+    @Column(name = "title", length = 18)
     private String title;
 
     @Column(name = "image_url", length = 255)
@@ -32,8 +39,4 @@ public class PollOption {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "poll_id", nullable = false)
-    private Poll poll;
 }
