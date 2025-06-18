@@ -93,16 +93,45 @@ class PollRepositoryTest {
     @DisplayName("최신 공개 투표 조회")
     void findLatestPollByPublishedPoll() {
         // given
-        Poll poll = PollTestBuilder.defaultPoll();
-        poll.changeState(PollState.PUBLISHED);
-        pollRepository.saveAndFlush(poll);
+        Poll poll1 = PollTestBuilder.defaultPoll();
+        poll1.changeState(PollState.PUBLISHED);
+
+        Poll poll2 = PollTestBuilder.defaultPoll();
+        poll2.changeState(PollState.PUBLISHED);
+
+        Poll poll3 = PollTestBuilder.defaultPoll();
+        poll3.changeState(PollState.PUBLISHED);
+
+        pollRepository.saveAndFlush(poll3);
         em.clear();
-        System.out.println(("poll.state:" + poll.getState()));
 
         // when
         Poll foundPoll = pollRepository.findLatestPollByPublishedPoll().get();
 
         // then
-        assertEquals(poll.getId(), foundPoll.getId());
+        assertEquals(poll3.getId(), foundPoll.getId());
+    }
+
+    @Test
+    @DisplayName("최신 공개 투표 조회")
+    void findLatestPollByScheduledPoll() {
+        // given
+        Poll poll1 = PollTestBuilder.defaultPoll();
+        poll1.changeState(PollState.SCHEDULED);
+
+        Poll poll2 = PollTestBuilder.defaultPoll();
+        poll2.changeState(PollState.SCHEDULED);
+
+        Poll poll3 = PollTestBuilder.defaultPoll();
+        poll3.changeState(PollState.SCHEDULED);
+
+        pollRepository.saveAndFlush(poll3);
+        em.clear();
+
+        // when
+        Poll foundPoll = pollRepository.findLatesPollByScheduledPoll().get();
+
+        // then
+        assertEquals(poll3.getId(), foundPoll.getId());
     }
 }

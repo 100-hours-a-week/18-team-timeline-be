@@ -21,7 +21,7 @@ public class Poll {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "title", nullable = false, length = 100)
     private String title;
 
     @Column(name = "min_choices", nullable = false)
@@ -42,7 +42,7 @@ public class Poll {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
+    @Column(name = "state", length = 20, nullable = false)
     private PollState state = PollState.DRAFT;
 
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
