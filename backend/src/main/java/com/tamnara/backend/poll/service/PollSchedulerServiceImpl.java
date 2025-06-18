@@ -1,9 +1,9 @@
 package com.tamnara.backend.poll.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -15,8 +15,9 @@ public class PollSchedulerServiceImpl implements PollSchedulerService {
         this.pollService = pollService;
     }
 
+    @Override
+    @Async
     @Scheduled(cron = "0 0 10 * * MON")
-    @Transactional
     public void updatePollStates() {
         log.info("[INFO] 투표 상태 전환 처리 시작");
         Long start = System.currentTimeMillis();
