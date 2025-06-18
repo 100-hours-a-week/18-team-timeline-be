@@ -95,6 +95,7 @@ public class PollServiceImpl implements PollService {
             pollRepository.save(scheduled.get());
         } else {
             log.warn("[WARN] 투표 공개 대상 없음 - 공개 예정인 투표가 존재하지 않음");
+            return;
         }
 
         Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
@@ -103,6 +104,7 @@ public class PollServiceImpl implements PollService {
             pollRepository.save(published.get());
         } else {
             log.warn("[WARN] 투표 삭제 대상 없음 - 공개 중인 투표가 존재하지 않음");
+            return;
         }
 
         // 알림 이벤트 발행 추가
