@@ -6,12 +6,9 @@ import com.tamnara.backend.alarm.event.AlarmEvent;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
-import com.tamnara.backend.poll.domain.VoteStatistics;
-import com.tamnara.backend.poll.dto.OptionResult;
 import com.tamnara.backend.poll.dto.PollInfoDTO;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
-import com.tamnara.backend.poll.dto.response.PollStatisticsResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
@@ -64,15 +61,6 @@ public class PollServiceImpl implements PollService {
         List<PollOption> options = buildPollOptionsFromRequest(request.getOptions(), savedPoll);
         pollOptionRepository.saveAll(options);
 
-        // 알림 이벤트 발행 추가
-        publishAlarm(
-                userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
-                AlarmMessage.POLL_START_TITLE,
-                String.format(AlarmMessage.POLL_START_CONTENT, poll.getTitle()),
-                AlarmType.POLLS,
-                null
-        );
-
         return savedPoll.getId();
     }
 
@@ -105,7 +93,6 @@ public class PollServiceImpl implements PollService {
         if (scheduled.isPresent()) {
             scheduled.get().changeState(PollState.PUBLISHED);
             pollRepository.save(scheduled.get());
-
         } else {
             log.warn("[WARN] 투표 공개 대상 없음 - 공개 예정인 투표가 존재하지 않음");
         }
@@ -117,23 +104,15 @@ public class PollServiceImpl implements PollService {
         } else {
             log.warn("[WARN] 투표 삭제 대상 없음 - 공개 중인 투표가 존재하지 않음");
         }
-    }
 
-    public PollStatisticsResponse getPollStatistics(Long pollId) {
-        Poll poll = pollRepository.findById(pollId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
-
-        List<PollOption> options = poll.getOptions();
-
-        List<OptionResult> results = options.stream().map(option -> {
-            VoteStatistics stat = voteStatisticsRepository.findByPollIdAndOptionId(pollId, option.getId())
-                    .orElse(VoteStatistics.zero(poll, option));
-            return new OptionResult(option.getId(), option.getTitle(), stat.getCount());
-        }).collect(Collectors.toList());
-
-        long totalVotes = results.stream().mapToLong(OptionResult::getCount).sum();
-
-        return new PollStatisticsResponse(pollId, results, totalVotes);
+        // 알림 이벤트 발행 추가
+        publishAlarm(
+                userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                AlarmMessage.POLL_START_TITLE,
+                String.format(AlarmMessage.POLL_START_CONTENT, scheduled.get().getTitle()),
+                AlarmType.POLLS,
+                null
+        );
     }
 
 
