@@ -16,21 +16,23 @@ import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.PUBLISHED_POLL_ALREADY_EXISTS;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_LATER_THAN_END_DATE;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollFromRequest;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequest;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PollServiceImpl implements PollService {
@@ -93,21 +95,23 @@ public class PollServiceImpl implements PollService {
     }
 
     @Transactional
-    public void publishPoll(Poll poll) {
-        if (pollRepository.existsByState(PollState.PUBLISHED)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    PUBLISHED_POLL_ALREADY_EXISTS
-            );
-        }
-        poll.changeState(PollState.PUBLISHED);
-        pollRepository.save(poll);
-    }
+    public void updatePollStates() {
+        Optional<Poll> scheduled = pollRepository.findLatesPollByScheduledPoll();
+        if (scheduled.isPresent()) {
+            scheduled.get().changeState(PollState.PUBLISHED);
+            pollRepository.save(scheduled.get());
 
-    @Transactional
-    public void deletePoll(Poll poll) {
-        poll.changeState(PollState.DELETED);
-        pollRepository.save(poll);
+        } else {
+            log.warn("[WARN] 투표 공개 대상 없음 - 공개 예정인 투표가 존재하지 않음");
+        }
+
+        Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
+        if (published.isPresent()) {
+            published.get().changeState(PollState.DELETED);
+            pollRepository.save(published.get());
+        } else {
+            log.warn("[WARN] 투표 삭제 대상 없음 - 공개 중인 투표가 존재하지 않음");
+        }
     }
 
 

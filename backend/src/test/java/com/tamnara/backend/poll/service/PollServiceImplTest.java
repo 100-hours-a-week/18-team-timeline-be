@@ -36,7 +36,6 @@ import java.util.Optional;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.PUBLISHED_POLL_ALREADY_EXISTS;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_LATER_THAN_END_DATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,12 +63,32 @@ class PollServiceImplTest {
 
     private Poll poll;
     private PollOption option;
+    private Poll pollToDelete;
+    private Poll pollToPublish;
 
     @BeforeEach
     void setUp() {
         poll = PollTestBuilder.defaultPoll();
         ReflectionTestUtils.setField(poll, "id", 1L);
         option = PollOptionTestBuilder.defaultOption(poll);
+
+        pollToDelete = Poll.builder()
+                .id(1L)
+                .minChoices(1)
+                .maxChoices(2)
+                .startAt(LocalDateTime.now().minusMinutes(10))
+                .endAt(LocalDateTime.now().minusMinutes(1)) // 종료된 투표
+                .state(PollState.PUBLISHED)
+                .build();
+
+        pollToPublish = Poll.builder()
+                .id(1L)
+                .minChoices(1)
+                .maxChoices(2)
+                .startAt(LocalDateTime.now().minusMinutes(1)) // 시작된 투표
+                .endAt(LocalDateTime.now().plusMinutes(10)) // 아직 유효함
+                .state(PollState.SCHEDULED)
+                .build();
     }
 
     @Test
@@ -175,44 +195,45 @@ class PollServiceImplTest {
     }
 
     @Test
-    @DisplayName("publishPoll을 통해 state 변경 성공")
-    void publishPoll_changesStateToPublished() {
+    @DisplayName("SCHEDULED 투표 1건을 PUBLISHED 상태로 변경, 기존 PUBLISHED 투표를 DELETED 상태로 변경")
+    void updatePollStates_deletesExpiredPolls() {
         // given
-        when(pollRepository.existsByState(PollState.PUBLISHED)).thenReturn(false);
-        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
+        when(pollRepository.findLatesPollByScheduledPoll()).thenReturn(Optional.ofNullable(pollToPublish));
+        when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.ofNullable(pollToDelete));
 
         // when
-        pollServiceImpl.publishPoll(poll);
+        pollServiceImpl.updatePollStates();
 
         // then
-        assertThat(poll.getState()).isEqualTo(PollState.PUBLISHED);
-        Mockito.verify(pollRepository, times(1)).save(poll);
+        verify(pollRepository, times(2)).save(any(Poll.class));
+
     }
 
     @Test
-    @DisplayName("publishPoll에서 이미 PUBLISHED 상태인 투표가 있을 경우 예외 반환")
-    void publishPoll_throwsException_whenPollAlreadyPublished() {
+    @DisplayName("투표 공개 대상이 없으면 예외 처리")
+    void updatePollStates_publishesScheduledPoll() {
         // given
-        when(pollRepository.existsByState(PollState.PUBLISHED)).thenReturn(true);
+        when(pollRepository.findLatesPollByScheduledPoll()).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> pollServiceImpl.publishPoll(poll))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining(PUBLISHED_POLL_ALREADY_EXISTS);
+        // when
+        pollServiceImpl.updatePollStates();
+
+        // then
+        verify(pollRepository, never()).save(any(Poll.class));
     }
 
     @Test
-    @DisplayName("deletePoll을 통해 state 변경 성공")
-    void deletePoll_changesStateToDeleted() {
+    @DisplayName("투표 삭제 대상이 없으면 예외 처리")
+    void updatePollStates_noChanges() {
         // given
-        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
+        when(pollRepository.findLatesPollByScheduledPoll()).thenReturn(Optional.ofNullable(pollToPublish));
+        when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.empty());
 
         // when
-        pollServiceImpl.deletePoll(poll);
+        pollServiceImpl.updatePollStates();
 
         // then
-        assertThat(poll.getState()).isEqualTo(PollState.DELETED);
-        Mockito.verify(pollRepository, times(1)).save(poll);
+        verify(pollRepository, times(1)).save(any(Poll.class));
     }
 
     @Test

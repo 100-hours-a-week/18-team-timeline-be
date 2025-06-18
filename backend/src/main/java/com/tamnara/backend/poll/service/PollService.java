@@ -9,6 +9,6 @@ public interface PollService {
     Poll getPollById(Long pollId);
     PollInfoResponse getLatestPublishedPoll(Long userId);
     void schedulePoll(Long pollId);
-    void publishPoll(Poll poll);
-    void deletePoll(Poll poll);
+
+    void updatePollStates();
 }
