@@ -201,6 +201,7 @@ jobs:
 
               # 🚀 새 컨테이너 실행
               sudo docker run -d --name dev-backend \
+                -p 8080:8080
                 -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
                 -e ECR_URI_DEV=$ECR_URI_DEV \
                 -e DB_URL=$DB_URL \
