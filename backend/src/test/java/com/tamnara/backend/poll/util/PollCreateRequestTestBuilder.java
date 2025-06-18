@@ -1,7 +1,7 @@
 package com.tamnara.backend.poll.util;
 
-import com.tamnara.backend.poll.dto.PollCreateRequest;
-import com.tamnara.backend.poll.dto.PollOptionCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollCreateRequest;
+import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
