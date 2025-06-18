@@ -17,9 +17,13 @@ public interface PollRepository extends JpaRepository<Poll, Long> {
     LIMIT 1
     """)
     Optional<Poll> findLatestPollByPublishedPoll();
+    @Query("""
+    SELECT p FROM Poll p
+    WHERE p.state = 'SCHEDULED'
+    ORDER BY p.id DESC
+    LIMIT 1
+    """)
+    Optional<Poll> findLatesPollByScheduledPoll();
     List<Poll> findByState(PollState state);
     List<Poll> findByEndAtAfter(LocalDateTime now);
-    List<Poll> findByStateAndEndAtBefore(PollState state, LocalDateTime now);
-    List<Poll> findByStateAndStartAtBeforeAndEndAtAfter(PollState state, LocalDateTime nowForStart, LocalDateTime nowForEnd);
-    boolean existsByState(PollState state);
 }

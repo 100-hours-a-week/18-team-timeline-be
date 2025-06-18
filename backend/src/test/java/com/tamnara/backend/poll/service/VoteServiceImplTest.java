@@ -89,7 +89,7 @@ class VoteServiceImplTest {
 
         when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.of(poll));
         when(pollOptionRepository.findAllById(any())).thenReturn(List.of(option1, option2));
-        when(voteRepository.hasVotedLatestPublishedPoll(user.getId())).thenReturn(true);
+        when(voteRepository.hasVotedLatestPublishedPoll(user.getId())).thenReturn(false);
 
         // when
         voteServiceImpl.vote(user, voteRequest);
@@ -151,7 +151,7 @@ class VoteServiceImplTest {
         // given
         when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.of(poll));
         when(pollOptionRepository.findAllById(List.of(101L))).thenReturn(List.of(option1));
-        when(voteRepository.hasVotedLatestPublishedPoll(user.getId())).thenReturn(false);
+        when(voteRepository.hasVotedLatestPublishedPoll(user.getId())).thenReturn(true);
 
         // when
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {

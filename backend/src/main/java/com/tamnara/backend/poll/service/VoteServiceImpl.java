@@ -4,11 +4,13 @@ import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.domain.Vote;
+import com.tamnara.backend.poll.domain.VoteStatistics;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
 import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
+import com.tamnara.backend.poll.repository.VoteStatisticsRepository;
 import com.tamnara.backend.user.domain.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOU
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_IN_VOTING_PERIOD;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_PUBLISHED;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_OR_OPTION_NOT_FOUND;
+import static com.tamnara.backend.poll.util.VoteStatisticsBuilder.buildNew;
+import static com.tamnara.backend.poll.util.VoteStatisticsBuilder.buildUpdated;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +37,9 @@ public class VoteServiceImpl implements VoteService {
     private final PollRepository pollRepository;
     private final PollOptionRepository pollOptionRepository;
     private final VoteRepository voteRepository;
+    private final VoteStatisticsRepository voteStatisticsRepository;
 
+    @Override
     @Transactional
     public PollIdResponse vote(User user, VoteRequest voteRequest) {
         // 1. 투표가 유효한지 체크
@@ -84,7 +90,27 @@ public class VoteServiceImpl implements VoteService {
                 .toList();
 
         voteRepository.saveAll(votes);
+        generateAllStatistics();
 
         return new PollIdResponse(poll.getId());
+    }
+
+
+    /**
+     * 헬퍼 메서드
+     */
+    private void generateAllStatistics() {
+        List<Poll> polls = pollRepository.findByState(PollState.PUBLISHED);
+        for (Poll poll : polls) {
+            for (PollOption option : poll.getOptions()) {
+                long count = voteRepository.countByPollIdAndOptionId(poll.getId(), option.getId());
+
+                VoteStatistics updated = voteStatisticsRepository.findByPollIdAndOptionId(poll.getId(), option.getId())
+                        .map(existing -> buildUpdated(existing, count))
+                        .orElseGet(() -> buildNew(poll, option, count));
+
+                voteStatisticsRepository.save(updated);
+            }
+        }
     }
 }
