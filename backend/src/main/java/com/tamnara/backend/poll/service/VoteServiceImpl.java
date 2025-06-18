@@ -39,6 +39,7 @@ public class VoteServiceImpl implements VoteService {
     private final VoteRepository voteRepository;
     private final VoteStatisticsRepository voteStatisticsRepository;
 
+    @Override
     @Transactional
     public PollIdResponse vote(User user, VoteRequest voteRequest) {
         // 1. 투표가 유효한지 체크

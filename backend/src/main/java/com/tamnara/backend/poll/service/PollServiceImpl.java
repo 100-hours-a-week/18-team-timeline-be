@@ -46,6 +46,7 @@ public class PollServiceImpl implements PollService {
     private final VoteStatisticsRepository voteStatisticsRepository;
     private final UserRepository userRepository;
 
+    @Override
     @Transactional
     public Long createPoll(PollCreateRequest request) {
         if (request.getMinChoices() > request.getMaxChoices()) {
@@ -79,6 +80,7 @@ public class PollServiceImpl implements PollService {
         );
     }
 
+    @Override
     @Transactional
     public void schedulePoll(Long pollId) {
         Poll poll = pollRepository.findById(pollId)
@@ -87,6 +89,7 @@ public class PollServiceImpl implements PollService {
         pollRepository.save(poll);
     }
 
+    @Override
     @Transactional
     public void updatePollStates() {
         Optional<Poll> scheduled = pollRepository.findLatesPollByScheduledPoll();
