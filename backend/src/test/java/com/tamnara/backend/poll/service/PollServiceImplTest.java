@@ -237,34 +237,24 @@ class PollServiceImplTest {
     }
 
     @Test
-    @DisplayName("투표 생성 시 전체 알림 발행 검증")
-    void createPoll_createAlarm_success() {
+    @DisplayName("투표 상태 전환 시 전체 알림 발행 검증")
+    void updatePollStates_createAlarm_success() {
         // given
-        String pollTitle = "Test Poll";
-        LocalDateTime now = LocalDateTime.now();
-        PollCreateRequest request = PollCreateRequestTestBuilder.build(
-                pollTitle, 1, 2, now.minusDays(1), now.plusDays(1),
-                Arrays.asList(
-                        new PollOptionCreateRequest("Option 1", "url1"),
-                        new PollOptionCreateRequest("Option 2", "url2")
-                ));
-
-        when(pollRepository.save(any(Poll.class))).thenReturn(poll);
-        when(pollOptionRepository.saveAll(Mockito.anyList())).thenReturn(Arrays.asList(option));
+        when(pollRepository.findLatesPollByScheduledPoll()).thenReturn(Optional.ofNullable(pollToPublish));
+        when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.ofNullable(pollToDelete));
 
         // when
-        pollServiceImpl.createPoll(request);
+        pollServiceImpl.updatePollStates();
 
         // then
-        Mockito.verify(userRepository, times(1)).findAll();
-        Mockito.verify(pollOptionRepository, times(1)).saveAll(Mockito.anyList());
+        verify(userRepository, times(1)).findAll();
 
         ArgumentCaptor<AlarmEvent> captor = ArgumentCaptor.forClass(AlarmEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
 
         AlarmEvent event = captor.getValue();
         assertEquals(AlarmMessage.POLL_START_TITLE, event.getTitle());
-        assertEquals(String.format(AlarmMessage.POLL_START_CONTENT, pollTitle), event.getContent());
+        assertEquals(String.format(AlarmMessage.POLL_START_CONTENT, pollToPublish.getTitle()), event.getContent());
         assertEquals(AlarmType.POLLS, event.getTargetType());
         assertNull(event.getTargetId());
     }
