@@ -5,6 +5,7 @@ import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.news.constant.NewsResponseMessage;
 import com.tamnara.backend.news.dto.NewsDetailDTO;
+import com.tamnara.backend.news.dto.request.KtbNewsCreateRequest;
 import com.tamnara.backend.news.dto.request.NewsCreateRequest;
 import com.tamnara.backend.news.dto.response.HotissueNewsListResponse;
 import com.tamnara.backend.news.dto.response.NewsDetailResponse;
@@ -173,6 +174,38 @@ public class NewsController {
             if (newsDetailDTO == null) {
                 return ResponseEntity.noContent().build();
             }
+
+            URI location = URI.create("/news/" + newsDetailDTO.getId());
+            NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);
+            return ResponseEntity.created(location).body(
+                    new WrappedDTO<>(
+                            true,
+                            NewsResponseMessage.NEWS_CREATED_SUCCESS,
+                            newsDetailResponse
+                    ));
+
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/ktb")
+    public ResponseEntity<WrappedDTO<NewsDetailResponse>> createKtbNews(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody KtbNewsCreateRequest req
+    ) {
+        try {
+            if (userDetails == null || userDetails.getUser() == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ResponseMessage.USER_NOT_CERTIFICATION);
+            }
+
+            Long userId = userDetails.getUser().getId();
+            NewsDetailDTO newsDetailDTO = newsService.saveKtbNews(userId, req);
 
             URI location = URI.create("/news/" + newsDetailDTO.getId());
             NewsDetailResponse newsDetailResponse = new NewsDetailResponse(newsDetailDTO);

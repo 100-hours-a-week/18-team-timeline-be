@@ -1,6 +1,6 @@
 package com.tamnara.backend.poll.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.tamnara.backend.config.TestConfig;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,16 +19,16 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@Import(TestConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PollOptionRepositoryTest {
-    @MockBean
-    private JPAQueryFactory jpaQueryFactory; // NewsSearchRepositoryImpl 로딩 시 필요
 
     @Autowired private PollRepository pollRepository;
     @Autowired private PollOptionRepository pollOptionRepository;
 
     @Test
-    @DisplayName("PollOption을 저장하고 PollId로 조회한다")
+    @DisplayName("PollOption을 저장하고 PollId로 조회")
     void saveAndFindByPollId() {
         // given
         Poll poll = PollTestBuilder.build(

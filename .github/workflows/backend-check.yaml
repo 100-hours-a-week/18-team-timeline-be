@@ -68,6 +68,7 @@ jobs:
           EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
           EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          OTEL_SERVICE_NAME: backend-service
         run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
   # ─────────────────────────────────────────────
@@ -116,6 +117,20 @@ jobs:
         env:
           TAG: ${{ steps.meta.outputs.tag }}
           ECR_URI: ${{ secrets.ECR_URI }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+          JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
+          FE_BASE_URL: ${{ secrets.FE_BASE_URL }}
+          BE_BASE_URL: ${{ secrets.BE_BASE_URL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          EC2_PUBLIC_URL_1: ${{ secrets.EC2_PUBLIC_URL_1 }}
+          EC2_PUBLIC_URL_2: ${{ secrets.EC2_PUBLIC_URL_2 }}
+          EC2_PUBLIC_URL_3: ${{ secrets.EC2_PUBLIC_URL_3 }}
+          OTEL_SERVICE_NAME: backend-service
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
         run: |
           chmod +x ../scripts/build.sh
           ../scripts/build.sh $ECR_URI $TAG

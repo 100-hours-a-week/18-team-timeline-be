@@ -9,32 +9,25 @@ import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @InjectMocks
-    private UserService userService;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+    @InjectMocks private UserService userService;
+    @Mock private UserRepository userRepository;
 
     @Test
     @DisplayName("이메일 사용 가능 여부를 확인한다")
@@ -47,7 +40,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("닉네임 사용 가능 여부를 확인한다")
+    @DisplayName("닉네임 사용 가능 여부 확인")
     void isUsernameAvailable_success() {
         // given
         Mockito.when(userRepository.existsByUsername("탐라")).thenReturn(true);
@@ -57,7 +50,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("회원 정보 조회에 성공한다")
+    @DisplayName("회원 정보 조회 성공")
     void getCurrentUserInfo_success() {
         // given
         User user = User.builder()
@@ -76,7 +69,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("비활성화된 사용자는 조회할 수 없다")
+    @DisplayName("비활성화된 사용자 조회 불가")
     void getCurrentUserInfo_inactiveUser_throwsException() {
         // given
         User user = User.builder()
@@ -91,7 +84,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("닉네임 변경에 성공한다")
+    @DisplayName("닉네임 변경 성공")
     void updateUsername_success() {
         // given
         User user = User.builder()
@@ -110,7 +103,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("닉네임이 중복되면 변경할 수 없다")
+    @DisplayName("닉네임이 중복 시 변경 불가")
     void updateUsername_duplicate_throwsException_success() {
         // given
         Mockito.when(userRepository.existsByUsername("existing")).thenReturn(true);
@@ -121,7 +114,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("회원 탈퇴에 성공한다 (상태: DELETED, withdrawnAt 설정됨)")
+    @DisplayName("회원탈퇴 시 Soft Delete 처리 성공")
     void withdrawUser_success() {
         // given
         User user = User.builder()
@@ -144,7 +137,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 회원 탈퇴 시 예외가 발생한다")
+    @DisplayName("존재하지 않는 회원탈퇴 시 예외 발생")
     void withdrawUser_userNotFound_throwsException() {
         // given
         Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
