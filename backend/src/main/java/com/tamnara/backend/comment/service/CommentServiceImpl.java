@@ -39,8 +39,8 @@ public class CommentServiceImpl implements CommentService {
         int page = offset / CommentServiceConstant.PAGE_SIZE;
         int nextOffset = (page + 1) * CommentServiceConstant.PAGE_SIZE;
 
-        Page<Comment> comments = commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page, CommentServiceConstant.PAGE_SIZE));
-        boolean hasNext = !commentRepository.findAllByNewsIdOrderByIdAsc(newsId, PageRequest.of(page + 1, CommentServiceConstant.PAGE_SIZE)).isEmpty();
+        Page<Comment> comments = commentRepository.findAllByNewsIdOrderByIdDesc(newsId, PageRequest.of(page, CommentServiceConstant.PAGE_SIZE));
+        boolean hasNext = !commentRepository.findAllByNewsIdOrderByIdDesc(newsId, PageRequest.of(page + 1, CommentServiceConstant.PAGE_SIZE)).isEmpty();
 
         List<CommentDTO> commentDTOList = new ArrayList<>();
         for (Comment c : comments.getContent()) {
