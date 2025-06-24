@@ -71,8 +71,8 @@ public class CommentServiceImplTest {
         Page<Comment> commentPage = new PageImpl<>(Arrays.asList(comment1, comment2, comment3));
 
         when(newsRepository.existsById(1L)).thenReturn(true);
-        when(commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), PageRequest.of(0, CommentServiceConstant.PAGE_SIZE))).thenReturn(commentPage);
-        when(commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), PageRequest.of(1, CommentServiceConstant.PAGE_SIZE))).thenReturn(Page.empty());
+        when(commentRepository.findAllByNewsIdOrderByIdDesc(news.getId(), PageRequest.of(0, CommentServiceConstant.PAGE_SIZE))).thenReturn(commentPage);
+        when(commentRepository.findAllByNewsIdOrderByIdDesc(news.getId(), PageRequest.of(1, CommentServiceConstant.PAGE_SIZE))).thenReturn(Page.empty());
 
         // when
         CommentListResponse response = commentServiceImpl.getComments(news.getId(), 0);

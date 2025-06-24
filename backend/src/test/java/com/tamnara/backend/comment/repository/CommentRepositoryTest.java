@@ -187,7 +187,7 @@ public class CommentRepositoryTest {
     }
 
     @Test
-    void 뉴스_ID로_연관된_댓글_전체_조회_시_ID_오름차순_정렬_검증() {
+    void 뉴스_ID로_연관된_댓글_전체_조회_시_ID_내림차순_정렬_검증() {
         // given
         Comment comment1 = createComment("댓글 내용", news, user);
         commentRepository.saveAndFlush(comment1);
@@ -198,14 +198,14 @@ public class CommentRepositoryTest {
 
         // when
         Pageable pageable = PageRequest.of(0, CommentServiceConstant.PAGE_SIZE);
-        Page<Comment> commentPage = commentRepository.findAllByNewsIdOrderByIdAsc(news.getId(), pageable);
+        Page<Comment> commentPage = commentRepository.findAllByNewsIdOrderByIdDesc(news.getId(), pageable);
         List<Comment> commentList = commentPage.getContent();
 
         // then
         assertEquals(3, commentList.size());
-        assertEquals(comment1.getId(), commentList.get(0).getId());
+        assertEquals(comment3.getId(), commentList.get(0).getId());
         assertEquals(comment2.getId(), commentList.get(1).getId());
-        assertEquals(comment3.getId(), commentList.get(2).getId());
+        assertEquals(comment1.getId(), commentList.get(2).getId());
     }
 
     @Test
