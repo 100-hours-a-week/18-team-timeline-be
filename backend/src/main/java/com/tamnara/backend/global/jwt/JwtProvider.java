@@ -1,5 +1,6 @@
 package com.tamnara.backend.global.jwt;
 
+import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.user.domain.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -18,14 +19,10 @@ public class JwtProvider {
 
     @Value("${jwt.secret}")
     private String secretKeyString;
-
     private Key secretKey;
-
-    private final long ACCESS_TOKEN_VALIDITY = 1000 * 60 * 30; // 30분
 
     @PostConstruct
     protected void init() {
-        // 시크릿 키를 바이트로 인코딩해서 Key 객체로 변환
         this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -35,7 +32,7 @@ public class JwtProvider {
                 .claim("role", user.getRole().toString())
                 .claim("username", user.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
+                .expiration(new Date(System.currentTimeMillis() + JwtConstant.ACCESS_TOKEN_VALIDITY))
                 .signWith(secretKey)
                 .compact();
     }
@@ -49,10 +46,13 @@ public class JwtProvider {
                 .getSubject();
     }
 
-    public String resolveToken(HttpServletRequest request) {
-        String bearer = request.getHeader("Authorization");
-        if (bearer != null && bearer.startsWith("Bearer ")) {
-            return bearer.substring(7);
+    public String resolveTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+
+        for (var cookie : request.getCookies()) {
+            if ("accessToken".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
         }
         return null;
     }
@@ -65,7 +65,6 @@ public class JwtProvider {
                     .parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // 만료, 서명 오류, 파싱 오류 등
             return false;
         }
     }
