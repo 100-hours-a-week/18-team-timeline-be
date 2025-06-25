@@ -6,11 +6,15 @@ import com.tamnara.backend.global.dto.WrappedDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_URL_GENERATGED;
 
 @RestController
 @RequiredArgsConstructor
@@ -51,7 +55,10 @@ public class KakaoController {
             @ApiResponse(responseCode = "401", description = "잘못된 인가 코드"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    public ResponseEntity<WrappedDTO<Void>> kakaoCallback(@RequestParam("code") String code) {
-        return kakaoService.kakaoLogin(code);
+    public ResponseEntity<WrappedDTO<Void>> kakaoCallback(
+            @RequestParam("code") String code,
+            HttpServletResponse response
+    ) {
+        return kakaoService.kakaoLogin(code, response);
     }
 }

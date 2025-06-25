@@ -7,19 +7,23 @@ import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_BAD_GATEWAY;
+import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_SUCCESSFUL;
 import static com.tamnara.backend.global.constant.ResponseMessage.INTERNAL_SERVER_ERROR;
 
 @Slf4j
@@ -45,12 +49,12 @@ public class KakaoService {
                 .build()
                 .toUriString();
 
-        log.info("카카오 로그인 URL 생성됨: {}", url);
+        log.info("카카오 로그인 URL 생성: {}", url);
         return url;
     }
 
     @Transactional
-    public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code) {
+    public ResponseEntity<WrappedDTO<Void>> kakaoLogin(String code, HttpServletResponse response) {
         log.info("카카오 로그인 시작: code={}", code);
         try {
             String accessToken = kakaoApiClient.getAccessToken(code);
@@ -65,27 +69,18 @@ public class KakaoService {
             String kakaoId = String.valueOf(userInfoJson.get("id"));
             String email = (String) kakaoAccount.get("email");
             String nickname = (String) properties.get("nickname");
-
             log.debug("카카오 사용자 파싱 결과: kakaoId={}, email={}, nickname={}", kakaoId, email, nickname);
 
             Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
+            User user = optionalUser.orElseGet(() -> User.builder()
+                    .email(email)
+                    .username(nickname)
+                    .provider("KAKAO")
+                    .providerId(kakaoId)
+                    .role(Role.USER)
+                    .state(State.ACTIVE)
+                    .build());
 
-            User user;
-
-            if (optionalUser.isPresent()) {
-                user = optionalUser.get();
-                log.info("기존 사용자 로그인 처리: userId={}", user.getId());
-            } else {
-                user = User.builder()
-                        .email(email)
-                        .username(nickname)
-                        .provider("KAKAO")
-                        .providerId(kakaoId)
-                        .role(Role.USER)
-                        .state(State.ACTIVE)
-                        .build();
-                log.info("신규 사용자 회원가입 처리 예정: email={}", email);
-            }
             user.updateLastActiveAtNow();
             userRepository.save(user);
             log.info("마지막 활동시간 업데이트 완료: userId={}", user.getId());
@@ -93,10 +88,15 @@ public class KakaoService {
             String tamnaraAccessToken = jwtProvider.createAccessToken(user);
             log.info("JWT 발급 완료: userId={}", user.getId());
 
-            // System.out.println("✅ 발급된 access token: " + tamnaraAccessToken);
+            Cookie jwtCookie = new Cookie("accessToken", tamnaraAccessToken);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(true);
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(60 * 60); // 1시간
+            response.addCookie(jwtCookie);
+            log.info("쿠키에 JWT 저장 완료: userId={}", user.getId());
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamnaraAccessToken)
                     .body(new WrappedDTO<>(true, KAKAO_LOGIN_SUCCESSFUL, null));
 
         } catch (RestClientException e) {
