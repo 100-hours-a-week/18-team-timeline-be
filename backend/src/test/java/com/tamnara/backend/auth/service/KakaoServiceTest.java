@@ -1,19 +1,25 @@
 package com.tamnara.backend.auth.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.auth.client.KakaoApiClient;
-import com.tamnara.backend.global.util.TestUtil;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
+import com.tamnara.backend.global.util.TestUtil;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
-import org.springframework.http.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -22,32 +28,29 @@ import java.util.Optional;
 import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_SUCCESSFUL;
 import static com.tamnara.backend.global.util.CreateUserUtil.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class KakaoServiceTest {
 
-    @InjectMocks
-    private KakaoService kakaoService;
+    @InjectMocks private KakaoService kakaoService;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private JwtProvider jwtProvider;
+    @Mock private KakaoApiClient kakaoApiClient;
+    @Mock MockHttpServletResponse mockResponse;
 
-    @Mock
-    private JwtProvider jwtProvider;
-
-    @Mock
-    private KakaoApiClient kakaoApiClient;
-
-    @Captor
-    private ArgumentCaptor<User> userCaptor;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Captor private ArgumentCaptor<User> userCaptor;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        // private 필드 주입
         kakaoService = new KakaoService(userRepository, jwtProvider, kakaoApiClient);
+        mockResponse = new MockHttpServletResponse();
+
         TestUtil.setPrivateField(kakaoService, "clientId", "fake-client-id");
         TestUtil.setPrivateField(kakaoService, "redirectUri", "http://fake-localhost:8080/auth/kakao/callback");
     }
@@ -73,11 +76,10 @@ class KakaoServiceTest {
                 ));
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code);
+        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer " + tamnaraToken);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
 
@@ -89,6 +91,13 @@ class KakaoServiceTest {
         assertThat(savedUser.getProviderId()).isEqualTo("12345");
         assertThat(savedUser.getRole()).isEqualTo(Role.USER);
         assertThat(savedUser.getState()).isEqualTo(State.ACTIVE);
+
+        Cookie accessTokenCookie = mockResponse.getCookie("accessToken");
+        assertThat(accessTokenCookie).isNotNull();
+        assertThat(accessTokenCookie.getValue()).isEqualTo(tamnaraToken);
+        assertThat(accessTokenCookie.isHttpOnly()).isTrue();
+        assertThat(accessTokenCookie.getSecure()).isTrue();
+
     }
 
     @Test
@@ -114,16 +123,26 @@ class KakaoServiceTest {
                 ));
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code);
+        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer " + tamnaraToken);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
 
-        verify(userRepository).save(existingUser);
-        verify(jwtProvider).createAccessToken(existingUser);
+        verify(userRepository).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+
+        assertThat(savedUser.getEmail()).isEqualTo("test@kakao.com");
+        assertThat(savedUser.getUsername()).isEqualTo("카카오유저");
+        assertThat(savedUser.getProviderId()).isEqualTo("12345");
+
+        Cookie accessTokenCookie = mockResponse.getCookie("accessToken");
+        assertThat(accessTokenCookie).isNotNull();
+        assertThat(accessTokenCookie.getValue()).isEqualTo(tamnaraToken);
+        assertThat(accessTokenCookie.isHttpOnly()).isTrue();
+        assertThat(accessTokenCookie.getSecure()).isTrue();
+        assertThat(accessTokenCookie.getPath()).isEqualTo("/");
     }
 
     @Test
@@ -151,12 +170,16 @@ class KakaoServiceTest {
                 .thenReturn(tamnaraToken);
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code);
+        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
 
         // then
         // Verify header
-        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
-                .isEqualTo("Bearer " + tamnaraToken);
+        Cookie accessTokenCookie = mockResponse.getCookie("accessToken");
+        assertThat(accessTokenCookie).isNotNull();
+        assertThat(accessTokenCookie.getValue()).isEqualTo(tamnaraToken);
+        assertThat(accessTokenCookie.isHttpOnly()).isTrue();
+        assertThat(accessTokenCookie.getSecure()).isTrue();
+
 
         // Verify body
         assertThat(response.getBody()).isNotNull();
