@@ -1,7 +1,6 @@
 package com.tamnara.backend.auth.service;
 
 import com.tamnara.backend.auth.client.KakaoApiClient;
-import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.global.util.TestUtil;
 import com.tamnara.backend.user.domain.Role;
@@ -17,15 +16,12 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.KAKAO_LOGIN_SUCCESSFUL;
 import static com.tamnara.backend.global.util.CreateUserUtil.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
@@ -36,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 class KakaoServiceTest {
 
-    @InjectMocks private KakaoService kakaoService;
+    @InjectMocks private KakaoServiceImpl kakaoService;
 
     @Mock private UserRepository userRepository;
     @Mock private JwtProvider jwtProvider;
@@ -48,7 +44,7 @@ class KakaoServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        kakaoService = new KakaoService(userRepository, jwtProvider, kakaoApiClient);
+        kakaoService = new KakaoServiceImpl(userRepository, jwtProvider, kakaoApiClient);
         mockResponse = new MockHttpServletResponse();
 
         TestUtil.setPrivateField(kakaoService, "clientId", "fake-client-id");
@@ -76,13 +72,9 @@ class KakaoServiceTest {
                 ));
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
+        kakaoService.kakaoLogin(code, mockResponse);
 
         // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().isSuccess()).isTrue();
-
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
 
@@ -123,13 +115,9 @@ class KakaoServiceTest {
                 ));
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
+        kakaoService.kakaoLogin(code, mockResponse);
 
         // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().isSuccess()).isTrue();
-
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
 
@@ -170,7 +158,7 @@ class KakaoServiceTest {
                 .thenReturn(tamnaraToken);
 
         // when
-        ResponseEntity<WrappedDTO<Void>> response = kakaoService.kakaoLogin(code, mockResponse);
+        kakaoService.kakaoLogin(code, mockResponse);
 
         // then
         // Verify header
@@ -179,12 +167,6 @@ class KakaoServiceTest {
         assertThat(accessTokenCookie.getValue()).isEqualTo(tamnaraToken);
         assertThat(accessTokenCookie.isHttpOnly()).isTrue();
         assertThat(accessTokenCookie.getSecure()).isTrue();
-
-
-        // Verify body
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().isSuccess()).isTrue();
-        assertThat(response.getBody().getMessage()).isEqualTo(KAKAO_LOGIN_SUCCESSFUL);
 
         // Verify implementations
         verify(kakaoApiClient).getAccessToken(code);
