@@ -1,6 +1,5 @@
 package com.tamnara.backend.auth.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamnara.backend.auth.client.KakaoApiClient;
 import com.tamnara.backend.auth.config.KakaoApiClientMockConfig;
 import com.tamnara.backend.user.domain.User;
@@ -37,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class KakaoControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private KakaoApiClient kakaoApiClient;
 
     @Autowired private UserRepository userRepository;
@@ -80,7 +78,7 @@ class KakaoControllerIntegrationTest {
                         .param("code", "invalidCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(Matchers.containsString(KAKAO_BAD_GATEWAY)));
+                .andExpect(jsonPath("$.message").value(KAKAO_BAD_GATEWAY));
     }
 
     @Test
@@ -90,15 +88,14 @@ class KakaoControllerIntegrationTest {
         when(kakaoApiClient.getAccessToken(anyString()))
                 .thenReturn("mockAccessToken");
 
-        when(kakaoApiClient.getUserInfo("mockAccessToken"))
-                .thenThrow(new RuntimeException(PARSING_USER_INFO_FAILS));
+        when(kakaoApiClient.getUserInfo("mockAccessToken")).thenThrow(new RuntimeException(PARSING_USER_INFO_FAILS));
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(Matchers.containsString(PARSING_USER_INFO_FAILS)));
+                .andExpect(jsonPath("$.message").value(PARSING_USER_INFO_FAILS));
     }
 
     @Test
@@ -108,7 +105,6 @@ class KakaoControllerIntegrationTest {
         User existingUser = userRepository.findByEmailAndProvider("test@kakao.com", "KAKAO")
                 .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
-        // 실제 DB 저장 (실제 흐름 테스트 목적)
         userRepository.save(existingUser);
 
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
