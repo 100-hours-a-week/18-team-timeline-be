@@ -73,6 +73,8 @@ public class JwtProvider {
     }
 
     public boolean validateRefreshToken(String token) {
+        if (token == null || token.isBlank()) return false;
+
         try {
             Claims claims = Jwts.parser()
                     .verifyWith((SecretKey) secretKey)
@@ -107,5 +109,13 @@ public class JwtProvider {
             }
         }
         return null;
+    }
+
+    public void saveRefreshToken(User user, String refreshToken) {
+        redisTemplate.opsForValue().set("RT:" + user.getId(), refreshToken, JwtConstant.REFRESH_TOKEN_VALIDITY);
+    }
+
+    public void deleteRefreshToken(Long userId) {
+        redisTemplate.delete("RT:" + userId);
     }
 }
