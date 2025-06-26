@@ -2,6 +2,7 @@ package com.tamnara.backend.auth.controller;
 
 import com.tamnara.backend.auth.client.KakaoApiClient;
 import com.tamnara.backend.auth.config.KakaoApiClientMockConfig;
+import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import org.hamcrest.Matchers;
@@ -60,7 +61,10 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("accessToken=")))
+                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
+                        Matchers.hasItem(Matchers.containsString(JwtConstant.ACCESS_TOKEN + "="))))
+                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
+                        Matchers.hasItem(Matchers.containsString(JwtConstant.REFRESH_TOKEN + "="))))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("HttpOnly")))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Secure")))
                 .andExpect(jsonPath("$.success").value(true));
@@ -119,7 +123,10 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("accessToken=")))
+                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
+                        Matchers.hasItem(Matchers.containsString(JwtConstant.ACCESS_TOKEN + "="))))
+                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
+                        Matchers.hasItem(Matchers.containsString(JwtConstant.REFRESH_TOKEN + "="))))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("HttpOnly")))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Secure")))
                 .andExpect(jsonPath("$.success").value(true));
