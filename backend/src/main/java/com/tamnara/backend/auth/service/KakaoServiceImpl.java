@@ -48,6 +48,7 @@ public class KakaoServiceImpl implements KakaoService {
     @Transactional
     public void kakaoLogin(String code, HttpServletResponse response) {
         log.info("[INFO] 카카오 로그인 시작: code={}", code);
+
         String accessToken = kakaoApiClient.getAccessToken(code);
         log.info("[INFO] 카카오 access token 발급 성공");
 
@@ -77,14 +78,25 @@ public class KakaoServiceImpl implements KakaoService {
         log.info("[INFO] 마지막 활동시간 업데이트 완료: userId={}", user.getId());
 
         String tamnaraAccessToken = jwtProvider.createAccessToken(user);
-        log.info("[INFO] JWT 발급 완료: userId={}", user.getId());
+        log.info("[INFO] JWT access token 발급 완료: userId={}", user.getId());
 
-        Cookie jwtCookie = new Cookie(JwtConstant.COOKIE_NAME, tamnaraAccessToken);
-        jwtCookie.setHttpOnly(true);
-        jwtCookie.setSecure(true);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(JwtConstant.COOKIE_VALIDITY);
-        response.addCookie(jwtCookie);
-        log.info("[INFO] 쿠키에 JWT 저장 완료: userId={}", user.getId());
+        Cookie accessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, tamnaraAccessToken);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge((int) JwtConstant.ACCESS_TOKEN_VALIDITY.getSeconds());
+        response.addCookie(accessCookie);
+        log.info("[INFO] 쿠키에 JWT access token 저장 완료: userId={}", user.getId());
+
+        String tamnaraRefreshToken = jwtProvider.createRefreshToken(user);
+        log.info("[INFO] JWT refresh token 발급 완료: userId={}", user.getId());
+
+        Cookie refreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, tamnaraRefreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge((int) JwtConstant.REFRESH_TOKEN_VALIDITY.getSeconds());
+        response.addCookie(refreshCookie);
+        log.info("[INFO] 쿠키에 JWT refresh token 저장 완료: userId={}", user.getId());
     }
 }

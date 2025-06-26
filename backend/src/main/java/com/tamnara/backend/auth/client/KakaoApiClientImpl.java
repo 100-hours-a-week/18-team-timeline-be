@@ -19,11 +19,8 @@ import static com.tamnara.backend.auth.constant.AuthResponseMessage.*;
 @RequiredArgsConstructor
 public class KakaoApiClientImpl implements KakaoApiClient {
 
-    @Value("${kakao.client-id}")
-    private String clientId;
-
-    @Value("${kakao.redirect-uri}")
-    private String redirectUri;
+    @Value("${kakao.client-id}") private String clientId;
+    @Value("${kakao.redirect-uri}") private String redirectUri;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
