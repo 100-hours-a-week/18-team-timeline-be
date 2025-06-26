@@ -89,6 +89,7 @@ public class KakaoServiceImpl implements KakaoService {
         log.info("[INFO] 쿠키에 JWT access token 저장 완료: userId={}", user.getId());
 
         String tamnaraRefreshToken = jwtProvider.createRefreshToken(user);
+        jwtProvider.saveRefreshToken(user, tamnaraRefreshToken);
         log.info("[INFO] JWT refresh token 발급 완료: userId={}", user.getId());
 
         Cookie refreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, tamnaraRefreshToken);
