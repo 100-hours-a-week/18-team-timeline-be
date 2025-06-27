@@ -6,7 +6,6 @@ import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.EmailAvailabilityResponse;
-import com.tamnara.backend.user.dto.NicknameAvailabilityResponse;
 import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserInfoWrapper;
 import com.tamnara.backend.user.dto.UserUpdateRequest;
@@ -17,7 +16,7 @@ import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
 import com.tamnara.backend.user.security.UserDetailsImpl;
-import com.tamnara.backend.user.service.UserService;
+import com.tamnara.backend.user.service.UserServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -47,8 +46,6 @@ import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_AVAILA
 import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_BAD_REQUEST;
 import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_UNAVAILABLE;
 import static com.tamnara.backend.user.constant.UserResponseMessage.LOGOUT_SUCCESSFUL;
-import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_AVAILABLE;
-import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_BAD_REQUEST;
 import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_UNAVAILABLE;
 import static com.tamnara.backend.user.constant.UserResponseMessage.USER_INFO_MODIFIED;
 import static com.tamnara.backend.user.constant.UserResponseMessage.USER_INFO_RETRIEVED;
@@ -60,7 +57,7 @@ import static com.tamnara.backend.user.constant.UserResponseMessage.WITHDRAWAL_S
 public class UserController {
 
     private final UserRepository userRepository;
-    private final UserService userService;
+    private final UserServiceImpl userService;
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProvider jwtProvider;
 
@@ -87,38 +84,6 @@ public class UserController {
                     new WrappedDTO<>(true,
                             available ? EMAIL_AVAILABLE : EMAIL_UNAVAILABLE,
                             new EmailAvailabilityResponse(available))
-            );
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
-        }
-    }
-
-    @GetMapping("/check-nickname")
-    @Operation(
-            summary = "닉네임 중복 조회",
-            description = "입력된 닉네임이 이미 가입된 닉네임인지 확인합니다. 중복이면 false, 사용 가능하면 true를 반환합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "요청 성공. 사용 가능 여부는 data.available로 확인"),
-            @ApiResponse(responseCode = "400", description = "잘못된 닉네임 형식"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    public ResponseEntity<WrappedDTO<NicknameAvailabilityResponse>> checkNickname(@RequestParam("nickname") String nickname) {
-        try {
-            if (nickname == null || nickname.isBlank() || nickname.length() > 10) {
-                return ResponseEntity.badRequest().body(
-                        new WrappedDTO<>(false, NICKNAME_BAD_REQUEST, null)
-                );
-            }
-
-            boolean available = userService.isUsernameAvailable(nickname);
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true,
-                            available ? NICKNAME_AVAILABLE : NICKNAME_UNAVAILABLE,
-                            new NicknameAvailabilityResponse(available))
             );
 
         } catch (Exception e) {
