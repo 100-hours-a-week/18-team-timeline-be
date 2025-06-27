@@ -1,6 +1,7 @@
 package com.tamnara.backend.auth.service;
 
 import com.tamnara.backend.auth.client.KakaoApiClient;
+import com.tamnara.backend.auth.constant.KakaoOAuthConstant;
 import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
@@ -33,7 +34,7 @@ public class KakaoServiceImpl implements KakaoService {
 
     @Override
     public String buildKakaoLoginUrl() {
-        String url = UriComponentsBuilder.fromUriString("https://kauth.kakao.com/oauth/authorize")
+        String url = UriComponentsBuilder.fromUriString(KakaoOAuthConstant.KAKAO_OAUTH_AUTHORIZE)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
