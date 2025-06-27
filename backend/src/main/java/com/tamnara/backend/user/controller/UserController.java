@@ -1,9 +1,17 @@
 package com.tamnara.backend.user.controller;
 
+import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.global.dto.WrappedDTO;
+import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.*;
+import com.tamnara.backend.user.dto.EmailAvailabilityResponse;
+import com.tamnara.backend.user.dto.NicknameAvailabilityResponse;
+import com.tamnara.backend.user.dto.UserInfo;
+import com.tamnara.backend.user.dto.UserInfoWrapper;
+import com.tamnara.backend.user.dto.UserUpdateRequest;
+import com.tamnara.backend.user.dto.UserUpdateResponse;
+import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -14,15 +22,37 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import static com.tamnara.backend.global.constant.ResponseMessage.*;
-import static com.tamnara.backend.user.constant.UserResponseMessage.*;
+import static com.tamnara.backend.global.constant.ResponseMessage.INTERNAL_SERVER_ERROR;
+import static com.tamnara.backend.global.constant.ResponseMessage.INVALID_TOKEN;
+import static com.tamnara.backend.global.constant.ResponseMessage.USER_FORBIDDEN;
+import static com.tamnara.backend.global.constant.ResponseMessage.USER_NOT_FOUND;
+import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_AVAILABLE;
+import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_BAD_REQUEST;
+import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_UNAVAILABLE;
+import static com.tamnara.backend.user.constant.UserResponseMessage.LOGOUT_SUCCESSFUL;
+import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_AVAILABLE;
+import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_BAD_REQUEST;
+import static com.tamnara.backend.user.constant.UserResponseMessage.NICKNAME_UNAVAILABLE;
+import static com.tamnara.backend.user.constant.UserResponseMessage.USER_INFO_MODIFIED;
+import static com.tamnara.backend.user.constant.UserResponseMessage.USER_INFO_RETRIEVED;
+import static com.tamnara.backend.user.constant.UserResponseMessage.WITHDRAWAL_SUCCESSFUL;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +61,8 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final JwtProvider jwtProvider;
 
     @GetMapping("/check-email")
     @Operation(
@@ -204,7 +236,11 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<Void>> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<Void>> logout(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
         try {
             if (userDetails == null || userDetails.getUser() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
@@ -213,13 +249,29 @@ public class UserController {
             }
 
             User user = userRepository.findById(userDetails.getUser().getId())
-                    .orElseThrow(() -> new UserNotFoundException());
+                    .orElseThrow(UserNotFoundException::new);
 
-            if (userDetails.getUser().getState() != State.ACTIVE) {
+            if (user.getState() != State.ACTIVE) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                         new WrappedDTO<>(false, USER_FORBIDDEN, null)
                 );
             }
+
+            jwtProvider.deleteRefreshToken(userDetails.getUser().getId());
+
+            Cookie expiredAccessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, null);
+            expiredAccessCookie.setHttpOnly(true);
+            expiredAccessCookie.setSecure(true);
+            expiredAccessCookie.setPath("/");
+            expiredAccessCookie.setMaxAge(0);
+            response.addCookie(expiredAccessCookie);
+
+            Cookie expiredRefreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, null);
+            expiredRefreshCookie.setHttpOnly(true);
+            expiredRefreshCookie.setSecure(true);
+            expiredRefreshCookie.setPath("/");
+            expiredRefreshCookie.setMaxAge(0);
+            response.addCookie(expiredRefreshCookie);
 
             return ResponseEntity.ok(
                     new WrappedDTO<>(true, LOGOUT_SUCCESSFUL, null)
