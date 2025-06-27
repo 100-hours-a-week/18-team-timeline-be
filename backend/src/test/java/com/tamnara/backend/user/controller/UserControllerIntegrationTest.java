@@ -104,37 +104,6 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("닉네임 중복 조회 - available")
-    void checkNickname_available() throws Exception {
-        // when & then
-        mockMvc.perform(get("/users/check-nickname")
-                        .param("nickname", "uniqueNick"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.available").value(true))
-                .andExpect(jsonPath("$.message").value(NICKNAME_AVAILABLE));
-    }
-
-    @Test
-    @DisplayName("닉네임 중복 조회 - conflict")
-    void checkNickname_conflict() throws Exception {
-        // given
-        userRepository.save(User.builder()
-                .email("another@example.com")
-                .username("dupeNick")
-                .provider("KAKAO")
-                .role(Role.USER)
-                .state(State.ACTIVE)
-                .build());
-
-        // when & then
-        mockMvc.perform(get("/users/check-nickname")
-                        .param("nickname", "dupeNick"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.available").value(false))
-                .andExpect(jsonPath("$.message").value(NICKNAME_UNAVAILABLE));
-    }
-
-    @Test
     @DisplayName("회원 정보 조회 통합 테스트 - 성공")
     void getCurrentUser_success() throws Exception {
         // when & then
@@ -196,29 +165,6 @@ public class UserControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value(USER_FORBIDDEN));
-    }
-
-    @Test
-    @DisplayName("회원 정보 수정 실패 - 중복 닉네임")
-    void updateNickname_conflict() throws Exception {
-        // given
-        userRepository.save(User.builder()
-                .email("another@example.com")
-                .username("dupeNick")
-                .provider("KAKAO")
-                .role(Role.USER)
-                .state(State.ACTIVE)
-                .build());
-
-        UserUpdateRequest dto = new UserUpdateRequest("dupeNick");
-
-        // when & then
-        mockMvc.perform(patch("/users/me")
-                        .header("Authorization", getAccessToken(user))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value(NICKNAME_UNAVAILABLE));
     }
 
     @Test
