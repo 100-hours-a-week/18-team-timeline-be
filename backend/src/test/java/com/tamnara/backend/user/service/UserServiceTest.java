@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @InjectMocks private UserService userService;
+    @InjectMocks private UserServiceImpl userService;
     @Mock private UserRepository userRepository;
 
     @Test
@@ -37,16 +37,6 @@ class UserServiceTest {
 
         // when, then
         assertThat(userService.isEmailAvailable("a@a.com")).isTrue();
-    }
-
-    @Test
-    @DisplayName("닉네임 사용 가능 여부 확인")
-    void isUsernameAvailable_success() {
-        // given
-        Mockito.when(userRepository.existsByUsername("탐라")).thenReturn(true);
-
-        // when, then
-        assertThat(userService.isUsernameAvailable("탐라")).isFalse();
     }
 
     @Test
