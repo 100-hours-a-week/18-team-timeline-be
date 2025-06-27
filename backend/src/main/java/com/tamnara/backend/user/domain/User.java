@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_user_email", columnNames = {"email", "provider"}),
                 @UniqueConstraint(name = "uk_user_provider_id", columnNames = {"provider", "providerId"}),
-                @UniqueConstraint(name = "uk_user_username", columnNames = {"username"})
+//                @UniqueConstraint(name = "uk_user_email", columnNames = {"email", "provider"}),
+//                @UniqueConstraint(name = "uk_user_username", columnNames = {"username"})
         }
 )
 @Getter
