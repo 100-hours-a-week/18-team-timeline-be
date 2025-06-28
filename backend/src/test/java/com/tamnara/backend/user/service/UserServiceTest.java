@@ -5,7 +5,6 @@ import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
-import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
@@ -82,7 +81,6 @@ class UserServiceTest {
                 .username("old")
                 .state(State.ACTIVE)
                 .build();
-        Mockito.when(userRepository.existsByUsername("new")).thenReturn(false);
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when
@@ -90,17 +88,6 @@ class UserServiceTest {
 
         // then
         assertThat(result.getUsername()).isEqualTo("new");
-    }
-
-    @Test
-    @DisplayName("닉네임이 중복 시 변경 불가")
-    void updateUsername_duplicate_throwsException_success() {
-        // given
-        Mockito.when(userRepository.existsByUsername("existing")).thenReturn(true);
-
-        // when, then
-        assertThatThrownBy(() -> userService.updateUsername(1L, "existing"))
-                .isInstanceOf(DuplicateUsernameException.class);
     }
 
     @Test

@@ -3,9 +3,12 @@ package com.tamnara.backend.user.service;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.*;
+import com.tamnara.backend.user.dto.SignupRequest;
+import com.tamnara.backend.user.dto.SignupResponse;
+import com.tamnara.backend.user.dto.UserInfo;
+import com.tamnara.backend.user.dto.UserWithdrawInfo;
+import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
-import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
@@ -32,10 +35,6 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(requestDto.getEmail())) {
             log.warn("이메일 중복: {}", requestDto.getEmail());
             throw new DuplicateEmailException();
-        }
-        if (userRepository.existsByUsername(requestDto.getUsername())) {
-            log.warn("닉네임 중복: {}", requestDto.getUsername());
-            throw new DuplicateUsernameException();
         }
 
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
@@ -70,13 +69,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean isUsernameAvailable(String username) {
-        boolean result = !userRepository.existsByUsername(username);
-        log.info("닉네임 사용 가능 여부: username={}, available={}", username, result);
-        return result;
-    }
-
-    @Override
     public UserInfo getCurrentUserInfo(Long userId) {
         log.info("getCurrentUserInfo 진입: userId={}", userId);
 
@@ -98,11 +90,6 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User updateUsername(Long userId, String newUsername) {
         log.info("updateUsername 진입: userId={}, newUsername={}", userId, newUsername);
-
-        if (userRepository.existsByUsername(newUsername)) {
-            log.warn("닉네임 중복: {}", newUsername);
-            throw new DuplicateUsernameException();
-        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
