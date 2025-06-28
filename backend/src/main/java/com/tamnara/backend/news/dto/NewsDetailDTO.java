@@ -18,6 +18,7 @@ public class NewsDetailDTO {
     private String title;
     @Length(max = 255, message = "이미지 링크의 길이가 너무 깁니다.")
     private String image;
+    private String category;
     @PastOrPresent(message = "날짜는 과거 또는 현재만 가능합니다.")
     private LocalDateTime updatedAt;
     private boolean bookmarked;
