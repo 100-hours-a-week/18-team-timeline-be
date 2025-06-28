@@ -1,5 +1,8 @@
 package com.tamnara.backend.user.service;
 
+import com.tamnara.backend.global.constant.JwtConstant;
+import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -12,12 +15,16 @@ import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_BAD_REQUEST;
 import static com.tamnara.backend.user.constant.UserResponseMessage.REGISTER_SUCCESSFUL;
 
 @Slf4j
@@ -28,6 +35,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     @Override
     public SignupResponse signup(SignupRequest requestDto) {
@@ -63,6 +71,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean isEmailAvailable(String email) {
+        if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, EMAIL_BAD_REQUEST);
+        }
+
         boolean result = !userRepository.existsByEmail(email);
         log.info("이메일 사용 가능 여부: email={}, available={}", email, result);
         return result;
@@ -129,5 +141,31 @@ public class UserServiceImpl implements UserService {
         return new UserWithdrawInfoWrapper(
                 new UserWithdrawInfo(user.getId(), user.getWithdrawnAt())
         );
+    }
+
+    @Override
+    public void logout(Long userId, HttpServletResponse response) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getState() != State.ACTIVE) {
+            throw new InactiveUserException();
+        }
+
+        jwtProvider.deleteRefreshToken(userId);
+
+        Cookie expiredAccessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, null);
+        expiredAccessCookie.setHttpOnly(true);
+        expiredAccessCookie.setSecure(true);
+        expiredAccessCookie.setPath("/");
+        expiredAccessCookie.setMaxAge(0);
+        response.addCookie(expiredAccessCookie);
+
+        Cookie expiredRefreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, null);
+        expiredRefreshCookie.setHttpOnly(true);
+        expiredRefreshCookie.setSecure(true);
+        expiredRefreshCookie.setPath("/");
+        expiredRefreshCookie.setMaxAge(0);
+        response.addCookie(expiredRefreshCookie);
     }
 }
