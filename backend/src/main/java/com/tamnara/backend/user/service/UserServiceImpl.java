@@ -10,7 +10,6 @@ import com.tamnara.backend.user.dto.SignupRequest;
 import com.tamnara.backend.user.dto.SignupResponse;
 import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfo;
-import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
 import com.tamnara.backend.user.exception.DuplicateEmailException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -84,16 +83,7 @@ public class UserServiceImpl implements UserService {
     public UserInfo getCurrentUserInfo(Long userId) {
         log.info("getCurrentUserInfo 진입: userId={}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("회원 조회 실패: userId={}", userId);
-                    return new UserNotFoundException();
-                });
-
-        if (user.getState() != State.ACTIVE) {
-            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
-            throw new InactiveUserException(); // DELETED나 INACTIVE는 허용하지 않음
-        }
+        User user = checkValidateUser(userId);
 
         return new UserInfo(user.getId(), user.getEmail(), user.getUsername());
     }
@@ -103,17 +93,7 @@ public class UserServiceImpl implements UserService {
     public User updateUsername(Long userId, String newUsername) {
         log.info("updateUsername 진입: userId={}, newUsername={}", userId, newUsername);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("회원 조회 실패: userId={}", userId);
-                    return new UserNotFoundException();
-                });
-
-        if (user.getState() != State.ACTIVE) {
-            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
-            throw new InactiveUserException();
-        }
-
+        User user = checkValidateUser(userId);
         user.updateUsername(newUsername);
         log.info("닉네임 변경 성공: userId={}, updatedUsername={}", userId, newUsername);
 
@@ -121,26 +101,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserWithdrawInfoWrapper withdrawUser(Long userId) {
+    public UserWithdrawInfo withdrawUser(Long userId, HttpServletResponse response) {
         log.info("withdrawUser 진입: userId={}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("회원 조회 실패: userId={}", userId);
-                    return new UserNotFoundException();
-                });
+        User user = checkValidateUser(userId);
 
-        if (user.getState() != State.ACTIVE) {
-            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
-            throw new InactiveUserException();
-        }
+        jwtProvider.deleteRefreshToken(userId);
+        log.info("[INFO] Redis에서 refresh token 제거 완료");
+
+        expireCookies(response);
+        log.info("[INFO] access token, refresh token 저장 쿠키 초기화 완료");
 
         user.softDelete();
         log.info("회원 탈퇴 처리 완료: userId={}, withdrawnAt={}", user.getId(), user.getWithdrawnAt());
 
-        return new UserWithdrawInfoWrapper(
-                new UserWithdrawInfo(user.getId(), user.getWithdrawnAt())
-        );
+        return new UserWithdrawInfo(user.getId(), user.getWithdrawnAt());
     }
 
     @Override
@@ -153,7 +128,30 @@ public class UserServiceImpl implements UserService {
         }
 
         jwtProvider.deleteRefreshToken(userId);
+        expireCookies(response);
+    }
 
+
+    /**
+     * 헬퍼 메서드
+     */
+
+    private User checkValidateUser (Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("회원 조회 실패: userId={}", userId);
+                    return new UserNotFoundException();
+                });
+
+        if (user.getState() != State.ACTIVE) {
+            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
+            throw new InactiveUserException();
+        }
+
+        return user;
+    }
+
+    private void expireCookies(HttpServletResponse response) {
         Cookie expiredAccessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, null);
         expiredAccessCookie.setHttpOnly(true);
         expiredAccessCookie.setSecure(true);
