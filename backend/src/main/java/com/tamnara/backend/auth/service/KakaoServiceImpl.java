@@ -65,7 +65,15 @@ public class KakaoServiceImpl implements KakaoService {
         log.debug("[INFO] 카카오 사용자 파싱 결과: kakaoId={}, email={}, nickname={}", kakaoId, email, nickname);
 
         Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
-        User user = optionalUser.orElseGet(() -> User.builder()
+        User user;
+        if (optionalUser.isPresent()) {
+            user = optionalUser.get();
+            if (user.getState().equals(State.DELETED)) {
+                user.updateState(State.ACTIVE);
+                user.resetWithdrawnAtNow();
+            }
+        } else {
+            user = optionalUser.orElseGet(() -> User.builder()
                 .email(email)
                 .username(nickname)
                 .provider("KAKAO")
@@ -73,6 +81,7 @@ public class KakaoServiceImpl implements KakaoService {
                 .role(Role.USER)
                 .state(State.ACTIVE)
                 .build());
+        }
 
         user.updateLastActiveAtNow();
         userRepository.save(user);
