@@ -211,6 +211,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getId(),
                 news.getTitle(),
                 image,
+                news.getCategory().getName().toString(),
                 news.getUpdatedAt(),
                 bookmarked,
                 timelineCardDTOList,
@@ -335,6 +336,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getId(),
                 news.getTitle(),
                 newsImage.getUrl(),
+                news.getCategory().getName().toString(),
                 news.getUpdatedAt(),
                 true,
                 timeline,
@@ -371,6 +373,7 @@ public class NewsServiceImpl implements NewsService {
             timelineCard.setNews(news);
             timelineCard.setTitle(dto.getTitle());
             timelineCard.setContent(dto.getContent());
+            timelineCard.setSource(dto.getSource());
             timelineCard.setDuration(TimelineCardType.DAY);
             timelineCard.setStartAt(dto.getStartAt());
             timelineCard.setEndAt(dto.getEndAt());
@@ -381,6 +384,7 @@ public class NewsServiceImpl implements NewsService {
           news.getId(),
           news.getTitle(),
           req.getImage(),
+          news.getCategory().getName().toString(),
           news.getUpdatedAt(),
           false,
           req.getTimeline(),
@@ -409,6 +413,7 @@ public class NewsServiceImpl implements NewsService {
                         news.getId(),
                         news.getTitle(),
                         news.getSummary(),
+                        news.getCategory().getName().toString(),
                         news.getUpdatedAt(),
                         false,
                         getTimelineCardDTOList(news),
@@ -524,6 +529,7 @@ public class NewsServiceImpl implements NewsService {
                 news.getId(),
                 news.getTitle(),
                 updatedNewsImage.getUrl(),
+                news.getCategory().getName().toString(),
                 news.getUpdatedAt(),
                 true,
                 newTimeline,
