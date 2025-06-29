@@ -70,7 +70,7 @@ public class KakaoServiceImpl implements KakaoService {
             user = optionalUser.get();
             if (user.getState().equals(State.DELETED)) {
                 user.updateState(State.ACTIVE);
-                user.resetWithdrawnAtNow();
+                user.resetWithdrawnAtNull();
             }
         } else {
             user = optionalUser.orElseGet(() -> User.builder()

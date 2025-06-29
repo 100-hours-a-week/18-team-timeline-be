@@ -98,7 +98,7 @@ public class User {
         this.lastActiveAt = LocalDateTime.now();
     }
 
-    public void resetWithdrawnAtNow() { this.withdrawnAt = null; }
+    public void resetWithdrawnAtNull() { this.withdrawnAt = null; }
 
     public void softDelete() {
         this.state = State.DELETED;
