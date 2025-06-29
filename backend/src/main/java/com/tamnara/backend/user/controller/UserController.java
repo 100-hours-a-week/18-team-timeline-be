@@ -10,7 +10,7 @@ import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserInfoWrapper;
 import com.tamnara.backend.user.dto.UserUpdateRequest;
 import com.tamnara.backend.user.dto.UserUpdateResponse;
-import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
+import com.tamnara.backend.user.dto.UserWithdrawInfo;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
@@ -185,14 +185,16 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<UserWithdrawInfoWrapper>> withdrawUser(
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<UserWithdrawInfo>> withdrawUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            HttpServletResponse response
+    ) {
         try {
-            UserWithdrawInfoWrapper response = userService.withdrawUser(userDetails.getUser().getId());
+            UserWithdrawInfo userWithdrawInfo = userService.withdrawUser(userDetails.getUser().getId(), response);
             return ResponseEntity.ok(new WrappedDTO<>(
                     true,
                     UserResponseMessage.WITHDRAWAL_SUCCESSFUL,
-                    response
+                    userWithdrawInfo
             ));
 
         } catch (InactiveUserException e) {

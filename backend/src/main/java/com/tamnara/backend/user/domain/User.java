@@ -1,8 +1,21 @@
 package com.tamnara.backend.user.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -60,7 +73,7 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime lastActiveAt;
 
-    @UpdateTimestamp
+    @Column(nullable = true)
     private LocalDateTime withdrawnAt;
 
     @PrePersist
@@ -79,9 +92,13 @@ public class User {
         this.username = newUsername;
     }
 
+    public void updateState(State newState) { this.state = newState; }
+
     public void updateLastActiveAtNow() {
         this.lastActiveAt = LocalDateTime.now();
     }
+
+    public void resetWithdrawnAtNull() { this.withdrawnAt = null; }
 
     public void softDelete() {
         this.state = State.DELETED;
