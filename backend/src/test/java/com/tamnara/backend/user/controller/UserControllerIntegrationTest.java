@@ -175,8 +175,8 @@ public class UserControllerIntegrationTest {
                         .header("Authorization", getAccessToken(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.user.userId").value(user.getId()))
-                .andExpect(jsonPath("$.data.user.withdrawnAt").exists());
+                .andExpect(jsonPath("$.data.userId").value(user.getId()))
+                .andExpect(jsonPath("$.data.withdrawnAt").exists());
 
         // then: DB 상태 확인
         User deletedUser = userRepository.findById(user.getId()).orElseThrow();
