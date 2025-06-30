@@ -18,6 +18,16 @@ jobs:
       checks: write
       pull-requests: write
 
+    services:
+      mysql:
+        image: mysql:8
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: timeline
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -34,15 +44,15 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Gradle Build (No Tests)
+      - name: Gradle Build + test
         working-directory: ./backend
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_URL: ${{ secrets.DEV_DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_URL: jdbc:mysql://127.0.0.1:3306/timeline
+          DB_USERNAME: root
+          DB_PASSWORD: password
           KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
           KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
           JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
@@ -54,7 +64,7 @@ jobs:
           EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           OTEL_SERVICE_NAME: dev-backend-service
-        run: ./gradlew build -x checkstyleMain -x checkstyleTest
+        run: ./gradlew build
 
   # ─────────────────────────────────────────────────────
   # 2. Docker Build & ECR Push
