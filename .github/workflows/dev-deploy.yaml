@@ -228,7 +228,7 @@ jobs:
                 -e AI_BASE_URL=$AI_BASE_URL \
                 -e REDIS_HOST=localhost \
                 -e REDIS_PORT=6379 \
-                -e REDIS_PASSWORD= REDIS_PASSWORD \
+                -e REDIS_PASSWORD=$REDIS_PASSWORD \
                 -e EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
                 -e EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
                 -e EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
