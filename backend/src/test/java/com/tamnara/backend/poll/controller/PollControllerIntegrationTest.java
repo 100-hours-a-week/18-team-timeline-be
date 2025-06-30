@@ -30,7 +30,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_SCHEDULED;
@@ -79,7 +78,6 @@ class PollControllerIntegrationTest {
     @DisplayName("투표 생성 API 요청에 성공한다")
     void createPoll_success() throws Exception {
         PollCreateRequest request = PollCreateRequestTestBuilder.build("Test Poll", 1, 1,
-                LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1),
                 List.of(new PollOptionCreateRequest("Option 1", null),
                         new PollOptionCreateRequest("Option 2", null)));
 

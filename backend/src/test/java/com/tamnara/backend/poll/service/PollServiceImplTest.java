@@ -36,7 +36,6 @@ import java.util.Optional;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_LATER_THAN_END_DATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,7 +96,7 @@ class PollServiceImplTest {
         // given
         LocalDateTime now = LocalDateTime.now();
         PollCreateRequest request = PollCreateRequestTestBuilder.build(
-                "Test Poll", 1, 2, now.minusDays(1), now.plusDays(1),
+                "Test Poll", 1, 2,
                 Arrays.asList(
                         new PollOptionCreateRequest("Option 1", "url1"),
                         new PollOptionCreateRequest("Option 2", "url2")
@@ -121,7 +120,7 @@ class PollServiceImplTest {
         // given
         LocalDateTime now = LocalDateTime.now();
         PollCreateRequest request = PollCreateRequestTestBuilder.build(
-                "Test Poll", 5, 3, now.minusDays(1), now.plusDays(1),
+                "Test Poll", 5, 3,
                 Arrays.asList(
                         new PollOptionCreateRequest("Option 1", "url1"),
                         new PollOptionCreateRequest("Option 2", "url2")
@@ -131,24 +130,6 @@ class PollServiceImplTest {
         assertThatThrownBy(() -> pollServiceImpl.createPoll(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(MIN_CHOICES_EXCEED_MAX);
-    }
-
-    @Test
-    @DisplayName("createPoll 실행에서 start_at이 end_at보다 나중인 경우 400 에러 발생")
-    void createPoll_throwsException_whenStartDateIsAfterEndDate() {
-        // given
-        LocalDateTime now = LocalDateTime.now();
-        PollCreateRequest request = PollCreateRequestTestBuilder.build(
-                "Test Poll", 1, 2, now.plusDays(1), now.minusDays(1),
-                Arrays.asList(
-                        new PollOptionCreateRequest("Option 1", "url1"),
-                        new PollOptionCreateRequest("Option 2", "url2")
-                ));
-
-        // when & then
-        assertThatThrownBy(() -> pollServiceImpl.createPoll(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(START_DATE_LATER_THAN_END_DATE);
     }
 
     @Test
