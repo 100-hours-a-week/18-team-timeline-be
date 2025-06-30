@@ -50,7 +50,7 @@ jobs:
       - name: Wait for MySQL to be ready
         run: |
           for i in {1..30}; do
-            mysql -h mysql -u root -ppassword -e "SELECT 1" && break
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ppassword && break
             echo "⏳ Waiting for MySQL..."
             sleep 2
           done
@@ -61,7 +61,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_URL: jdbc:mysql://mysql:3306/timeline
+          DB_URL: jdbc:mysql://127.0.0.1:3306/timeline
           DB_USERNAME: root
           DB_PASSWORD: password
           KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
