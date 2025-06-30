@@ -50,7 +50,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_URL: jdbc:mysql://127.0.0.1:3306/timeline
+          DB_URL: jdbc:mysql://mysql:3306/timeline
           DB_USERNAME: root
           DB_PASSWORD: password
           KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
