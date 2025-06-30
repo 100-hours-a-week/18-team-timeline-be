@@ -73,6 +73,7 @@ public class PollServiceImpl implements PollService {
 
         return new PollInfoResponse(
                 voteRepository.hasVotedLatestPublishedPoll(userId),
+                voteRepository.findVotedOptionIdsOfLatestPublishedPoll(userId),
                 new PollInfoDTO(poll)
         );
     }

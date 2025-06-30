@@ -94,7 +94,6 @@ class PollServiceImplTest {
     @DisplayName("createPoll 실행 성공")
     void createPoll_success() {
         // given
-        LocalDateTime now = LocalDateTime.now();
         PollCreateRequest request = PollCreateRequestTestBuilder.build(
                 "Test Poll", 1, 2,
                 Arrays.asList(
@@ -118,7 +117,6 @@ class PollServiceImplTest {
     @DisplayName("createPoll 실행에서 minChoices가 maxChoices보다 큰 경우 400 에러 발생")
     void createPoll_throwsException_whenMinChoicesExceedsMaxChoices() {
         // given
-        LocalDateTime now = LocalDateTime.now();
         PollCreateRequest request = PollCreateRequestTestBuilder.build(
                 "Test Poll", 5, 3,
                 Arrays.asList(
@@ -152,9 +150,9 @@ class PollServiceImplTest {
         when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.empty());
 
         // when
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            pollServiceImpl.getLatestPublishedPoll(poll.getId());
-        });
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class, () -> pollServiceImpl.getLatestPublishedPoll(poll.getId())
+        );
 
         // then
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
@@ -162,7 +160,7 @@ class PollServiceImplTest {
     }
 
     @Test
-    @DisplayName("schedulePoll을 통해 state 변경 성공")
+    @DisplayName("scheduled Poll을 통해 state 변경 성공")
     void schedulePoll_changesStateToScheduled() {
         // given
         when(pollRepository.findById(anyLong())).thenReturn(Optional.ofNullable(poll));
