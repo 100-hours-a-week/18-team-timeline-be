@@ -29,6 +29,9 @@ ARG EC2_PUBLIC_URL_2
 ARG EC2_PUBLIC_URL_3
 ARG OTEL_EXPORTER_OTLP_ENDPOINT
 ARG OTEL_SERVICE_NAME
+ARG REDIS_HOST
+ARG REDIS_PORT
+ARG REDIS_PASSWORD
 
 # 환경 변수 설정
 ENV DB_URL=$DB_URL \
@@ -44,10 +47,15 @@ ENV DB_URL=$DB_URL \
     EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
     EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
     OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT \
+    REDIS_HOST=localhost \
+    REDIS_PORT=6379 \
+    REDIS_PASSWORD=$REDIS_PASSWORD \
     OTEL_SERVICE_NAME=$OTEL_SERVICE_NAME
 
 # Gradle 빌드 (테스트 생략)
-RUN ./gradlew build -x test -x compileTestJava -x processTestResources
+#RUN ./gradlew build -x test -x compileTestJava -x processTestResources
+#테스트 추가
+RUN ./gradlew build
 
 # OTEL Agent와 함께 Spring Boot 실행
 CMD java \
