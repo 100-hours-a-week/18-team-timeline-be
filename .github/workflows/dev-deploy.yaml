@@ -44,6 +44,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            mysql -h mysql -u root -ppassword -e "SELECT 1" && break
+            echo "⏳ Waiting for MySQL..."
+            sleep 2
+          done
+
       - name: Gradle Build + test
         working-directory: ./backend
         env:
@@ -64,7 +72,7 @@ jobs:
           EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           OTEL_SERVICE_NAME: dev-backend-service
-        run: ./gradlew build test
+        run: ./gradlew build
 
   # ─────────────────────────────────────────────────────
   # 2. Docker Build & ECR Push
