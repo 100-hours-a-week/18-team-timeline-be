@@ -39,6 +39,7 @@ jobs:
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_URL: ${{ secrets.DEV_DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -120,6 +121,7 @@ jobs:
     env:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
       TAG: ${{ needs.build-image.outputs.tag }}
       DB_URL: ${{ secrets.DEV_DB_URL }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -150,6 +152,7 @@ jobs:
           envs: |
             REDIS_HOST,
             REDIS_PORT,
+            REDIS_PASSWORD,
             OTEL_SERVICE_NAME,
             TAG,
             BACKEND_EC2_IP,
@@ -169,6 +172,7 @@ jobs:
             # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
             REDIS_HOST = localhost
             REDIS_PORT = 6379
+            REDIS_PASSWORD: $REDIS_PASSWORD
             OTEL_SERVICE_NAME = dev-backend-service
             DB_URL=$DB_URL
             DB_USERNAME=$DB_USERNAME
@@ -224,6 +228,7 @@ jobs:
                 -e AI_BASE_URL=$AI_BASE_URL \
                 -e REDIS_HOST=localhost \
                 -e REDIS_PORT=6379 \
+                -e REDIS_PASSWORD= REDIS_PASSWORD \
                 -e EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
                 -e EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
                 -e EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
