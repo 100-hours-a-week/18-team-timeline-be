@@ -24,6 +24,7 @@ import java.util.List;
 
 import static com.tamnara.backend.global.util.CreateUserUtil.createActiveUser;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 @Import(TestConfig.class)
@@ -120,5 +121,40 @@ class VoteRepositoryTest {
 
         // then
         assertThat(hasVoted).isTrue();
+    }
+
+    @Test
+    @DisplayName("UserId로 최신 공개 투표에 참여했을 때 선택한 선택지들의 ID 조회 성공")
+    void findVotedOptionIdsOfLatestPublishedPoll_voted() {
+        // given
+        Poll poll = pollRepository.saveAndFlush(PollTestBuilder.defaultPoll());
+        em.clear();
+        PollOption option = pollOptionRepository.saveAndFlush(PollOptionTestBuilder.defaultOption(poll));
+        em.clear();
+        voteRepository.saveAndFlush(VoteTestBuilder.build(savedUser, poll, option));
+        em.clear();
+
+        // when
+        List<Long> votedOptions = voteRepository.findVotedOptionIdsOfLatestPublishedPoll(savedUser.getId());
+
+        // then
+        assertEquals(1, votedOptions.size());
+        assertEquals(option.getId(), votedOptions.get(0));
+    }
+
+    @Test
+    @DisplayName("UserId로 최신 공개 투표에 참여하지 않았을 때 선택한 선택지들의 ID 조회 성공")
+    void findVotedOptionIdsOfLatestPublishedPoll_notVoted() {
+        // given
+        Poll poll = pollRepository.saveAndFlush(PollTestBuilder.defaultPoll());
+        em.clear();
+        PollOption option = pollOptionRepository.saveAndFlush(PollOptionTestBuilder.defaultOption(poll));
+        em.clear();
+
+        // when
+        List<Long> votedOptions = voteRepository.findVotedOptionIdsOfLatestPublishedPoll(savedUser.getId());
+
+        // then
+        assertEquals(0, votedOptions.size());
     }
 }

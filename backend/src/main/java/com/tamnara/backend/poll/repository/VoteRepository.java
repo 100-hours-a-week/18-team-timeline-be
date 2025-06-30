@@ -25,4 +25,16 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
     """)
     Boolean hasVotedLatestPublishedPoll(@Param("userId") Long userId);
 
+    @Query("""
+    SELECT v.option.id
+    FROM Vote v
+    WHERE v.user.id = :userId
+      AND v.poll.state = 'PUBLISHED'
+      AND v.poll.id = (
+          SELECT MAX(p.id)
+          FROM Poll p
+          WHERE p.state = 'PUBLISHED'
+      )
+    """)
+    List<Long> findVotedOptionIdsOfLatestPublishedPoll(@Param("userId") Long userId);
 }

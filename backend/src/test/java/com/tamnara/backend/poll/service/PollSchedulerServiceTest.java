@@ -28,6 +28,4 @@ class PollSchedulerServiceTest {
         // then
         verify(pollService, times(1)).updatePollStates();
     }
-
-
 }

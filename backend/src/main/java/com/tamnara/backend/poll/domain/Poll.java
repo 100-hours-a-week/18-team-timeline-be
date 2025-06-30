@@ -51,4 +51,12 @@ public class Poll {
     public void changeState(PollState state) {
         this.state = state;
     }
+
+    public void updateStartAt(LocalDateTime startAt) {
+        this.startAt = startAt;
+    }
+
+    public void updateEndAt(LocalDateTime endAt) {
+        this.endAt = endAt;
+    }
 }
