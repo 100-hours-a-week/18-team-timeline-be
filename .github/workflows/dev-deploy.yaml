@@ -77,6 +77,13 @@ jobs:
           OTEL_SERVICE_NAME: dev-backend-service
         run: ./gradlew build
 
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: backend/build/reports/tests/test
+
   # ─────────────────────────────────────────────────────
   # 2. Docker Build & ECR Push
   # ─────────────────────────────────────────────────────
