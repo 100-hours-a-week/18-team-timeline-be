@@ -47,6 +47,7 @@ jobs:
       - name: Gradle Build + test
         working-directory: ./backend
         env:
+          SPRING_PROFILES_ACTIVE: test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
