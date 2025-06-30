@@ -1,11 +1,12 @@
 package com.tamnara.backend.poll.dto.request;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -21,12 +22,6 @@ public class PollCreateRequest {
 
     @Min(1)
     private int maxChoices;
-
-    @NotNull
-    private LocalDateTime startAt;
-
-    @NotNull
-    private LocalDateTime endAt;
 
     @Size(min = 2)
     @Valid

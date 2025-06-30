@@ -6,6 +6,7 @@ import com.tamnara.backend.poll.domain.PollState;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
 import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +17,8 @@ public class PollBuilder {
                 .title(request.getTitle())
                 .minChoices(request.getMinChoices())
                 .maxChoices(request.getMaxChoices())
-                .startAt(request.getStartAt())
-                .endAt(request.getEndAt())
+                .startAt(LocalDateTime.now())
+                .endAt(LocalDateTime.now())
                 .state(PollState.DRAFT)
                 .build();
     }

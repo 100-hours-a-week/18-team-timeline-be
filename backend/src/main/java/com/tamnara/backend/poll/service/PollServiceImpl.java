@@ -23,13 +23,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
 import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.START_DATE_LATER_THAN_END_DATE;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollFromRequest;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequest;
 
@@ -51,9 +51,6 @@ public class PollServiceImpl implements PollService {
     public Long createPoll(PollCreateRequest request) {
         if (request.getMinChoices() > request.getMaxChoices()) {
             throw new IllegalArgumentException(MIN_CHOICES_EXCEED_MAX);
-        }
-        if (!request.getStartAt().isBefore(request.getEndAt())) {
-            throw new IllegalArgumentException(START_DATE_LATER_THAN_END_DATE);
         }
 
         Poll poll = buildPollFromRequest(request);
@@ -92,32 +89,40 @@ public class PollServiceImpl implements PollService {
     @Override
     @Transactional
     public void updatePollStates() {
-        Optional<Poll> scheduled = pollRepository.findLatesPollByScheduledPoll();
-        if (scheduled.isPresent()) {
-            scheduled.get().changeState(PollState.PUBLISHED);
-            pollRepository.save(scheduled.get());
-        } else {
-            log.warn("[WARN] 투표 공개 대상 없음 - 공개 예정인 투표가 존재하지 않음");
-            return;
-        }
-
         Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
         if (published.isPresent()) {
             published.get().changeState(PollState.DELETED);
             pollRepository.save(published.get());
         } else {
             log.warn("[WARN] 투표 삭제 대상 없음 - 공개 중인 투표가 존재하지 않음");
-            return;
         }
 
-        // 알림 이벤트 발행 추가
-        publishAlarm(
-                userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
-                AlarmMessage.POLL_START_TITLE,
-                String.format(AlarmMessage.POLL_START_CONTENT, scheduled.get().getTitle()),
-                AlarmType.POLLS,
-                null
-        );
+        Optional<Poll> scheduled = pollRepository.findLatesPollByScheduledPoll();
+        if (scheduled.isPresent()) {
+            scheduled.get().changeState(PollState.PUBLISHED);
+            scheduled.get().updateStartAt(LocalDateTime.now().withHour(10).withMinute(0).withSecond(0).withNano(0));
+            scheduled.get().updateEndAt(
+                    LocalDateTime.now()
+                            .plusWeeks(1)
+                            .withHour(9)
+                            .withMinute(30)
+                            .withSecond(0)
+                            .withNano(0)
+            );
+
+            pollRepository.save(scheduled.get());
+
+            // 알림 이벤트 발행 추가
+            publishAlarm(
+                    userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
+                    AlarmMessage.POLL_START_TITLE,
+                    String.format(AlarmMessage.POLL_START_CONTENT, scheduled.get().getTitle()),
+                    AlarmType.POLLS,
+                    null
+            );
+        } else {
+            log.warn("[WARN] 투표 공개 대상 없음 - 공개 예정인 투표가 존재하지 않음");
+        }
     }
 
 
