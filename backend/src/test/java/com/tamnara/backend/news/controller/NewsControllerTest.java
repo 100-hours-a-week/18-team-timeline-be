@@ -76,7 +76,7 @@ public class NewsControllerTest {
                 bookmarked,
                 bookmarked ? LocalDateTime.now() : null
         );
-    };
+    }
 
     private TimelineCardDTO createTimelineCardDTO() {
         return new TimelineCardDTO(
@@ -97,12 +97,13 @@ public class NewsControllerTest {
                 id,
                 "제목",
                 "이미지 링크",
+                CategoryType.SPORTS.name(),
                 LocalDateTime.now(),
                 bookmarked,
                 List.of(timelineCardDTO1, timelineCardDTO2),
                 new StatisticsDTO(50, 30, 20)
         );
-    };
+    }
 
     @BeforeEach
     void setupSecurityContext() {

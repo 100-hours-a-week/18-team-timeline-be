@@ -1,11 +1,16 @@
 package com.tamnara.backend.global.jwt;
 
+import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.user.domain.User;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -16,16 +21,13 @@ import java.util.Date;
 @Component
 public class JwtProvider {
 
-    @Value("${jwt.secret}")
-    private String secretKeyString;
+    @Autowired private RedisTemplate<String, String> redisTemplate;
 
+    @Value("${jwt.secret}") private String secretKeyString;
     private Key secretKey;
-
-    private final long ACCESS_TOKEN_VALIDITY = 1000 * 60 * 30; // 30분
 
     @PostConstruct
     protected void init() {
-        // 시크릿 키를 바이트로 인코딩해서 Key 객체로 변환
         this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -35,38 +37,85 @@ public class JwtProvider {
                 .claim("role", user.getRole().toString())
                 .claim("username", user.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
+                .expiration(new Date(System.currentTimeMillis() + JwtConstant.ACCESS_TOKEN_VALIDITY.toMillis()))
                 .signWith(secretKey)
                 .compact();
     }
 
-    public String getUserIdFromToken(String token) {
-        return Jwts.parser()
-                .verifyWith((SecretKey) secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+    public String createRefreshToken(User user) {
+        return Jwts.builder()
+                .subject(user.getId().toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + JwtConstant.REFRESH_TOKEN_VALIDITY.toMillis()))
+                .signWith(secretKey)
+                .compact();
     }
 
-    public String resolveToken(HttpServletRequest request) {
-        String bearer = request.getHeader("Authorization");
-        if (bearer != null && bearer.startsWith("Bearer ")) {
-            return bearer.substring(7);
+    public Claims parseClaims(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith((SecretKey) secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public String getUserIdFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims != null ? claims.getSubject() : null;
+    }
+
+    public boolean validateAccessToken(String token) {
+        return parseClaims(token) != null;
+    }
+
+    public boolean validateRefreshToken(String token) {
+        if (token == null || token.isBlank()) return false;
+
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith((SecretKey) secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            String userId = claims.getSubject();
+            String savedToken = redisTemplate.opsForValue().get("RT:" + userId);
+            return token.equals(savedToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public String resolveAccessTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+
+        for (var cookie : request.getCookies()) {
+            if (JwtConstant.ACCESS_TOKEN.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
         }
         return null;
     }
 
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parser()
-                    .verifyWith((SecretKey) secretKey)
-                    .build()
-                    .parseSignedClaims(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            // 만료, 서명 오류, 파싱 오류 등
-            return false;
+    public String resolveRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        for (var cookie : request.getCookies()) {
+            if (JwtConstant.REFRESH_TOKEN.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
         }
+        return null;
+    }
+
+    public void saveRefreshToken(User user, String refreshToken) {
+        redisTemplate.opsForValue().set("RT:" + user.getId(), refreshToken, JwtConstant.REFRESH_TOKEN_VALIDITY);
+    }
+
+    public void deleteRefreshToken(Long userId) {
+        redisTemplate.delete("RT:" + userId);
     }
 }

@@ -1,11 +1,10 @@
 package com.tamnara.backend.user.service;
 
+import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfo;
-import com.tamnara.backend.user.dto.UserWithdrawInfoWrapper;
-import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
@@ -16,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -24,10 +24,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class UserServiceImplTest {
 
-    @InjectMocks private UserService userService;
+    @InjectMocks private UserServiceImpl userService;
     @Mock private UserRepository userRepository;
+    @Mock private JwtProvider jwtProvider;
 
     @Test
     @DisplayName("이메일 사용 가능 여부를 확인한다")
@@ -37,16 +38,6 @@ class UserServiceTest {
 
         // when, then
         assertThat(userService.isEmailAvailable("a@a.com")).isTrue();
-    }
-
-    @Test
-    @DisplayName("닉네임 사용 가능 여부 확인")
-    void isUsernameAvailable_success() {
-        // given
-        Mockito.when(userRepository.existsByUsername("탐라")).thenReturn(true);
-
-        // when, then
-        assertThat(userService.isUsernameAvailable("탐라")).isFalse();
     }
 
     @Test
@@ -92,7 +83,6 @@ class UserServiceTest {
                 .username("old")
                 .state(State.ACTIVE)
                 .build();
-        Mockito.when(userRepository.existsByUsername("new")).thenReturn(false);
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when
@@ -100,17 +90,6 @@ class UserServiceTest {
 
         // then
         assertThat(result.getUsername()).isEqualTo("new");
-    }
-
-    @Test
-    @DisplayName("닉네임이 중복 시 변경 불가")
-    void updateUsername_duplicate_throwsException_success() {
-        // given
-        Mockito.when(userRepository.existsByUsername("existing")).thenReturn(true);
-
-        // when, then
-        assertThatThrownBy(() -> userService.updateUsername(1L, "existing"))
-                .isInstanceOf(DuplicateUsernameException.class);
     }
 
     @Test
@@ -122,18 +101,18 @@ class UserServiceTest {
                 .state(State.ACTIVE)
                 .build();
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        MockHttpServletResponse response = new MockHttpServletResponse();
 
         // when
-        UserWithdrawInfoWrapper response = userService.withdrawUser(1L);
+        UserWithdrawInfo userWithdrawInfo = userService.withdrawUser(1L, response);
 
         // then
         assertThat(user.getState()).isEqualTo(State.DELETED);
         assertThat(user.getWithdrawnAt()).isNotNull();
         assertThat(user.getWithdrawnAt()).isBeforeOrEqualTo(LocalDateTime.now());
 
-        UserWithdrawInfo userInfo = response.user();
-        assertThat(userInfo.userId()).isEqualTo(1L);
-        assertThat(userInfo.withdrawnAt()).isEqualTo(user.getWithdrawnAt());
+        assertThat(userWithdrawInfo.userId()).isEqualTo(1L);
+        assertThat(userWithdrawInfo.withdrawnAt()).isEqualTo(user.getWithdrawnAt());
     }
 
     @Test
@@ -141,9 +120,10 @@ class UserServiceTest {
     void withdrawUser_userNotFound_throwsException() {
         // given
         Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        MockHttpServletResponse response = new MockHttpServletResponse();
 
         // when, then
-        assertThatThrownBy(() -> userService.withdrawUser(999L))
+        assertThatThrownBy(() -> userService.withdrawUser(999L, response))
                 .isInstanceOf(UserNotFoundException.class);
     }
 

@@ -1,35 +1,45 @@
 package com.tamnara.backend.user.controller;
 
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
-import com.tamnara.backend.user.domain.State;
+import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.user.constant.UserResponseMessage;
 import com.tamnara.backend.user.domain.User;
-import com.tamnara.backend.user.dto.*;
+import com.tamnara.backend.user.dto.EmailAvailabilityResponse;
+import com.tamnara.backend.user.dto.UserInfo;
+import com.tamnara.backend.user.dto.UserInfoWrapper;
+import com.tamnara.backend.user.dto.UserUpdateRequest;
+import com.tamnara.backend.user.dto.UserUpdateResponse;
+import com.tamnara.backend.user.dto.UserWithdrawInfo;
 import com.tamnara.backend.user.exception.DuplicateUsernameException;
 import com.tamnara.backend.user.exception.InactiveUserException;
 import com.tamnara.backend.user.exception.UserNotFoundException;
-import com.tamnara.backend.user.repository.UserRepository;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import com.tamnara.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import static com.tamnara.backend.global.constant.ResponseMessage.*;
-import static com.tamnara.backend.user.constant.UserResponseMessage.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
 
-    private final UserRepository userRepository;
     private final UserService userService;
 
     @GetMapping("/check-email")
@@ -44,55 +54,19 @@ public class UserController {
     })
     public ResponseEntity<WrappedDTO<EmailAvailabilityResponse>> checkEmail(@RequestParam("email") String email) {
         try {
-            if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-                return ResponseEntity.badRequest().body(
-                        new WrappedDTO<>(false, EMAIL_BAD_REQUEST, null)
-                );
-            }
-
             boolean available = userService.isEmailAvailable(email);
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true,
-                            available ? EMAIL_AVAILABLE : EMAIL_UNAVAILABLE,
-                            new EmailAvailabilityResponse(available))
-            );
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    available ? UserResponseMessage.EMAIL_AVAILABLE : UserResponseMessage.EMAIL_UNAVAILABLE,
+                    new EmailAvailabilityResponse(available)
+            ));
 
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
-        }
-    }
-
-    @GetMapping("/check-nickname")
-    @Operation(
-            summary = "닉네임 중복 조회",
-            description = "입력된 닉네임이 이미 가입된 닉네임인지 확인합니다. 중복이면 false, 사용 가능하면 true를 반환합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "요청 성공. 사용 가능 여부는 data.available로 확인"),
-            @ApiResponse(responseCode = "400", description = "잘못된 닉네임 형식"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    public ResponseEntity<WrappedDTO<NicknameAvailabilityResponse>> checkNickname(@RequestParam("nickname") String nickname) {
-        try {
-            if (nickname == null || nickname.isBlank() || nickname.length() > 10) {
-                return ResponseEntity.badRequest().body(
-                        new WrappedDTO<>(false, NICKNAME_BAD_REQUEST, null)
-                );
-            }
-
-            boolean available = userService.isUsernameAvailable(nickname);
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true,
-                            available ? NICKNAME_AVAILABLE : NICKNAME_UNAVAILABLE,
-                            new NicknameAvailabilityResponse(available))
-            );
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -111,32 +85,21 @@ public class UserController {
     })
     public ResponseEntity<WrappedDTO<UserInfoWrapper>> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, INVALID_TOKEN, null)
-                );
-            }
-
-            Long userId = userDetails.getUser().getId();
-            UserInfo userInfo = userService.getCurrentUserInfo(userId);
+            UserInfo userInfo = userService.getCurrentUserInfo(userDetails.getUser().getId());
             UserInfoWrapper data = new UserInfoWrapper(userInfo);
 
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true, USER_INFO_RETRIEVED, data)
-            );
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    UserResponseMessage.USER_INFO_RETRIEVED,
+                    data
+            ));
 
         } catch (InactiveUserException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
+            throw new CustomException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            throw new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -159,35 +122,21 @@ public class UserController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         try {
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, INVALID_TOKEN, null)
-                );
-            }
+            User updatedUser = userService.updateUsername(userDetails.getUser().getId(), dto.getNickname());
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    UserResponseMessage.USER_INFO_MODIFIED,
+                    new UserUpdateResponse(updatedUser.getId())
+            ));
 
-            Long userId = userDetails.getUser().getId();
-            User updatedUser = userService.updateUsername(userId, dto.getNickname());
-
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true, USER_INFO_MODIFIED,
-                            new UserUpdateResponse(updatedUser.getId()))
-            );
         } catch (DuplicateUsernameException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                    new WrappedDTO<>(false, NICKNAME_UNAVAILABLE, null)
-            );
+            throw new CustomException(HttpStatus.CONFLICT, UserResponseMessage.NICKNAME_UNAVAILABLE);
         } catch (InactiveUserException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
+            throw new CustomException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            throw new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -204,35 +153,22 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<Void>> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<WrappedDTO<Void>> logout(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            HttpServletResponse response
+    ) {
         try {
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, INVALID_TOKEN, null)
-                );
-            }
-
-            User user = userRepository.findById(userDetails.getUser().getId())
-                    .orElseThrow(() -> new UserNotFoundException());
-
-            if (userDetails.getUser().getState() != State.ACTIVE) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                        new WrappedDTO<>(false, USER_FORBIDDEN, null)
-                );
-            }
-
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true, LOGOUT_SUCCESSFUL, null)
-            );
+            userService.logout(userDetails.getUser().getId(), response);
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    UserResponseMessage.LOGOUT_SUCCESSFUL,
+                    null
+            ));
 
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            throw new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -249,34 +185,24 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "관련된 회원이 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 에러가 발생했습니다.")
     })
-    public ResponseEntity<WrappedDTO<UserWithdrawInfoWrapper>> withdrawUser(
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-
+    public ResponseEntity<WrappedDTO<UserWithdrawInfo>> withdrawUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            HttpServletResponse response
+    ) {
         try {
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        new WrappedDTO<>(false, INVALID_TOKEN, null)
-                );
-            }
-
-            UserWithdrawInfoWrapper response = userService.withdrawUser(userDetails.getUser().getId());
-
-            return ResponseEntity.ok(
-                    new WrappedDTO<>(true, WITHDRAWAL_SUCCESSFUL, response)
-            );
+            UserWithdrawInfo userWithdrawInfo = userService.withdrawUser(userDetails.getUser().getId(), response);
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    UserResponseMessage.WITHDRAWAL_SUCCESSFUL,
+                    userWithdrawInfo
+            ));
 
         } catch (InactiveUserException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                    new WrappedDTO<>(false, USER_FORBIDDEN, null)
-            );
+            throw new CustomException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new WrappedDTO<>(false, USER_NOT_FOUND, null)
-            );
+            throw new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                    new WrappedDTO<>(false, INTERNAL_SERVER_ERROR, null)
-            );
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
         }
     }
 }

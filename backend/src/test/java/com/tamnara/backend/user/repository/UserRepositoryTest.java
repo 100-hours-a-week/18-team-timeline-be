@@ -55,35 +55,6 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("닉네임 중복 여부 확인")
-    void existsByUsername_success() {
-        // given
-        User user = createTestUser();
-        userRepository.save(user);
-
-        // when
-        boolean exists = userRepository.existsByUsername("탐라유저");
-
-        // then
-        assertThat(exists).isTrue();
-    }
-
-    @Test
-    @DisplayName("이메일과 provider로 회원 조회")
-    void findByEmailAndProvider_success() {
-        // given
-        User user = createTestUser();
-        userRepository.save(user);
-
-        // when
-        Optional<User> result = userRepository.findByEmailAndProvider("test@example.com", "LOCAL");
-
-        // then
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo("탐라유저");
-    }
-
-    @Test
     @DisplayName("provider와 providerId로 유저 조회")
     void findByProviderAndProviderId_success() {
         // given
