@@ -59,6 +59,7 @@ class KakaoControllerIntegrationTest {
                 .build();
 
         userRepository.save(user);
+        userRepository.flush();
     }
 
     @AfterEach
