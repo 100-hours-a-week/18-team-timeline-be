@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import org.springframework.transaction.annotation.Transactional;
+import com.tamnara.backend.auth.jwt.JwtProvider;
+
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
