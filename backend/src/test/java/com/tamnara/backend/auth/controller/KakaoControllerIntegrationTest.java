@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -38,7 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc(addFilters = false)
 @Import(KakaoApiClientMockConfig.class)
 @ActiveProfiles("test")
-
 class KakaoControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
@@ -46,20 +46,18 @@ class KakaoControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
 
     @BeforeEach
-    @Transactional
     void setUp() {
         userRepository.deleteAll();
-        User user = User.builder()
-                .provider("KAKAO")
-                .providerId("12345")
-                .email("test@kakao.com")
-                .username("카카오유저")
-                .role(Role.USER)
-                .state(State.ACTIVE)
-                .build();
-
-        userRepository.save(user);
-        userRepository.flush();
+        userRepository.saveAndFlush(
+                User.builder()
+                        .provider("KAKAO")
+                        .providerId("12345")
+                        .email("test@kakao.com")
+                        .username("카카오유저")
+                        .role(Role.USER)
+                        .state(State.ACTIVE)
+                        .build()
+        );
     }
 
     @AfterEach
@@ -83,12 +81,12 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
-                        Matchers.hasItem(Matchers.containsString(JwtConstant.ACCESS_TOKEN + "="))))
-                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
-                        Matchers.hasItem(Matchers.containsString(JwtConstant.REFRESH_TOKEN + "="))))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("HttpOnly")))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Secure")))
+                .andExpect(cookie().exists(JwtConstant.ACCESS_TOKEN))
+                .andExpect(cookie().exists(JwtConstant.REFRESH_TOKEN))
+                .andExpect(cookie().httpOnly(JwtConstant.ACCESS_TOKEN, true))
+                .andExpect(cookie().secure(JwtConstant.ACCESS_TOKEN, true))
+                .andExpect(cookie().httpOnly(JwtConstant.REFRESH_TOKEN, true))
+                .andExpect(cookie().secure(JwtConstant.REFRESH_TOKEN, true))
                 .andExpect(jsonPath("$.success").value(true));
     }
 
@@ -96,7 +94,8 @@ class KakaoControllerIntegrationTest {
     @DisplayName("카카오 access token 발급 실패 시 500 응답을 반환한다")
     void kakaoCallback_AccessTokenFailure_returnsBadGateway() throws Exception {
         // given
-        when(kakaoApiClient.getAccessToken(anyString())).thenThrow(new RuntimeException(KAKAO_BAD_GATEWAY));
+        when(kakaoApiClient.getAccessToken(anyString()))
+                .thenThrow(new RuntimeException(KAKAO_BAD_GATEWAY));
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
@@ -111,7 +110,8 @@ class KakaoControllerIntegrationTest {
     void kakaoCallback_UserInfoParsingFailure_returnsInternalServerError() throws Exception {
         // given
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
-        when(kakaoApiClient.getUserInfo("mockAccessToken")).thenThrow(new RuntimeException(PARSING_USER_INFO_FAILS));
+        when(kakaoApiClient.getUserInfo("mockAccessToken"))
+                .thenThrow(new RuntimeException(PARSING_USER_INFO_FAILS));
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
@@ -145,4 +145,3 @@ class KakaoControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
-
