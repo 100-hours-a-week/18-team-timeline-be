@@ -32,7 +32,7 @@ class KakaoControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
-
+    @Autowired private JwtProvider jwtProvider;
     @MockBean private KakaoService kakaoService;
 
     @BeforeEach
@@ -60,9 +60,10 @@ class KakaoControllerIntegrationTest {
     @Test
     @DisplayName("카카오 로그인 콜백 요청이 전체 흐름을 통해 200 OK 및 JWT 토큰을 반환한다")
     void kakaoCallback_ReturnJwtToken_success() throws Exception {
-        // given
+        String token = jwtProvider.createAccessToken("12345", Role.USER);
+
         given(kakaoService.kakaoLogin(anyString()))
-                .willReturn("FAKE_JWT_TOKEN");
+                .willReturn(token);
 
         // when & then
         mockMvc.perform(get("/auth/kakao/callback")
@@ -80,8 +81,10 @@ class KakaoControllerIntegrationTest {
     @Test
     @DisplayName("기존 사용자가 카카오 로그인 시 토큰 발급 및 활동시간 업데이트에 성공한다")
     void kakaoCallback_existingUser_success() throws Exception {
+        String token = jwtProvider.createAccessToken("12345", Role.USER);
+
         given(kakaoService.kakaoLogin(anyString()))
-                .willReturn("FAKE_JWT_TOKEN");
+                .willReturn(token);
 
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
