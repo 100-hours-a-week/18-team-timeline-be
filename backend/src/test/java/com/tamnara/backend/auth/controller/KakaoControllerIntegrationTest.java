@@ -49,6 +49,8 @@ class KakaoControllerIntegrationTest {
                 .providerId("12345")
                 .email("test@kakao.com")
                 .username("카카오유저")
+                .role(Role.USER)
+                .state(State.ACTIVE)
                 .build();
 
         userRepository.save(user);
