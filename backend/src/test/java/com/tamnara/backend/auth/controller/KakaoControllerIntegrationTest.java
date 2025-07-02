@@ -27,9 +27,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import com.tamnara.backend.user.domain.Role;
@@ -127,12 +125,7 @@ class KakaoControllerIntegrationTest {
     @DisplayName("기존 사용자가 카카오 로그인 시 토큰 발급 및 활동시간 업데이트에 성공한다")
     void kakaoCallback_existingUser_success() throws Exception {
         // given
-        User existingUser = userRepository.findByProviderAndProviderId("KAKAO", "12345")
-                .orElseThrow(() -> new IllegalArgumentException(ResponseMessage.USER_NOT_FOUND));
-        //userRepository.save(existingUser);
-
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
-
         when(kakaoApiClient.getUserInfo("mockAccessToken")).thenReturn(Map.of(
                 "id", "12345",
                 "kakao_account", Map.of("email", "test@kakao.com"),
@@ -143,12 +136,12 @@ class KakaoControllerIntegrationTest {
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
-                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
-                        Matchers.hasItem(Matchers.containsString(JwtConstant.ACCESS_TOKEN + "="))))
-                .andExpect(header().stringValues(HttpHeaders.SET_COOKIE,
-                        Matchers.hasItem(Matchers.containsString(JwtConstant.REFRESH_TOKEN + "="))))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("HttpOnly")))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Secure")))
+                .andExpect(cookie().exists(JwtConstant.ACCESS_TOKEN))
+                .andExpect(cookie().exists(JwtConstant.REFRESH_TOKEN))
+                .andExpect(cookie().httpOnly(JwtConstant.ACCESS_TOKEN, true))
+                .andExpect(cookie().secure(JwtConstant.ACCESS_TOKEN, true))
+                .andExpect(cookie().httpOnly(JwtConstant.REFRESH_TOKEN, true))
+                .andExpect(cookie().secure(JwtConstant.REFRESH_TOKEN, true))
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
