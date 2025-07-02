@@ -68,7 +68,7 @@ jobs:
       - name: Gradle Build + test
         working-directory: ./backend
         env:
-          REDIS_HOST: redis
+          REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_PASSWORD: ""
           DB_URL: jdbc:mysql://127.0.0.1:3306/timeline
