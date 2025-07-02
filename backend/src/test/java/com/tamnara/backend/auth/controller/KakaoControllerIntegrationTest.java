@@ -57,6 +57,7 @@ class KakaoControllerIntegrationTest {
     @AfterEach
     void tearDown() {
         reset(kakaoApiClient);
+        userRepository.deleteAll();
     }
 
     @Test
