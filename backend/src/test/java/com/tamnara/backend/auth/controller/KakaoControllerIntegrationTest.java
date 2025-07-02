@@ -39,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc(addFilters = false)
 @Import(KakaoApiClientMockConfig.class)
 @ActiveProfiles("test")
-@Transactional
+
 class KakaoControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
@@ -47,6 +47,7 @@ class KakaoControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
 
     @BeforeEach
+    @Transactional
     void setUp() {
         userRepository.deleteAll();
         User user = User.builder()
