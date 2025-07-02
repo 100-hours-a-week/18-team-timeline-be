@@ -55,6 +55,9 @@ jobs:
       - name: Build without Tests
         working-directory: ./backend
         env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -115,6 +118,9 @@ jobs:
       - name: Build and Push Docker Image
         working-directory: ./backend
         env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
           TAG: ${{ steps.meta.outputs.tag }}
           ECR_URI: ${{ secrets.ECR_URI }}
           DB_URL: ${{ secrets.DB_URL }}

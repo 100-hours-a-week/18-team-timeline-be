@@ -10,7 +10,7 @@ jobs:
   # ─────────────────────────────────────────────────────
   ci-check:
     name: Run Static Analysis and Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     permissions:
       id-token: write
@@ -18,6 +18,25 @@ jobs:
       checks: write
       pull-requests: write
 
+    services:
+      mysql:
+        image: mysql:8
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: timeline
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -34,12 +53,27 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Gradle Build (No Tests)
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ppassword && break
+            echo "⏳ Waiting for MySQL..."
+            sleep 2
+          done
+          
+
+      - name: Gradle Build + test
         working-directory: ./backend
         env:
-          DB_URL: ${{ secrets.DEV_DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ""
+          DB_URL: jdbc:mysql://127.0.0.1:3306/timeline
+          DB_USERNAME: root
+          DB_PASSWORD: password
           KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
           KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
           JWT_SECRET_CODE: ${{ secrets.JWT_SECRET_CODE }}
@@ -51,7 +85,14 @@ jobs:
           EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           OTEL_SERVICE_NAME: dev-backend-service
-        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
+        run: ./gradlew build
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: backend/build/reports/tests/test
 
   # ─────────────────────────────────────────────────────
   # 2. Docker Build & ECR Push
@@ -116,6 +157,9 @@ jobs:
     needs: build-image
 
     env:
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
       TAG: ${{ needs.build-image.outputs.tag }}
       DB_URL: ${{ secrets.DEV_DB_URL }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -144,6 +188,9 @@ jobs:
           username: ${{ secrets.PEER_USER }}
           key: ${{ secrets.PEER_SSH_KEY }}
           envs: |
+            REDIS_HOST,
+            REDIS_PORT,
+            REDIS_PASSWORD,
             OTEL_SERVICE_NAME,
             TAG,
             BACKEND_EC2_IP,
@@ -161,6 +208,9 @@ jobs:
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
             
             # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
+            REDIS_HOST = localhost
+            REDIS_PORT = 6379
+            REDIS_PASSWORD: $REDIS_PASSWORD
             OTEL_SERVICE_NAME = dev-backend-service
             DB_URL=$DB_URL
             DB_USERNAME=$DB_USERNAME
@@ -214,6 +264,9 @@ jobs:
                 -e FE_BASE_URL=$FE_BASE_URL \
                 -e BE_BASE_URL=$BE_BASE_URL \
                 -e AI_BASE_URL=$AI_BASE_URL \
+                -e REDIS_HOST=localhost \
+                -e REDIS_PORT=6379 \
+                -e REDIS_PASSWORD=$REDIS_PASSWORD \
                 -e EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
                 -e EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
                 -e EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
