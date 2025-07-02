@@ -46,6 +46,7 @@ class KakaoControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        userRepository.deleteAll();
         User user = User.builder()
                 .provider("KAKAO")
                 .providerId("12345")
@@ -123,7 +124,7 @@ class KakaoControllerIntegrationTest {
         // given
         User existingUser = userRepository.findByProviderAndProviderId("KAKAO", "12345")
                 .orElseThrow(() -> new IllegalArgumentException(ResponseMessage.USER_NOT_FOUND));
-        userRepository.save(existingUser);
+        //userRepository.save(existingUser);
 
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
 
