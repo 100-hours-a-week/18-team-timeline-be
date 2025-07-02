@@ -31,6 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
+import com.tamnara.backend.user.domain.Role;
+import com.tamnara.backend.user.domain.State;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
