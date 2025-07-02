@@ -28,6 +28,11 @@ import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.auth.service.KakaoService;
 
 
+import jakarta.servlet.http.HttpServletResponse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+
+
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
@@ -63,12 +68,23 @@ class KakaoControllerIntegrationTest {
     @Test
     @DisplayName("카카오 로그인 콜백 요청이 전체 흐름을 통해 200 OK 및 JWT 토큰을 반환한다")
     void kakaoCallback_ReturnJwtToken_success() throws Exception {
-        String token = jwtProvider.createAccessToken("12345", Role.USER);
+        User user = User.builder()
+                .id(12345L)
+                .provider("KAKAO")
+                .providerId("12345")
+                .email("test@kakao.com")
+                .username("카카오유저")
+                .role(Role.USER)
+                .state(State.ACTIVE)
+                .build();
 
-        given(kakaoService.kakaoLogin(anyString()))
+        String token = jwtProvider.createAccessToken(user);
+
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        given(kakaoService.kakaoLogin(anyString(), any(HttpServletResponse.class)))
                 .willReturn(token);
 
-        // when & then
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
                 .andExpect(status().isOk())
@@ -81,13 +97,32 @@ class KakaoControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 
+
     @Test
     @DisplayName("기존 사용자가 카카오 로그인 시 토큰 발급 및 활동시간 업데이트에 성공한다")
     void kakaoCallback_existingUser_success() throws Exception {
-        String token = jwtProvider.createAccessToken("12345", Role.USER);
+//        String token = jwtProvider.createAccessToken("12345", Role.USER);
+//
+//        given(kakaoService.kakaoLogin(anyString()))
+//                .willReturn(token);
 
-        given(kakaoService.kakaoLogin(anyString()))
+        User user = User.builder()
+                .id(12345L)
+                .provider("KAKAO")
+                .providerId("12345")
+                .email("test@kakao.com")
+                .username("카카오유저")
+                .role(Role.USER)
+                .state(State.ACTIVE)
+                .build();
+
+        String token = jwtProvider.createAccessToken(user);
+
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        given(kakaoService.kakaoLogin(anyString(), any(HttpServletResponse.class)))
                 .willReturn(token);
+
 
         mockMvc.perform(get("/auth/kakao/callback")
                         .param("code", "dummyCode"))
@@ -104,7 +139,9 @@ class KakaoControllerIntegrationTest {
     @Test
     @DisplayName("카카오 access token 발급 실패 시 500 응답을 반환한다")
     void kakaoCallback_AccessTokenFailure_returnsBadGateway() throws Exception {
-        given(kakaoService.kakaoLogin(anyString()))
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        given(kakaoService.kakaoLogin(anyString(), any(HttpServletResponse.class)))
                 .willThrow(new RuntimeException("KAKAO_BAD_GATEWAY"));
 
         mockMvc.perform(get("/auth/kakao/callback")
@@ -114,10 +151,13 @@ class KakaoControllerIntegrationTest {
                 .andExpect(jsonPath("$.message").value("KAKAO_BAD_GATEWAY"));
     }
 
+
     @Test
     @DisplayName("카카오 사용자 정보 파싱 실패 시 500 응답을 반환한다")
     void kakaoCallback_UserInfoParsingFailure_returnsInternalServerError() throws Exception {
-        given(kakaoService.kakaoLogin(anyString()))
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        given(kakaoService.kakaoLogin(anyString(), any(HttpServletResponse.class)))
                 .willThrow(new RuntimeException("PARSING_USER_INFO_FAILS"));
 
         mockMvc.perform(get("/auth/kakao/callback")
@@ -126,4 +166,5 @@ class KakaoControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("PARSING_USER_INFO_FAILS"));
     }
+
 }
