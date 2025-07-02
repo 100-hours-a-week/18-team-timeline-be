@@ -40,6 +40,18 @@ class KakaoControllerIntegrationTest {
     @Autowired private KakaoApiClient kakaoApiClient;
     @Autowired private UserRepository userRepository;
 
+    @BeforeEach
+    void setUp() {
+        User user = User.builder()
+                .provider("KAKAO")
+                .providerId("12345")
+                .email("test@kakao.com")
+                .username("카카오유저")
+                .build();
+
+        userRepository.save(user);
+    }
+
     @AfterEach
     void tearDown() {
         reset(kakaoApiClient);
