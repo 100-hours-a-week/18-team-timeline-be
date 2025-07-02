@@ -38,6 +38,7 @@ import com.tamnara.backend.user.domain.State;
 @AutoConfigureMockMvc(addFilters = false)
 @Import(KakaoApiClientMockConfig.class)
 @ActiveProfiles("test")
+@Transactional
 class KakaoControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
