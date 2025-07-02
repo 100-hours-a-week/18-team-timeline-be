@@ -32,8 +32,9 @@ jobs:
         image: redis:7
         ports:
           - 6379:6379
+        command: >
+          redis-server --requirepass testpass
         options: >-
-          --requirepass testpass
           --health-cmd "redis-cli -a testpass ping"
           --health-interval 10s
           --health-timeout 5s
