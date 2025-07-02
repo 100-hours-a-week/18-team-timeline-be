@@ -73,7 +73,7 @@ class KakaoControllerIntegrationTest {
         // given
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
         when(kakaoApiClient.getUserInfo("mockAccessToken")).thenReturn(Map.of(
-                "id", 12345L,
+                "id", "12345",
                 "kakao_account", Map.of("email", "test@kakao.com"),
                 "properties", Map.of("nickname", "카카오유저")
         ));
@@ -131,7 +131,7 @@ class KakaoControllerIntegrationTest {
         when(kakaoApiClient.getAccessToken(anyString())).thenReturn("mockAccessToken");
 
         when(kakaoApiClient.getUserInfo("mockAccessToken")).thenReturn(Map.of(
-                "id", 12345L,
+                "id", "12345",
                 "kakao_account", Map.of("email", "test@kakao.com"),
                 "properties", Map.of("nickname", "카카오유저")
         ));
