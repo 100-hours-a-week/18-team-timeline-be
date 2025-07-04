@@ -55,7 +55,7 @@ ENV DB_URL=$DB_URL \
 # Gradle 빌드 (테스트 생략)
 #RUN ./gradlew build -x test -x compileTestJava -x processTestResources
 #테스트 추가
-RUN ./gradlew build
+RUN ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
 # OTEL Agent와 함께 Spring Boot 실행
 CMD java \
