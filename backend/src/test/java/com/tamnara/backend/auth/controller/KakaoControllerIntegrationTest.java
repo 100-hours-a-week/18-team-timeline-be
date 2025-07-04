@@ -88,6 +88,7 @@ class KakaoControllerIntegrationTest {
                 .andExpect(cookie().httpOnly(JwtConstant.REFRESH_TOKEN, true))
                 .andExpect(cookie().secure(JwtConstant.REFRESH_TOKEN, true))
                 .andExpect(jsonPath("$.success").value(true));
+
     }
 
     @Test

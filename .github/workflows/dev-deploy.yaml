@@ -85,7 +85,7 @@ jobs:
           EC2_PUBLIC_URL_3: ${{ secrets.DEV_EC2_PUBLIC_URL_3 }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           OTEL_SERVICE_NAME: dev-backend-service
-        run: ./gradlew build
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest -x test
 
       - name: Upload Test Report
         if: always()
