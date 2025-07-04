@@ -145,3 +145,5 @@ class KakaoControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
+
+

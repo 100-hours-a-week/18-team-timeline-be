@@ -118,7 +118,7 @@ jobs:
       - name: Build and Push Docker Image
         working-directory: ./backend
         env:
-          REDIS_HOST: localhost
+          REDIS_HOST: redis-server
           REDIS_PORT: 6379
           REDIS_PASSWORD: ${{ secrets.DB_PASSWORD }}
           TAG: ${{ steps.meta.outputs.tag }}
