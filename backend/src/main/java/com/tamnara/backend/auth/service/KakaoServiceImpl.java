@@ -34,6 +34,8 @@ public class KakaoServiceImpl implements KakaoService {
 
     @Override
     public String buildKakaoLoginUrl() {
+        log.info("[AUTH] buildKakaoLoginUrl 요청 시작");
+
         String url = UriComponentsBuilder.fromUriString(KakaoOAuthConstant.KAKAO_OAUTH_AUTHORIZE)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
@@ -41,20 +43,20 @@ public class KakaoServiceImpl implements KakaoService {
                 .build()
                 .toUriString();
 
-        log.info("[INFO] 카카오 로그인 URL 생성: {}", url);
+        log.info("[AUTH] buildKakaoLoginUrl 완료");
         return url;
     }
 
     @Override
     @Transactional
     public void kakaoLogin(String code, HttpServletResponse response) {
-        log.info("[INFO] 카카오 로그인 시작: code={}", code);
+        log.info("[AUTH] kakaoLogin 요청 시작");
 
-        String accessToken = kakaoApiClient.getAccessToken(code);
-        log.info("[INFO] 카카오 access token 발급 성공");
+        String kakaoAccessToken = kakaoApiClient.getAccessToken(code);
+        log.info("[AUTH] kakaoLogin 처리 중 - 카카오 Access Token 발급 성공");
 
-        Map<String, Object> userInfoJson = kakaoApiClient.getUserInfo(accessToken);
-        log.info("[INFO] 카카오 사용자 정보 조회 성공");
+        Map<String, Object> userInfoJson = kakaoApiClient.getUserInfo(kakaoAccessToken);
+        log.info("[AUTH] kakaoLogin 처리 중 - 카카오 사용자 정보 조회 성공");
 
         Map<String, Object> kakaoAccount = (Map<String, Object>) userInfoJson.get("kakao_account");
         Map<String, Object> properties = (Map<String, Object>) userInfoJson.get("properties");
@@ -62,7 +64,7 @@ public class KakaoServiceImpl implements KakaoService {
         String kakaoId = String.valueOf(userInfoJson.get("id"));
         String email = (String) kakaoAccount.get("email");
         String nickname = (String) properties.get("nickname");
-        log.debug("[INFO] 카카오 사용자 파싱 결과: kakaoId={}, email={}, nickname={}", kakaoId, email, nickname);
+        log.info("[AUTH] kakaoLogin 처리 중 - 카카오 사용자 파싱 완료, kakaoId={}", kakaoId);
 
         Optional<User> optionalUser = userRepository.findByProviderAndProviderId("KAKAO", kakaoId);
         User user;
@@ -71,6 +73,7 @@ public class KakaoServiceImpl implements KakaoService {
             if (user.getState().equals(State.DELETED)) {
                 user.updateState(State.ACTIVE);
                 user.resetWithdrawnAtNull();
+                log.info("[AUTH] kakaoLogin 처리 중 - 탈퇴한 계정 복구, userId: {}", user.getId());
             }
         } else {
             user = optionalUser.orElseGet(() -> User.builder()
@@ -82,32 +85,33 @@ public class KakaoServiceImpl implements KakaoService {
                 .state(State.ACTIVE)
                 .build());
         }
-
         user.updateLastActiveAtNow();
         userRepository.save(user);
-        log.info("[INFO] 마지막 활동시간 업데이트 완료: userId={}", user.getId());
+        log.info("[AUTH] kakaoLogin 처리 중 - 마지막 활동시간 업데이트 완료, userId: {}", user.getId());
 
-        String tamnaraAccessToken = jwtProvider.createAccessToken(user);
-        log.info("[INFO] JWT access token 발급 완료: userId={}", user.getId());
+        String accessToken = jwtProvider.createAccessToken(user);
+        log.info("[AUTH] kakaoLogin 처리 중 - JWT Access Token 발급 완료, userId: {}", user.getId());
 
-        Cookie accessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, tamnaraAccessToken);
+        String refreshToken = jwtProvider.createRefreshToken(user);
+        jwtProvider.saveRefreshToken(user, refreshToken);
+        log.info("[AUTH] kakaoLogin 처리 중 - JWT Refresh Token 발급 완료, userId: {}", user.getId());
+
+        Cookie accessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, accessToken);
         accessCookie.setHttpOnly(true);
         accessCookie.setSecure(true);
         accessCookie.setPath("/");
         accessCookie.setMaxAge((int) JwtConstant.ACCESS_TOKEN_VALIDITY.getSeconds());
         response.addCookie(accessCookie);
-        log.info("[INFO] 쿠키에 JWT access token 저장 완료: userId={}", user.getId());
+        log.info("[AUTH] kakaoLogin 처리 중 - 쿠키에 JWT Access Token 저장 완료, userId: {}", user.getId());
 
-        String tamnaraRefreshToken = jwtProvider.createRefreshToken(user);
-        jwtProvider.saveRefreshToken(user, tamnaraRefreshToken);
-        log.info("[INFO] JWT refresh token 발급 완료: userId={}", user.getId());
-
-        Cookie refreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, tamnaraRefreshToken);
+        Cookie refreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(true);
         refreshCookie.setPath("/");
         refreshCookie.setMaxAge((int) JwtConstant.REFRESH_TOKEN_VALIDITY.getSeconds());
         response.addCookie(refreshCookie);
-        log.info("[INFO] 쿠키에 JWT refresh token 저장 완료: userId={}", user.getId());
+        log.info("[AUTH] kakaoLogin 처리 중 - 쿠키에 JWT Refresh Token 저장 완료: userId={}", user.getId());
+
+        log.info("[AUTH] kakaoLogin 완료 - userId: {}",  user.getId());
     }
 }
