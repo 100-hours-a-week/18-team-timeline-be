@@ -10,6 +10,7 @@ import com.tamnara.backend.user.security.UserDetailsImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
@@ -29,7 +31,9 @@ public class AuthController {
     @GetMapping("/check")
     public ResponseEntity<WrappedDTO<CheckAuthResponse>> checkAuth(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
+            log.info("[AUTH] checkAuth 요청 시작");
             if (userDetails == null) {
+                log.info("[AUTH] checkAuth 완료 — status={}", "로그아웃");
                 return ResponseEntity.ok(new WrappedDTO<>(
                         false,
                         AuthResponseMessage.NOT_LOGGED_IN,
@@ -37,6 +41,7 @@ public class AuthController {
                 ));
             }
 
+            log.info("[AUTH] checkAuth 완료 — status={}, userId: {}", "로그인", userDetails.getUser().getId());
             return ResponseEntity.ok(new WrappedDTO<>(
                     true,
                     AuthResponseMessage.IS_LOGGED_IN,
