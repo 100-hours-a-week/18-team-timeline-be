@@ -1,8 +1,10 @@
 package com.tamnara.backend.user.service;
 
 import com.tamnara.backend.global.constant.JwtConstant;
+import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.global.jwt.JwtProvider;
+import com.tamnara.backend.user.constant.UserResponseMessage;
 import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -23,9 +25,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import static com.tamnara.backend.user.constant.UserResponseMessage.EMAIL_BAD_REQUEST;
-import static com.tamnara.backend.user.constant.UserResponseMessage.REGISTER_SUCCESSFUL;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,9 +37,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public SignupResponse signup(SignupRequest requestDto) {
-        log.info("signup 진입: email={}, username={}", requestDto.getEmail(), requestDto.getUsername());
+        log.info("[USER] signup 요청 시작");
         if (userRepository.existsByEmail(requestDto.getEmail())) {
-            log.warn("이메일 중복: {}", requestDto.getEmail());
+            log.warn("[USER] signup 예외 처리 - state:{}", "이메일 중복");
             throw new DuplicateEmailException();
         }
 
@@ -57,11 +56,11 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        log.info("회원가입 성공: userId={}", savedUser.getId());
+        log.info("[USER] signup 완료 - userId={}", savedUser.getId());
 
         return SignupResponse.builder()
                 .success(true)
-                .message(REGISTER_SUCCESSFUL)
+                .message(UserResponseMessage.REGISTER_SUCCESSFUL)
                 .data(SignupResponse.UserData.builder()
                         .userId(savedUser.getId())
                         .build())
@@ -70,65 +69,72 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean isEmailAvailable(String email) {
+        log.info("[USER] isEmailAvailable 요청 시작");
+
         if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, EMAIL_BAD_REQUEST);
+            log.warn("[USER] isEmailAvailable 예외 처리 - state:{}", "이메일 형식 오류");
+            throw new CustomException(HttpStatus.BAD_REQUEST, UserResponseMessage.EMAIL_BAD_REQUEST);
         }
 
         boolean result = !userRepository.existsByEmail(email);
-        log.info("이메일 사용 가능 여부: email={}, available={}", email, result);
+        log.info("[USER] isEmailAvailable 완료 - available: {}", result);
         return result;
     }
 
     @Override
     public UserInfo getCurrentUserInfo(Long userId) {
-        log.info("getCurrentUserInfo 진입: userId={}", userId);
+        log.info("[USER] getCurrentUserInfo 요청 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
 
+        log.info("[USER] getCurrentUserInfo 완료 - userId: {}", userId);
         return new UserInfo(user.getId(), user.getEmail(), user.getUsername());
     }
 
     @Override
     @Transactional
     public User updateUsername(Long userId, String newUsername) {
-        log.info("updateUsername 진입: userId={}, newUsername={}", userId, newUsername);
+        log.info("[USER] updateUsername 요청 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
         user.updateUsername(newUsername);
-        log.info("닉네임 변경 성공: userId={}, updatedUsername={}", userId, newUsername);
+        log.info("[USER] updateUsername 완료 - userId: {}", userId);
 
         return user;
     }
 
     @Override
     public UserWithdrawInfo withdrawUser(Long userId, HttpServletResponse response) {
-        log.info("withdrawUser 진입: userId={}", userId);
+        log.info("[USER] withdrawUser 요청 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
 
         jwtProvider.deleteRefreshToken(userId);
-        log.info("[INFO] Redis에서 refresh token 제거 완료");
+        log.info("[USER] withdrawUser 처리 중 - Redis에서 refresh token 제거, userId: {}", userId);
 
-        expireCookies(response);
-        log.info("[INFO] access token, refresh token 저장 쿠키 초기화 완료");
+        expireCookies(userId, response);
+        log.info("[USER] withdrawUser 처리 중 - access token, refresh token 저장 쿠키 초기화, userId: {}", userId);
 
         user.softDelete();
-        log.info("회원 탈퇴 처리 완료: userId={}, withdrawnAt={}", user.getId(), user.getWithdrawnAt());
+        log.info("[USER] withdrawUser 완료 - userId: {}, withdrawnAt: {}", user.getId(), user.getWithdrawnAt());
 
         return new UserWithdrawInfo(user.getId(), user.getWithdrawnAt());
     }
 
     @Override
     public void logout(Long userId, HttpServletResponse response) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        log.info("[USER] logout 요청 시작 - userId: {}", userId);
 
-        if (user.getState() != State.ACTIVE) {
-            throw new InactiveUserException();
-        }
+        userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        log.info("[USER] logout 처리 중 - 회원 조회 성공, userId: {}", userId);
 
         jwtProvider.deleteRefreshToken(userId);
-        expireCookies(response);
+        log.info("[USER] logout 처리 중 - Redis에서 refresh token 제거, userId: {}", userId);
+
+        expireCookies(userId, response);
+        log.info("[USER] logout 처리 중 - 응답의 쿠키 초기화, userId: {}", userId);
+
+        log.info("[USER] logout 완료 - userId: {}", userId);
     }
 
 
@@ -137,27 +143,32 @@ public class UserServiceImpl implements UserService {
      */
 
     private User checkValidateUser (Long userId) {
+        log.info("[USER] checkValidateUser 요청 시작 - userId: {}", userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("회원 조회 실패: userId={}", userId);
-                    return new UserNotFoundException();
-                });
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        log.info("[USER] checkValidateUser 처리 중 - 회원 조회 성공, userId: {}", userId);
 
         if (user.getState() != State.ACTIVE) {
-            log.warn("비활성 회원 접근 차단: userId={}, state={}", user.getId(), user.getState());
+            log.warn("[USER] checkValidateUser 예외 처리 - 비활성 회원 검증, userId: {}, state: {}", user.getId(), user.getState());
             throw new InactiveUserException();
         }
+        log.info("[USER] checkValidateUser 처리 중 - 활성 회원 검증, userId: {}, state: {}", userId, user.getState());
 
+        log.info("[USER] checkValidateUser 완료 - userId: {}", userId);
         return user;
     }
 
-    private void expireCookies(HttpServletResponse response) {
+    private void expireCookies(Long userId, HttpServletResponse response) {
+        log.info("[USER] expireCookies 요청 시작 - userId: {}", userId);
+
         Cookie expiredAccessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, null);
         expiredAccessCookie.setHttpOnly(true);
         expiredAccessCookie.setSecure(true);
         expiredAccessCookie.setPath("/");
         expiredAccessCookie.setMaxAge(0);
         response.addCookie(expiredAccessCookie);
+        log.info("[USER] expireCookies 처리 중 - access token 저장 쿠키 초기화, userId: {}", userId);
 
         Cookie expiredRefreshCookie = new Cookie(JwtConstant.REFRESH_TOKEN, null);
         expiredRefreshCookie.setHttpOnly(true);
@@ -165,5 +176,8 @@ public class UserServiceImpl implements UserService {
         expiredRefreshCookie.setPath("/");
         expiredRefreshCookie.setMaxAge(0);
         response.addCookie(expiredRefreshCookie);
+        log.info("[USER] expireCookies 처리 중 - refresh token 저장 쿠키 초기화, userId: {}", userId);
+
+        log.info("[USER] expireCookies 완료 - userId: {}", userId);
     }
 }
