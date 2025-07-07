@@ -251,6 +251,7 @@ jobs:
 
               # 🚀 새 컨테이너 실행
               sudo docker run -d --name dev-backend \
+                --network tamnara-network \
                 -p 8080:8080 \
                 -e BACKEND_EC2_IP=$BACKEND_EC2_IP \
                 -e ECR_URI_DEV=$ECR_URI_DEV \
@@ -264,7 +265,7 @@ jobs:
                 -e FE_BASE_URL=$FE_BASE_URL \
                 -e BE_BASE_URL=$BE_BASE_URL \
                 -e AI_BASE_URL=$AI_BASE_URL \
-                -e REDIS_HOST=localhost \
+                -e REDIS_HOST=redis-server \
                 -e REDIS_PORT=6379 \
                 -e REDIS_PASSWORD=$REDIS_PASSWORD \
                 -e EC2_PUBLIC_URL_1=$EC2_PUBLIC_URL_1 \
