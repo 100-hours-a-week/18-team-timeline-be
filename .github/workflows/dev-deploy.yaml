@@ -208,10 +208,10 @@ jobs:
             ECR_URI_DEV=${{ secrets.ECR_URI_DEV }}
             
             # 👉 전달된 env 값들을 쉘 변수로 명시적 치환
-            REDIS_HOST = localhost
-            REDIS_PORT = 6379
-            REDIS_PASSWORD: $REDIS_PASSWORD
-            OTEL_SERVICE_NAME = dev-backend-service
+            REDIS_HOST=localhost
+            REDIS_PORT=6379
+            REDIS_PASSWORD=$REDIS_PASSWORD
+            OTEL_SERVICE_NAME=dev-backend-service
             DB_URL=$DB_URL
             DB_USERNAME=$DB_USERNAME
             DB_PASSWORD=$DB_PASSWORD
