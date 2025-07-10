@@ -2,6 +2,7 @@ package com.tamnara.backend.auth.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tamnara.backend.auth.constant.AuthResponseMessage;
 import com.tamnara.backend.auth.constant.KakaoOAuthConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,16 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.*;
 
 import java.util.Map;
-
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.EXTERNAL_API_TIMEOUT;
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.PARSING_ACCESS_TOKEN_FAILS;
-import static com.tamnara.backend.auth.constant.AuthResponseMessage.PARSING_USER_INFO_FAILS;
 
 @Slf4j
 @Service
@@ -38,7 +32,11 @@ public class KakaoApiClientImpl implements KakaoApiClient {
 
     @Override
     public String getAccessToken(String code) {
+        String partialCode = code.substring(0, 4);
+        log.info("[AUTH] getAccessToken 시작 - code:{}", partialCode);
+
         try {
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -58,42 +56,55 @@ public class KakaoApiClientImpl implements KakaoApiClient {
             );
 
             Map<String, Object> body = objectMapper.readValue(response.getBody(), Map.class);
+
+            log.info("[AUTH] getAccessToken 완료 - code:{}", partialCode);
             return (String) body.get("access_token");
         } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.error("[ERROR] 카카오 응답 오류: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            log.error("[AUTH] getAccessToken 카카오 응답 오류 - code:{}", partialCode);
             throw new RuntimeException("카카오 요청 실패", e);
         } catch (ResourceAccessException e) {
-            log.error("[ERROR] 카카오 연결 오류: {}", e.getMessage());
-            throw new RuntimeException(EXTERNAL_API_TIMEOUT, e);
+            log.error("[AUTH] getAccessToken 카카오 연결 오류 - code:{}", partialCode);
+            throw new RuntimeException(AuthResponseMessage.EXTERNAL_API_TIMEOUT, e);
         } catch (JsonProcessingException e) {
-            log.error("[ERROR] 카카오 토큰 파싱 실패", e);
-            throw new RuntimeException(PARSING_ACCESS_TOKEN_FAILS, e);
+            log.error("[AUTH] getAccessToken 카카오 토큰 파싱 실패 - code:{}", partialCode);
+            throw new RuntimeException(AuthResponseMessage.PARSING_ACCESS_TOKEN_FAILS, e);
         } catch (Exception e) {
-            log.error("[ERROR] 알 수 없는 예외 발생", e);
+            log.error("[AUTH] getAccessToken 알 수 없는 예외 발생 - code:{}", partialCode);
             throw new RuntimeException("알 수 없는 오류", e);
         }
     }
 
     @Override
     public Map<String, Object> getUserInfo(String accessToken) {
+        String partialToken = accessToken.substring(0, 4);
+        log.info("[AUTH] getUserInfo 시작 - accessToken: {}", partialToken);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                KakaoOAuthConstant.KAKAO_OAUTH_USER_INFO,
-                HttpMethod.GET,
-                request,
-                String.class
-        );
-
         try {
-            return objectMapper.readValue(response.getBody(), Map.class);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    KakaoOAuthConstant.KAKAO_OAUTH_USER_INFO,
+                    HttpMethod.GET,
+                    request,
+                    String.class
+            );
+            log.info("[AUTH] getUserInfo 카카오 응답 반환 - accessToken: {}", partialToken);
+
+            Map<String, Object> userInfo = objectMapper.readValue(response.getBody(), Map.class);
+            log.info("[AUTH] getUserInfo 완료 - accessToken: {}", partialToken);
+
+            return userInfo;
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(PARSING_USER_INFO_FAILS, e);
+            log.error("[AUTH] getUserInfo Json 처리 실패 - accessToken: {}", partialToken);
+            throw new RuntimeException(AuthResponseMessage.PARSING_USER_INFO_FAILS, e);
         } catch (ResourceAccessException e) {
-            throw new RuntimeException(EXTERNAL_API_TIMEOUT, e);
+            log.error("[AUTH] getUserInfo 리소스 접근 실패 - accessToken: {}", partialToken);
+            throw new RuntimeException(AuthResponseMessage.EXTERNAL_API_TIMEOUT, e);
+        } catch (RestClientException e) {
+            log.error("[AUTH] getUserInfo 외부 API 호출 실패 - accessToken: {}", partialToken);
+            throw new RuntimeException(AuthResponseMessage.EXTERNAL_API_CALL_FAIL, e);
         }
     }
 }
