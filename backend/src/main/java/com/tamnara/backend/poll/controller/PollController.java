@@ -8,7 +8,6 @@ import com.tamnara.backend.poll.dto.request.VoteRequest;
 import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
 import com.tamnara.backend.poll.service.PollService;
-import com.tamnara.backend.poll.service.VoteService;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.security.UserDetailsImpl;
 import jakarta.validation.Valid;
@@ -42,7 +41,6 @@ import static com.tamnara.backend.poll.constant.PollResponseMessage.VOTE_SUCCESS
 public class PollController {
 
     private final PollService pollService;
-    private final VoteService voteService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -111,7 +109,7 @@ public class PollController {
                 );
             }
 
-            PollIdResponse response = voteService.vote(userDetails.getUser(), voteRequest);
+            PollIdResponse response = pollService.vote(userDetails.getUser(), voteRequest);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new WrappedDTO<>(
