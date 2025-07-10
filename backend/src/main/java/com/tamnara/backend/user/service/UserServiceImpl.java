@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public SignupResponse signup(SignupRequest requestDto) {
-        log.info("[USER] signup 요청 시작");
+        log.info("[USER] signup 시작");
         if (userRepository.existsByEmail(requestDto.getEmail())) {
             log.warn("[USER] signup 예외 처리 - state:{}", "이메일 중복");
             throw new DuplicateEmailException();
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean isEmailAvailable(String email) {
-        log.info("[USER] isEmailAvailable 요청 시작");
+        log.info("[USER] isEmailAvailable 시작");
 
         if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
             log.warn("[USER] isEmailAvailable 예외 처리 - state:{}", "이메일 형식 오류");
@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserInfo getCurrentUserInfo(Long userId) {
-        log.info("[USER] getCurrentUserInfo 요청 시작 - userId: {}", userId);
+        log.info("[USER] getCurrentUserInfo 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
 
@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUsername(Long userId, String newUsername) {
-        log.info("[USER] updateUsername 요청 시작 - userId: {}", userId);
+        log.info("[USER] updateUsername 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
         user.updateUsername(newUsername);
@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserWithdrawInfo withdrawUser(Long userId, HttpServletResponse response) {
-        log.info("[USER] withdrawUser 요청 시작 - userId: {}", userId);
+        log.info("[USER] withdrawUser 시작 - userId: {}", userId);
 
         User user = checkValidateUser(userId);
 
@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void logout(Long userId, HttpServletResponse response) {
-        log.info("[USER] logout 요청 시작 - userId: {}", userId);
+        log.info("[USER] logout 시작 - userId: {}", userId);
 
         userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         log.info("[USER] logout 처리 중 - 회원 조회 성공, userId: {}", userId);
@@ -143,7 +143,7 @@ public class UserServiceImpl implements UserService {
      */
 
     private User checkValidateUser (Long userId) {
-        log.info("[USER] checkValidateUser 요청 시작 - userId: {}", userId);
+        log.info("[USER] checkValidateUser 시작 - userId: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void expireCookies(Long userId, HttpServletResponse response) {
-        log.info("[USER] expireCookies 요청 시작 - userId: {}", userId);
+        log.info("[USER] expireCookies 시작 - userId: {}", userId);
 
         Cookie expiredAccessCookie = new Cookie(JwtConstant.ACCESS_TOKEN, null);
         expiredAccessCookie.setHttpOnly(true);
