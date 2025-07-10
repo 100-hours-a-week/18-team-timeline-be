@@ -1,5 +1,7 @@
 package com.tamnara.backend.user.service;
 
+import com.tamnara.backend.global.constant.ResponseMessage;
+import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
@@ -124,7 +126,7 @@ class UserServiceImplTest {
 
         // when, then
         assertThatThrownBy(() -> userService.withdrawUser(999L, response))
-                .isInstanceOf(UserNotFoundException.class);
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining(ResponseMessage.USER_NOT_FOUND);
     }
-
 }
