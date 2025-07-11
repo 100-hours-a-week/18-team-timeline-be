@@ -188,6 +188,10 @@ public class PollServiceImpl implements PollService {
         Poll poll = pollRepository.findById(pollId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
 
+        if (poll.getState() != PollState.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, POLL_SCHEDULED_CONFLICT);
+        }
+
         poll.changeState(PollState.SCHEDULED);
         pollRepository.save(poll);
     }

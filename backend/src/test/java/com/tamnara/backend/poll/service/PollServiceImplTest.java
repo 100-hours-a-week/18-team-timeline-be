@@ -231,14 +231,40 @@ class PollServiceImplTest {
     @DisplayName("scheduled Poll을 통해 state 변경 성공")
     void schedulePoll_changesStateToScheduled() {
         // given
+        Poll draftPoll = Poll.builder()
+                .id(1L)
+                .title("투표 제목")
+                .minChoices(1)
+                .maxChoices(2)
+                .startAt(LocalDateTime.now().minusDays(3))
+                .endAt(LocalDateTime.now().plusDays(3))
+                .state(PollState.DRAFT)
+                .options(new ArrayList<>())
+                .build();
+        when(pollRepository.findById(anyLong())).thenReturn(Optional.ofNullable(draftPoll));
+
+        // when
+        pollServiceImpl.schedulePoll(draftPoll.getId());
+
+        // then
+        assertEquals(PollState.SCHEDULED, draftPoll.getState());
+        verify(pollRepository, times(1)).save(draftPoll);
+    }
+
+    @Test
+    @DisplayName("투표의 상태가 DRAFT가 아니면 scheduled Poll을 통해 state 변경 실패")
+    void schedulePoll_conflict() {
+        // given
         when(pollRepository.findById(anyLong())).thenReturn(Optional.ofNullable(poll));
 
         // when
-        pollServiceImpl.schedulePoll(poll.getId());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            pollServiceImpl.schedulePoll(poll.getId());
+        });
 
         // then
-        assertEquals(PollState.SCHEDULED, poll.getState());
-        verify(pollRepository, times(1)).save(poll);
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertEquals(PollResponseMessage.POLL_SCHEDULED_CONFLICT, exception.getReason());
     }
 
     @Test
@@ -425,7 +451,6 @@ class PollServiceImplTest {
     @DisplayName("투표 결과 통계 조회 시 투표가 존재하지 않으면 404 예외를 반환한다.")
     void voteStatistics_pollNotFound() {
         // given
-        List<VoteStatistics> voteStatisticsList = List.of(optionStats1, optionStats2,  optionStats3);
         when(pollRepository.findById(poll.getId())).thenReturn(Optional.empty());
 
         // when
