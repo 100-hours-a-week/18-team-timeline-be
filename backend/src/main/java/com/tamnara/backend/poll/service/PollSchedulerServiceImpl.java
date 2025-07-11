@@ -19,12 +19,12 @@ public class PollSchedulerServiceImpl implements PollSchedulerService {
     @Async
     @Scheduled(cron = "0 0 10 * * MON")
     public void updatePollStates() {
-        log.info("[INFO] 투표 상태 전환 처리 시작");
+        log.info("[POLL] updatePollStates 시작");
         Long start = System.currentTimeMillis();
 
         pollService.updatePollStates();
 
         Long end = System.currentTimeMillis();
-        log.info("[INFO] 투표 상태 자동 전환 완료: {}ms", end - start);
+        log.info("[POLL] updatePollStates 완료 - 소요 시간:{}ms", end - start);
     }
 }
