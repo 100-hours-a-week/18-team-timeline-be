@@ -1,7 +1,6 @@
 package com.tamnara.backend.poll.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tamnara.backend.global.util.CreateUserUtil;
 import com.tamnara.backend.poll.config.PollTestConfig;
 import com.tamnara.backend.poll.constant.PollResponseMessage;
 import com.tamnara.backend.poll.domain.Poll;
@@ -40,8 +39,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -128,7 +126,7 @@ class PollControllerIntegrationTest {
         given(pollService.getPollById(anyLong())).willReturn(poll);
 
         // when & then
-        mockMvc.perform(post("/polls/{pollId}/schedule", 1L)
+        mockMvc.perform(patch("/polls/{pollId}/state", 1L)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
