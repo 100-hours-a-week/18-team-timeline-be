@@ -7,6 +7,7 @@ import com.tamnara.backend.poll.constant.PollResponseMessage;
 import com.tamnara.backend.poll.domain.Poll;
 import com.tamnara.backend.poll.domain.PollOption;
 import com.tamnara.backend.poll.domain.PollState;
+import com.tamnara.backend.poll.domain.VoteStatistics;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
 import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
@@ -14,6 +15,7 @@ import com.tamnara.backend.poll.dto.response.PollInfoResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
+import com.tamnara.backend.poll.repository.VoteStatisticsRepository;
 import com.tamnara.backend.poll.util.PollCreateRequestTestBuilder;
 import com.tamnara.backend.poll.util.PollTestBuilder;
 import com.tamnara.backend.user.domain.User;
@@ -58,16 +60,20 @@ class PollServiceImplTest {
     @Mock private PollRepository pollRepository;
     @Mock private PollOptionRepository pollOptionRepository;
     @Mock private VoteRepository voteRepository;
+    @Mock private VoteStatisticsRepository voteStatisticsRepository;
 
     @InjectMocks private PollServiceImpl pollServiceImpl;
 
     private User user;
     private Poll poll;
+    private Poll pollToDelete;
+    private Poll pollToPublish;
     private PollOption option1;
     private PollOption option2;
     private PollOption option3;
-    private Poll pollToDelete;
-    private Poll pollToPublish;
+    private VoteStatistics optionStats1;
+    private VoteStatistics optionStats2;
+    private VoteStatistics optionStats3;
 
     @BeforeEach
     void setUp() {
@@ -85,6 +91,24 @@ class PollServiceImplTest {
                 .endAt(LocalDateTime.now().plusDays(3))
                 .state(PollState.PUBLISHED)
                 .options(new ArrayList<>())
+                .build();
+
+        pollToDelete = Poll.builder()
+                .id(1L)
+                .minChoices(1)
+                .maxChoices(2)
+                .startAt(LocalDateTime.now().minusMinutes(10))
+                .endAt(LocalDateTime.now().minusMinutes(1)) // 종료된 투표
+                .state(PollState.PUBLISHED)
+                .build();
+
+        pollToPublish = Poll.builder()
+                .id(1L)
+                .minChoices(1)
+                .maxChoices(2)
+                .startAt(LocalDateTime.now().minusMinutes(1)) // 시작된 투표
+                .endAt(LocalDateTime.now().plusMinutes(10)) // 아직 유효함
+                .state(PollState.SCHEDULED)
                 .build();
 
         option1 = PollOption.builder()
@@ -109,22 +133,28 @@ class PollServiceImplTest {
         poll.getOptions().add(option2);
         poll.getOptions().add(option3);
 
-        pollToDelete = Poll.builder()
-                .id(1L)
-                .minChoices(1)
-                .maxChoices(2)
-                .startAt(LocalDateTime.now().minusMinutes(10))
-                .endAt(LocalDateTime.now().minusMinutes(1)) // 종료된 투표
-                .state(PollState.PUBLISHED)
+        optionStats1 = VoteStatistics.builder()
+                .id(11L)
+                .count(10L)
+                .createdAt(LocalDateTime.now())
+                .poll(poll)
+                .option(option1)
                 .build();
 
-        pollToPublish = Poll.builder()
-                .id(1L)
-                .minChoices(1)
-                .maxChoices(2)
-                .startAt(LocalDateTime.now().minusMinutes(1)) // 시작된 투표
-                .endAt(LocalDateTime.now().plusMinutes(10)) // 아직 유효함
-                .state(PollState.SCHEDULED)
+        optionStats2 = VoteStatistics.builder()
+                .id(12L)
+                .count(9L)
+                .createdAt(LocalDateTime.now())
+                .poll(poll)
+                .option(option2)
+                .build();
+
+        optionStats3 = VoteStatistics.builder()
+                .id(11L)
+                .count(8L)
+                .createdAt(LocalDateTime.now())
+                .poll(poll)
+                .option(option3)
                 .build();
     }
 
@@ -374,5 +404,37 @@ class PollServiceImplTest {
         // then
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         assertEquals(PollResponseMessage.POLL_INVALID_SELECTION_COUNT, exception.getReason());
+    }
+
+    @Test
+    @DisplayName("투표 결과 통계 조회에 성공한다.")
+    void voteStatistics_success() {
+        // given
+        List<VoteStatistics> voteStatisticsList = List.of(optionStats1, optionStats2,  optionStats3);
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.of(poll));
+        when(voteStatisticsRepository.findByPollId(poll.getId())).thenReturn(voteStatisticsList);
+
+        // when
+        pollServiceImpl.getVoteStatistics(poll.getId());
+
+        // then
+        verify(voteStatisticsRepository, times(1)).findByPollId(any());
+    }
+
+    @Test
+    @DisplayName("투표 결과 통계 조회 시 투표가 존재하지 않으면 404 예외를 반환한다.")
+    void voteStatistics_pollNotFound() {
+        // given
+        List<VoteStatistics> voteStatisticsList = List.of(optionStats1, optionStats2,  optionStats3);
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.empty());
+
+        // when
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            pollServiceImpl.getVoteStatistics(poll.getId());
+        });
+
+        // then
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(PollResponseMessage.POLL_NOT_FOUND, exception.getReason());
     }
 }
