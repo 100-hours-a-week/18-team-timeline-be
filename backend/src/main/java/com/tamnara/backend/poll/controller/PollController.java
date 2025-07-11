@@ -42,6 +42,10 @@ public class PollController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "투표 생성",
+            description = "새로운 투표를 대기 상태로 생성한다. 공개하기 위해선 공개 예정 설정이 추가로 필요하다."
+    )
     public ResponseEntity<WrappedDTO<PollIdResponse>> createPoll(
         @Valid @RequestBody PollCreateRequest request,
         @AuthenticationPrincipal UserDetailsImpl userDetails
@@ -69,6 +73,10 @@ public class PollController {
     }
 
     @GetMapping()
+    @Operation(
+            summary = "최신 공개 투표 조회",
+            description = "최신 공개 상태의 투표를 조회한다."
+    )
     public ResponseEntity<WrappedDTO<PollInfoResponse>> getPollInfo(
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
@@ -90,6 +98,10 @@ public class PollController {
     }
 
     @PostMapping("/vote")
+    @Operation(
+            summary = "투표 선택 제출",
+            description = "투표의 선택지를 1개 이상 선택하여 제출한다."
+    )
     public ResponseEntity<WrappedDTO<PollIdResponse>> vote(
             @Valid @RequestBody VoteRequest voteRequest,
             @AuthenticationPrincipal UserDetailsImpl userDetails
@@ -127,6 +139,10 @@ public class PollController {
 
     @PatchMapping("/{pollId}/state")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "투표 공개 예정 설정",
+            description = "대기 상태로 저장된 투표의 상태를 공개 예정으로 변경한다. 공개 예정 상태의 투표는 월요일 오전 10시에 공개된다."
+    )
     public ResponseEntity<WrappedDTO<Void>> schedule(
             @PathVariable Long pollId,
             @AuthenticationPrincipal UserDetailsImpl userDetails
