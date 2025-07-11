@@ -1,7 +1,6 @@
 package com.tamnara.backend.poll.config;
 
 import com.tamnara.backend.poll.service.PollService;
-import com.tamnara.backend.poll.service.VoteService;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -14,8 +13,4 @@ public class PollTestConfig {
         return Mockito.mock(PollService.class);
     }
 
-    @Bean
-    public VoteService voteService() {
-        return Mockito.mock(VoteService.class);
-    }
 }

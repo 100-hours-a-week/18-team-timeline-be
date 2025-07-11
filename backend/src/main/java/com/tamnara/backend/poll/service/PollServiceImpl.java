@@ -3,12 +3,14 @@ package com.tamnara.backend.poll.service;
 import com.tamnara.backend.alarm.constant.AlarmMessage;
 import com.tamnara.backend.alarm.domain.AlarmType;
 import com.tamnara.backend.alarm.event.AlarmEvent;
-import com.tamnara.backend.poll.domain.Poll;
-import com.tamnara.backend.poll.domain.PollOption;
-import com.tamnara.backend.poll.domain.PollState;
+import com.tamnara.backend.poll.domain.*;
+import com.tamnara.backend.poll.dto.OptionResult;
 import com.tamnara.backend.poll.dto.PollInfoDTO;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
+import com.tamnara.backend.poll.dto.request.VoteRequest;
+import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
+import com.tamnara.backend.poll.dto.response.PollStatisticsResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
@@ -24,14 +26,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.tamnara.backend.poll.constant.PollResponseMessage.MIN_CHOICES_EXCEED_MAX;
-import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_FOUND;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.*;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_ALREADY_VOTED;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_INVALID_SELECTION_COUNT;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_NOT_IN_VOTING_PERIOD;
+import static com.tamnara.backend.poll.constant.PollResponseMessage.POLL_OR_OPTION_NOT_FOUND;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollFromRequest;
 import static com.tamnara.backend.poll.util.PollBuilder.buildPollOptionsFromRequest;
+import static com.tamnara.backend.poll.util.VoteStatisticsBuilder.buildNew;
+import static com.tamnara.backend.poll.util.VoteStatisticsBuilder.buildUpdated;
 
 @Slf4j
 @Service
@@ -80,15 +89,6 @@ public class PollServiceImpl implements PollService {
 
     @Override
     @Transactional
-    public void schedulePoll(Long pollId) {
-        Poll poll = pollRepository.findById(pollId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
-        poll.changeState(PollState.SCHEDULED);
-        pollRepository.save(poll);
-    }
-
-    @Override
-    @Transactional
     public void updatePollStates() {
         Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
         if (published.isPresent()) {
@@ -126,10 +126,124 @@ public class PollServiceImpl implements PollService {
         }
     }
 
+    @Override
+    @Transactional
+    public PollIdResponse vote(User user, VoteRequest voteRequest) {
+        // 1. 투표가 유효한지 체크
+        Poll poll = pollRepository.findLatestPollByPublishedPoll()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
+
+        // 2. 투표 상태 확인
+        if (poll.getState() != PollState.PUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, POLL_NOT_PUBLISHED);
+        }
+
+        // 3. 투표 기간 확인
+        LocalDateTime now = LocalDateTime.now();
+        if (poll.getStartAt().isAfter(now) || poll.getEndAt().isBefore(now)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, POLL_NOT_IN_VOTING_PERIOD);
+        }
+
+        // 4. 선택된 옵션들이 해당 투표에 속하는지 확인
+        List<PollOption> options = pollOptionRepository.findAllById(voteRequest.getOptionIds());
+        if (options.size() != voteRequest.getOptionIds().size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_OR_OPTION_NOT_FOUND);
+        }
+
+        boolean allMatch = options.stream().allMatch(option -> option.getPoll().getId().equals(poll.getId()));
+        if (!allMatch) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_OR_OPTION_NOT_FOUND);
+        }
+
+        // 5. 선택된 옵션 수가 min_choices ~ max_choices 범위에 포함되는지 확인
+        if (voteRequest.getOptionIds().size() < poll.getMinChoices() || voteRequest.getOptionIds().size() > poll.getMaxChoices()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, POLL_INVALID_SELECTION_COUNT);
+        }
+
+        // 6. 이미 투표한 사용자인지 확인
+        if (voteRepository.hasVotedLatestPublishedPoll(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, POLL_ALREADY_VOTED);
+        }
+
+        // 7. 투표 기록 저장
+        List<Vote> votes = options.stream()
+                .map(option -> Vote.builder()
+                        .poll(poll)
+                        .user(user)
+                        .option(option)
+                        .votedAt(LocalDateTime.now())
+                        .createdAt(LocalDateTime.now())
+                        .build())
+                .toList();
+
+        voteRepository.saveAll(votes);
+        generateAllStatistics();
+
+        return new PollIdResponse(poll.getId());
+    }
+
+    @Override
+    @Transactional
+    public void schedulePoll(Long pollId) {
+        Poll poll = pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
+
+        if (poll.getState() != PollState.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, POLL_SCHEDULED_CONFLICT);
+        }
+
+        poll.changeState(PollState.SCHEDULED);
+        pollRepository.save(poll);
+    }
+
+    @Override
+    public PollStatisticsResponse getVoteStatistics(Long pollId) {
+        pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
+
+        List<VoteStatistics> voteStatisticsList = voteStatisticsRepository.findByPollId(pollId);
+
+        List<OptionResult> results = new ArrayList<>();
+        Long totalVotes = 0L;
+        for (VoteStatistics vs : voteStatisticsList) {
+            OptionResult optionResult = new OptionResult(
+                    vs.getOption().getId(),
+                    vs.getOption().getTitle(),
+                    vs.getCount()
+            );
+            results.add(optionResult);
+            totalVotes += vs.getCount();
+        }
+
+        results.sort(Comparator.comparing(OptionResult::getCount).reversed());
+
+        return new PollStatisticsResponse(
+                pollId,
+                results,
+                totalVotes
+        );
+    }
+
 
     /**
-     * 알림 발행 헬퍼 메서드
+     * 헬퍼 메서드
      */
+
+    private void generateAllStatistics() {
+        List<Poll> polls = pollRepository.findByState(PollState.PUBLISHED);
+        for (Poll poll : polls) {
+            for (PollOption option : poll.getOptions()) {
+                long count = voteRepository.countByPollIdAndOptionId(poll.getId(), option.getId());
+
+                VoteStatistics updated = voteStatisticsRepository.findByPollIdAndOptionId(poll.getId(), option.getId())
+                        .map(existing -> buildUpdated(existing, count))
+                        .orElseGet(() -> buildNew(poll, option, count));
+
+                voteStatisticsRepository.save(updated);
+            }
+        }
+    }
+
     private void publishAlarm(List<Long> userIdList, String title, String content, AlarmType targetType, Long targetId) {
         AlarmEvent event = new AlarmEvent(
                 userIdList,

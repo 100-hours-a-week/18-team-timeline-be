@@ -2,7 +2,6 @@ package com.tamnara.backend.user.service;
 
 import com.tamnara.backend.global.constant.JwtConstant;
 import com.tamnara.backend.global.constant.ResponseMessage;
-import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.constant.UserResponseMessage;
 import com.tamnara.backend.user.domain.Role;
@@ -24,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Service
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
 
         if (email == null || !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
             log.warn("[USER] isEmailAvailable 예외 처리 - state:{}", "이메일 형식 오류");
-            throw new CustomException(HttpStatus.BAD_REQUEST, UserResponseMessage.EMAIL_BAD_REQUEST);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, UserResponseMessage.EMAIL_BAD_REQUEST);
         }
 
         boolean result = !userRepository.existsByEmail(email);
@@ -146,7 +146,7 @@ public class UserServiceImpl implements UserService {
         log.info("[USER] checkValidateUser 시작 - userId: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
         log.info("[USER] checkValidateUser 처리 중 - 회원 조회 성공, userId: {}", userId);
 
         if (user.getState() != State.ACTIVE) {
