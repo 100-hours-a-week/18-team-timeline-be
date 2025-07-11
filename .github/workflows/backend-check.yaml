@@ -183,7 +183,7 @@ jobs:
           NEW_DEF=$(echo $TASK | jq --arg IMAGE "$IMAGE" --arg CONTAINER_NAME "$CONTAINER_NAME" '.taskDefinition |
             {
               family: .family,
-              networkMode: .networkMode,
+              networkMode: "host" ,
               executionRoleArn: .executionRoleArn,
               containerDefinitions: (
                 .containerDefinitions | map(

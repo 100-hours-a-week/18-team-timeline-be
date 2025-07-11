@@ -47,7 +47,7 @@ ENV DB_URL=$DB_URL \
     EC2_PUBLIC_URL_2=$EC2_PUBLIC_URL_2 \
     EC2_PUBLIC_URL_3=$EC2_PUBLIC_URL_3 \
     OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT \
-    REDIS_HOST=localhost \
+    REDIS_HOST=redis-server \
     REDIS_PORT=6379 \
     REDIS_PASSWORD=$REDIS_PASSWORD \
     OTEL_SERVICE_NAME=$OTEL_SERVICE_NAME
@@ -66,6 +66,8 @@ CMD java \
   -Dspring.datasource.url="$DB_URL" \
   -Dspring.datasource.username="$DB_USERNAME" \
   -Dspring.datasource.password="$DB_PASSWORD" \
+  -Dspring.data.redis.host=$REDIS_HOST \
+  -Dspring.data.redis.port=$REDIS_PORT \
   -Dmanagement.endpoints.web.exposure.include=prometheus,health,info \
   -Duser.timezone=Asia/Seoul \
   -Dspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver \
