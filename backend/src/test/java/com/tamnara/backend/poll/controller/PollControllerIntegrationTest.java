@@ -11,6 +11,7 @@ import com.tamnara.backend.poll.dto.request.PollOptionCreateRequest;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
 import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
+import com.tamnara.backend.poll.dto.response.PollStatisticsResponse;
 import com.tamnara.backend.poll.service.PollService;
 import com.tamnara.backend.poll.util.PollCreateRequestTestBuilder;
 import com.tamnara.backend.user.domain.Role;
@@ -123,7 +124,6 @@ class PollControllerIntegrationTest {
     @Test
     @DisplayName("투표 스케줄링 API 요청 성공")
     void schedule_success() throws Exception {
-        User user = CreateUserUtil.createActiveAdmin();
         Poll poll = mock(Poll.class);
         given(pollService.getPollById(anyLong())).willReturn(poll);
 
@@ -133,5 +133,20 @@ class PollControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(PollResponseMessage.POLL_SCHEDULED));
+    }
+
+    @Test
+    @DisplayName("투표 결과 통계 조회 성공")
+    void getVoteStatistics_success() throws Exception {
+        PollStatisticsResponse pollStatisticsResponse = mock(PollStatisticsResponse.class);
+        given(pollService.getVoteStatistics(anyLong())).willReturn(pollStatisticsResponse);
+
+        // when & then
+        mockMvc.perform(post("/polls/{pollId}/stats", 1L)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(PollResponseMessage.VOTE_STATISTICS))
+                .andExpect(jsonPath("$.data").exists());
     }
 }
