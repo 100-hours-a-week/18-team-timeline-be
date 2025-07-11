@@ -3,13 +3,16 @@ package com.tamnara.backend.poll.controller;
 import com.tamnara.backend.global.constant.ResponseMessage;
 import com.tamnara.backend.global.dto.WrappedDTO;
 import com.tamnara.backend.global.exception.CustomException;
+import com.tamnara.backend.poll.constant.PollResponseMessage;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
 import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
+import com.tamnara.backend.poll.dto.response.PollStatisticsResponse;
 import com.tamnara.backend.poll.service.PollService;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.security.UserDetailsImpl;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -149,6 +152,31 @@ public class PollController {
             pollService.schedulePoll(pollService.getPollById(pollId).getId());
 
             return ResponseEntity.ok(new WrappedDTO<>(true, POLL_SCHEDULED, null));
+
+        } catch (ResponseStatusException e) {
+            throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, ResponseMessage.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/{pollId}/stats")
+    @Operation(
+            summary = "투표 결과 통계 조회",
+            description = "특정 투표의 전체 투표수 및 각 선택지별 투표수를 조회합니다. 선택지 목록은 투표수의 내림차순으로 정렬됩니다."
+    )
+    public ResponseEntity<WrappedDTO<PollStatisticsResponse>> getVoteStatistics(
+            @PathVariable Long pollId
+    ) {
+        try {
+            return ResponseEntity.ok(new WrappedDTO<>(
+                    true,
+                    PollResponseMessage.VOTE_STATISTICS,
+                    pollService.getVoteStatistics(pollId)
+            ));
 
         } catch (ResponseStatusException e) {
             throw new CustomException(HttpStatus.valueOf(e.getStatusCode().value()), e.getReason());
