@@ -1,14 +1,12 @@
 package com.tamnara.backend.user.service;
 
 import com.tamnara.backend.global.constant.ResponseMessage;
-import com.tamnara.backend.global.exception.CustomException;
 import com.tamnara.backend.global.jwt.JwtProvider;
 import com.tamnara.backend.user.domain.State;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.dto.UserInfo;
 import com.tamnara.backend.user.dto.UserWithdrawInfo;
 import com.tamnara.backend.user.exception.InactiveUserException;
-import com.tamnara.backend.user.exception.UserNotFoundException;
 import com.tamnara.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -126,7 +125,7 @@ class UserServiceImplTest {
 
         // when, then
         assertThatThrownBy(() -> userService.withdrawUser(999L, response))
-                .isInstanceOf(CustomException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining(ResponseMessage.USER_NOT_FOUND);
     }
 }
