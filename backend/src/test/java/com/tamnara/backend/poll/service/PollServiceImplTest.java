@@ -402,7 +402,6 @@ class PollServiceImplTest {
     void vote_alreadyVoted() {
         // given
         when(pollRepository.findLatestPollByPublishedPoll()).thenReturn(Optional.of(poll));
-        when(pollOptionRepository.findAllById(List.of(101L))).thenReturn(List.of(option1));
         when(voteRepository.hasVotedLatestPublishedPoll(user.getId())).thenReturn(true);
 
         // when
