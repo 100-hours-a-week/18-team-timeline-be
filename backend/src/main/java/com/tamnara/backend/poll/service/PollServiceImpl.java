@@ -4,11 +4,13 @@ import com.tamnara.backend.alarm.constant.AlarmMessage;
 import com.tamnara.backend.alarm.domain.AlarmType;
 import com.tamnara.backend.alarm.event.AlarmEvent;
 import com.tamnara.backend.poll.domain.*;
+import com.tamnara.backend.poll.dto.OptionResult;
 import com.tamnara.backend.poll.dto.PollInfoDTO;
 import com.tamnara.backend.poll.dto.request.PollCreateRequest;
 import com.tamnara.backend.poll.dto.request.VoteRequest;
 import com.tamnara.backend.poll.dto.response.PollIdResponse;
 import com.tamnara.backend.poll.dto.response.PollInfoResponse;
+import com.tamnara.backend.poll.dto.response.PollStatisticsResponse;
 import com.tamnara.backend.poll.repository.PollOptionRepository;
 import com.tamnara.backend.poll.repository.PollRepository;
 import com.tamnara.backend.poll.repository.VoteRepository;
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -183,8 +187,37 @@ public class PollServiceImpl implements PollService {
     public void schedulePoll(Long pollId) {
         Poll poll = pollRepository.findById(pollId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
+
         poll.changeState(PollState.SCHEDULED);
         pollRepository.save(poll);
+    }
+
+    @Override
+    public PollStatisticsResponse getVoteStatistics(Long pollId) {
+        pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, POLL_NOT_FOUND));
+
+        List<VoteStatistics> voteStatisticsList = voteStatisticsRepository.findByPollId(pollId);
+
+        List<OptionResult> results = new ArrayList<>();
+        Long totalVotes = 0L;
+        for (VoteStatistics vs : voteStatisticsList) {
+            OptionResult optionResult = new OptionResult(
+                    vs.getOption().getId(),
+                    vs.getOption().getTitle(),
+                    vs.getCount()
+            );
+            results.add(optionResult);
+            totalVotes += vs.getCount();
+        }
+
+        results.sort(Comparator.comparing(OptionResult::getCount).reversed());
+
+        return new PollStatisticsResponse(
+                pollId,
+                results,
+                totalVotes
+        );
     }
 
 
