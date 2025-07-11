@@ -292,7 +292,8 @@ class PollServiceImplTest {
         pollServiceImpl.updatePollStates();
 
         // then
-        verify(pollRepository, never()).save(any(Poll.class));
+        verify(pollRepository, never()).findLatestPollByPublishedPoll();
+        verify(pollRepository, never()).save(any());
     }
 
     @Test
