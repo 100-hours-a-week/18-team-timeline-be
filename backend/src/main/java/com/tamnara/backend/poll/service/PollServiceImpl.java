@@ -104,15 +104,6 @@ public class PollServiceImpl implements PollService {
     public void updatePollStates() {
         log.info("[POLL] updatePollStates 시작");
 
-        Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
-        if (published.isPresent()) {
-            published.get().changeState(PollState.DELETED);
-            pollRepository.save(published.get());
-        } else {
-            log.warn("[POLL] updatePollStates 경고 - 투표 삭제 대상 없음(공개 중인 투표가 존재하지 않음)");
-        }
-        log.info("[POLL] updatePollStates 처리 중 - 기존 투표 삭제 성공");
-
         Optional<Poll> scheduled = pollRepository.findLatesPollByScheduledPoll();
         if (scheduled.isPresent()) {
             scheduled.get().changeState(PollState.PUBLISHED);
@@ -138,8 +129,18 @@ public class PollServiceImpl implements PollService {
             );
         } else {
             log.warn("[POLL] updatePollStates 경고 - 투표 공개 대상 없음(공개 예정인 투표가 존재하지 않음)");
+            return;
         }
         log.info("[POLL] updatePollStates 처리 중 - 신규 투표 공개 및 투표 알림 이벤트 발행 성공");
+
+        Optional<Poll> published = pollRepository.findLatestPollByPublishedPoll();
+        if (published.isPresent()) {
+            published.get().changeState(PollState.DELETED);
+            pollRepository.save(published.get());
+        } else {
+            log.warn("[POLL] updatePollStates 경고 - 투표 삭제 대상 없음(공개 중인 투표가 존재하지 않음)");
+        }
+        log.info("[POLL] updatePollStates 처리 중 - 기존 투표 삭제 성공");
 
         log.info("[POLL] updatePollStates 완료");
     }
