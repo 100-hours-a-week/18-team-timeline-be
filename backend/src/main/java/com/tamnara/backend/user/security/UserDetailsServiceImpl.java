@@ -1,5 +1,7 @@
 package com.tamnara.backend.user.security;
 
+import com.tamnara.backend.global.constant.ResponseMessage;
+import com.tamnara.backend.user.constant.UserResponseMessage;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,23 +19,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetailsImpl loadUserByUsername(String userIdStr) throws UsernameNotFoundException {
-        log.info("loadUserByUsername 진입: userIdStr={}", userIdStr);
+        log.info("[USER] loadUserByUsername 시작 - userIdStr:{}", userIdStr);
 
         try {
             Long userId = Long.parseLong(userIdStr);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> {
-                        log.warn("사용자 조회 실패: userId={}", userId);
-                        return new UsernameNotFoundException("사용자를 찾을 수 없습니다.");
+                        log.warn("[NEWS] loadUserByUsername 처리 중 - 사용자 조회 실패, userId:{}", userId);
+                        return new UsernameNotFoundException(ResponseMessage.USER_NOT_FOUND);
                     });
+            log.info("[NEWS] loadUserByUsername 처리 중 - 사용자 조회 성공, userId:{}", userId);
 
-            log.info("사용자 조회 성공: userId={}", userId);
             return new UserDetailsImpl(user);
-
         } catch (NumberFormatException e) {
-            log.error("userId 파싱 실패: userIdStr={}", userIdStr, e);
-            throw new UsernameNotFoundException("잘못된 사용자 ID 형식입니다.");
+            log.error("[NEWS] loadUserByUsername 실패 - userId 파싱 실패, userIdStr:{}", userIdStr);
+            throw new UsernameNotFoundException(UserResponseMessage.ID_UNAVAILABLE);
         }
     }
 }
