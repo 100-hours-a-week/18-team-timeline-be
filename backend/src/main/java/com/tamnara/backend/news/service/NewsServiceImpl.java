@@ -44,6 +44,7 @@ import com.tamnara.backend.user.domain.Role;
 import com.tamnara.backend.user.domain.User;
 import com.tamnara.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -64,6 +65,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NewsServiceImpl implements NewsService {
@@ -85,13 +87,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public HotissueNewsListResponse getHotissueNewsCardPage() {
+        log.info("[NEWS] getHotissueNewsCardPage 시작");
+
         Page<News> newsPage = newsRepository.findAllByIsHotissueTrueOrderByIdAsc(Pageable.unpaged());
         List<NewsCardDTO> newsCardDTOList = getNewsCardDTOList(null, newsPage);
+        log.info("[NEWS] getHotissueNewsCardPage 처리 중 - 핫이슈 조회 성공");
+
+        log.info("[NEWS] getHotissueNewsCardPage 완료");
         return new HotissueNewsListResponse(newsCardDTOList);
     }
 
     @Override
     public MultiCategoryResponse getMultiCategoryPage(Long userId, Integer offset) {
+        log.info("[NEWS] getMultiCategoryPage 시작");
+
         int page = offset / NewsServiceConstant.PAGE_SIZE;
         int nextOffset = (page + 1) * NewsServiceConstant.PAGE_SIZE;
 
@@ -106,6 +115,7 @@ public class NewsServiceImpl implements NewsService {
                         !newsRepository.findByIsHotissueFalseOrderByUpdatedAtDescIdDesc(PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
+        log.info("[NEWS] getMultiCategoryPage 처리 중 - 뉴스 조회 성공, category:{}", "ALL");
 
         newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setEconomy(
@@ -115,6 +125,7 @@ public class NewsServiceImpl implements NewsService {
                         !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ECONOMY.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
+        log.info("[NEWS] getMultiCategoryPage 처리 중 - 뉴스 조회 성공, category:{}", CategoryType.ECONOMY.name());
 
         newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setEntertainment(
@@ -124,6 +135,7 @@ public class NewsServiceImpl implements NewsService {
                         !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.ENTERTAINMENT.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
+        log.info("[NEWS] getMultiCategoryPage 처리 중 - 뉴스 조회 성공, category:{}", CategoryType.ENTERTAINMENT.name());
 
         newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setSports(
@@ -133,6 +145,7 @@ public class NewsServiceImpl implements NewsService {
                         !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.SPORTS.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
+        log.info("[NEWS] getMultiCategoryPage 처리 중 - 뉴스 조회 성공, category:{}", CategoryType.SPORTS.name());
 
         newsPage = newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
         res.setKtb(
@@ -142,20 +155,26 @@ public class NewsServiceImpl implements NewsService {
                         !newsRepository.findByIsHotissueFalseAndCategoryId(getCategoryId(CategoryType.KTB.name()), PageRequest.of(page + 1, NewsServiceConstant.PAGE_SIZE)).isEmpty()
                 )
         );
+        log.info("[NEWS] getMultiCategoryPage 처리 중 - 뉴스 조회 성공, category:{}", CategoryType.KTB.name());
 
+        log.info("[NEWS] getMultiCategoryPage 완료");
         return res;
     }
 
     @Override
     public Object getSingleCategoryPage(Long userId, String category, Integer offset) {
+        log.info("[NEWS] getSingleCategoryPage 시작");
+
         if (category != null && !category.equalsIgnoreCase("ALL")) {
             categoryRepository.findByName(CategoryType.valueOf(category.toUpperCase()))
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, NewsResponseMessage.CATEGORY_NOT_FOUND));
         }
+        log.info("[NEWS] getSingleCategoryPage 처리 중 - 카테고리 유효성 검사 성공");
 
         Integer page = offset / NewsServiceConstant.PAGE_SIZE;
         NewsListResponse newsListResponse = getNewsListResponse(userId, category, page);
 
+        log.info("[NEWS] getSingleCategoryPage 완료");
         return switch (category != null ? category.toUpperCase() : "ALL") {
             case "ALL" -> new AllResponse(newsListResponse);
             case "ECONOMY" -> new EconomyResponse(newsListResponse);
@@ -168,15 +187,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public NewsListResponse getSearchNewsCardPage(Long userId, List<String> tags, Integer offset) {
+        log.info("[NEWS] getSearchNewsCardPage 시작 - userId:{}", userId);
+
         tags = new ArrayList<>(new LinkedHashSet<>(tags));
         if (tags.size() < NewsServiceConstant.TAGS_MIN_SIZE || tags.size() > NewsServiceConstant.TAGS_MAX_SIZE) {
+            log.error("[NEWS] getSearchNewsCardPage 실패 - 유효하지 않은 태그 개수, tagsSize:{} userId:{}", tags.size(), userId);
             throw new IllegalArgumentException();
         }
 
         int page = offset / NewsServiceConstant.PAGE_SIZE;
         int nextOffset = (page + 1) * NewsServiceConstant.PAGE_SIZE;
         Page<News> newsPage = newsRepository.searchNewsPageByTags(tags, PageRequest.of(page, NewsServiceConstant.PAGE_SIZE));
+        log.info("[NEWS] getSearchNewsCardPage 처리 중 - 뉴스 목록 검색 성공, userId:{}", userId);
 
+        log.info("[NEWS] getSearchNewsCardPage 완료 - userId:{}", userId);
         return new NewsListResponse(
                 getNewsCardDTOList(userId, newsPage),
                 nextOffset,
@@ -187,26 +211,36 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO getNewsDetail(Long newsId, Long userId) {
+        log.info("[NEWS] getNewsDetail 시작 - userId:{} newsId:{}", userId, newsId);
+
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
+        log.info("[NEWS] getNewsDetail 처리 중 - 뉴스 조회 성공, userId:{} newsId:{}", userId, newsId);
 
         Optional<User> user;
         if (userId != null) {
             user = userRepository.findById(userId);
+            log.info("[NEWS] getNewsDetail 처리 중 - 회원 조회 성공, userId:{} newsId:{}", userId, newsId);
         } else {
             user = Optional.empty();
+            log.info("[NEWS] getNewsDetail 처리 중 - 비회원 확인, userId:{} newsId:{}", userId, newsId);
         }
 
         List<TimelineCardDTO> timelineCardDTOList = getTimelineCardDTOList(news);
+        log.info("[NEWS] getNewsDetail 처리 중 - 뉴스 타임라인 조회 성공, userId:{} newsId:{}", userId, newsId);
 
         Optional<NewsImage> newsImage = newsImageRepository.findByNewsId(news.getId());
         String image = newsImage.map(NewsImage::getUrl).orElse(null);
+        log.info("[NEWS] getNewsDetail 처리 중 - 뉴스 썸네일 조회 성공, userId:{} newsId:{}", userId, newsId);
 
         StatisticsDTO statistics = getStatisticsDTO(news);
         boolean bookmarked = user.map(u -> getBookmarked(u, news)).orElse(false);
+        log.info("[NEWS] getNewsDetail 처리 중 - 뉴스 북마크 조회 성공, userId:{} newsId:{}", userId, newsId);
 
         newsRepository.increaseViewCount(news.getId());
+        log.info("[NEWS] getNewsDetail 처리 중 - 뉴스 조회수 상승 처리 성공, userId:{} newsId:{}", userId, newsId);
 
+        log.info("[NEWS] getNewsDetail 완료 - userId:{} newsId:{}", userId, newsId);
         return new NewsDetailDTO(
                 news.getId(),
                 news.getTitle(),
@@ -222,20 +256,27 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO save(Long userId, boolean isHotissue, NewsCreateRequest req) {
+        log.info("[NEWS] save 시작 - hotissue:{}, userId:{}", isHotissue, userId);
+
         User user = null;
         if (!isHotissue) {
             user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+            log.info("[NEWS] save 처리 중 - 회원 조회 성공, hotissue:{}, userId:{}", isHotissue, userId);
         }
 
         // 0. 뉴스 생성 키워드 목록과 기존 뉴스의 태그 목록이 일치할 경우, 기존 뉴스를 업데이트한다.
         Optional<News> optionalNews = newsRepository.findNewsByExactlyMatchingTags(req.getKeywords(), req.getKeywords().size());
         if (optionalNews.isPresent()) {
+            log.info("[NEWS] save 완료 - 태그 목록이 일치하는 기존 뉴스가 존재함, hotissue:{}, userId:{}", isHotissue, userId);
+
             Long newsId = optionalNews.get().getId();
             return update(newsId, userId, isHotissue);
         }
+        log.info("[NEWS] save 처리 중 - 태그 목록이 일치하는 기존 뉴스가 존재하지 않음, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
+        log.info("[NEWS] save 처리 중 - 뉴스 여론 통계 비동기 생성 시작, hotissue:{}, userId:{}", isHotissue, userId);
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
                 .getAIStatistics(req.getKeywords())
                 .exceptionally(ex -> {
@@ -243,6 +284,7 @@ public class NewsServiceImpl implements NewsService {
                     if (cause instanceof AIException aiEx) {
                         HttpStatusCode status = aiEx.getStatus();
                         if (status.is4xxClientError()) {
+                            log.warn("[NEWS] save 처리 중 - 뉴스 여론 통계 비동기 생성 실패, hotissue:{}, userId:{}", isHotissue, userId);
                             return null;
                         }
                     }
@@ -252,23 +294,28 @@ public class NewsServiceImpl implements NewsService {
         // 2. AI에 요청하여 뉴스를 생성한다.
         AINewsResponse aiNewsResponse;
         try {
+            log.info("[NEWS] save 처리 중 - 타임라인 생성 시작, hotissue:{}, userId:{}", isHotissue, userId);
             LocalDate endAt = LocalDate.now();
             LocalDate startAt = endAt.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS);
             WrappedDTO<AINewsResponse> res = aiService.createAINews(req.getKeywords(), startAt, endAt);
             aiNewsResponse = res.getData();
-        } catch (AIException ex) {
-            if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+            log.info("[NEWS] save 처리 중 - 타임라인 생성 성공, hotissue:{}, userId:{}", isHotissue, userId);
+        } catch (AIException e) {
+            log.error("[NEWS] save 실패 - 타임라인 생성 실패, hotissue:{}, userId:{}", isHotissue, userId);
+            if (e.getStatus() == HttpStatus.NOT_FOUND) {
                 return null;
             }
-            throw ex;
+            throw e;
         }
 
         // 3. AI에 요청하여 타임라인 카드들을 병합한다.
         List<TimelineCardDTO> timeline = aiService.mergeTimelineCards(aiNewsResponse.getTimeline());
+        log.info("[NEWS] save 처리 중 - 타임라인 카드 병합 성공, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 4. 뉴스의 여론 통계 생성 응답을 기다린다.
         WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
         StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? resStats.getData() : null;
+        log.info("[NEWS] save 처리 중 - 뉴스 여론 통계 비동기 처리 응답 반환, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 5. 저장
         // 5-1. 뉴스를 저장한다.
@@ -281,6 +328,7 @@ public class NewsServiceImpl implements NewsService {
                 // 유효하지 않은 카테고리는 기타(null)로 처리한다.
             }
         }
+        log.info("[NEWS] save 처리 중 - 카테고리 유효성 검사 완료, hotissue:{}, userId:{}", isHotissue, userId);
 
         News news = new News();
         news.setTitle(aiNewsResponse.getTitle());
@@ -294,17 +342,21 @@ public class NewsServiceImpl implements NewsService {
         news.setUser(user);
         news.setCategory(category);
         newsRepository.save(news);
+        log.info("[NEWS] save 처리 중 - 뉴스 저장 완료, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 5-2. 타임라인 카드들을 저장한다.
         saveTimelineCards(timeline, news);
+        log.info("[NEWS] save 처리 중 - 타임라인 카드 저장 완료, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 5-3. 뉴스 이미지를 저장한다.
         NewsImage newsImage = new NewsImage();
         newsImage.setNews(news);
         newsImage.setUrl(aiNewsResponse.getImage());
         newsImageRepository.save(newsImage);
+        log.info("[NEWS] save 처리 중 - 뉴스 이미지 저장 완료, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 5-4. 뉴스 태그들을 저장하고, DB에 없는 태그를 저장한다.
+        log.info("[NEWS] save 처리 중 - 뉴스 태그 저장 시작, hotissue:{}, userId:{}", isHotissue, userId);
         req.getKeywords().forEach(keyword -> {
             NewsTag newsTag = new NewsTag();
             newsTag.setNews(news);
@@ -320,8 +372,10 @@ public class NewsServiceImpl implements NewsService {
 
                 newsTag.setTag(newTag);
                 newsTagRepository.save(newsTag);
+                log.info("[NEWS] save 처리 중 - 새로운 태그 저장 완료, hotissue:{}, userId:{}", isHotissue, userId);
             }
         });
+        log.info("[NEWS] save 처리 중 - 뉴스 태그 저장 완료, hotissue:{}, userId:{}", isHotissue, userId);
 
         // 6. 생성된 뉴스에 대해 북마크 설정한다.
         if (!isHotissue) {
@@ -329,9 +383,11 @@ public class NewsServiceImpl implements NewsService {
             bookmark.setUser(user);
             bookmark.setNews(news);
             bookmarkRepository.save(bookmark);
+            log.info("[NEWS] save 처리 중 - 북마크 처리 완료, hotissue:{}, userId:{}", isHotissue, userId);
         }
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
+        log.info("[NEWS] save 완료 - hotissue:{}, userId:{}", isHotissue, userId);
         return new NewsDetailDTO(
                 news.getId(),
                 news.getTitle(),
@@ -347,12 +403,17 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO saveKtbNews(Long userId, KtbNewsCreateRequest req) {
+        log.info("[NEWS] saveKtbNews 시작 - userId:{}", userId);
+
         User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        log.info("[NEWS] saveKtbNews 처리 중 - 회원 조회 성공, userId:{}", userId);
 
         if (user.getRole() != Role.ADMIN) {
+            log.error("[NEWS] saveKtbNews 실패 - 관리자가 아님, userId:{} userRole:{}", userId, user.getRole());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, ResponseMessage.USER_FORBIDDEN);
         }
+        log.info("[NEWS] saveKtbNews 처리 중 - 관리자 확인, userId:{}", userId);
 
         News news = new News();
         news.setTitle(req.getTitle());
@@ -360,12 +421,14 @@ public class NewsServiceImpl implements NewsService {
         news.setIsPublic(false);
         news.setCategory(categoryRepository.findByName(CategoryType.KTB).orElse(null));
         newsRepository.save(news);
+        log.info("[NEWS] saveKtbNews 처리 중 - 뉴스 저장 성공, userId:{}", userId);
 
         if (req.getImage() != null) {
             NewsImage newsImage = new NewsImage();
             newsImage.setNews(news);
             newsImage.setUrl(req.getImage());
             newsImageRepository.save(newsImage);
+            log.info("[NEWS] saveKtbNews 처리 중 - 뉴스 이미지 저장 성공, userId:{}", userId);
         }
 
         for (TimelineCardDTO dto : req.getTimeline()) {
@@ -379,7 +442,9 @@ public class NewsServiceImpl implements NewsService {
             timelineCard.setEndAt(dto.getEndAt());
             timelineCardRepository.save(timelineCard);
         }
+        log.info("[NEWS] saveKtbNews 처리 중 - 타임라인 카드 저장 성공, userId:{}", userId);
 
+        log.info("[NEWS] saveKtbNews 완료 - userId:{}", userId);
         return new NewsDetailDTO(
           news.getId(),
           news.getTitle(),
@@ -395,20 +460,27 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional
     public NewsDetailDTO update(Long newsId, Long userId, boolean isHotissue) {
+        log.info("[NEWS] update 시작 - hotissue:{} userId:{}", isHotissue, userId);
+
         User user = null;
         if (!isHotissue) {
             user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+            log.info("[NEWS] update 처리 중 - 회원 조회 성공, hotissue:{} userId:{}", isHotissue, userId);
         }
 
         // 1. 뉴스, 타임라인 카드들, 뉴스태그들을 찾는다.
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
+        log.info("[NEWS] update 처리 중 - 기존 뉴스 조회 성공, hotissue:{} userId:{}", isHotissue, userId);
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusHours(NewsServiceConstant.NEWS_UPDATE_HOURS))) {
             if (isHotissue) {
                 news.setIsHotissue(true);
                 newsRepository.save(news);
+                log.info("[NEWS] update 처리 중 - 기존 뉴스 핫이슈 전환 성공, hotissue:{} userId:{}", isHotissue, userId);
+
+                log.info("[NEWS] update 완료 - hotissue:{} userId:{}", isHotissue, userId);
                 return new NewsDetailDTO(
                         news.getId(),
                         news.getTitle(),
@@ -420,6 +492,7 @@ public class NewsServiceImpl implements NewsService {
                         getStatisticsDTO(news)
                 );
             }
+            log.error("[NEWS] update 실패 - 업데이트 가능 시간이 아님, hotissue:{} userId:{}", isHotissue, userId);
             throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_UPDATE_CONFLICT);
         }
 
@@ -436,14 +509,17 @@ public class NewsServiceImpl implements NewsService {
             );
             oldTimeline.add(timelineCardDTO);
         }
+        log.info("[NEWS] update 처리 중 - 타임라인 카드 목록 조회 성공, hotissue:{} userId:{}", isHotissue, userId);
 
         List<NewsTag> tags = newsTagRepository.findByNewsId(news.getId());
         List<String> keywords = new ArrayList<>();
         for (NewsTag tag : tags) {
             keywords.add(tag.getTag().getName());
         }
+        log.info("[NEWS] update 처리 중 - 뉴스 태그 목록 조회 성공 hotissue:{} userId:{}", isHotissue, userId);
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
+        log.info("[NEWS] update 처리 중 - 뉴스 여론 통계 비동기 생성 시작, hotissue:{} userId:{}", isHotissue, userId);
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
                 .getAIStatistics(keywords)
                 .exceptionally(ex -> {
@@ -451,6 +527,7 @@ public class NewsServiceImpl implements NewsService {
                     if (cause instanceof AIException aiEx) {
                         HttpStatusCode status = aiEx.getStatus();
                         if (status.is4xxClientError()) {
+                            log.warn("[NEWS] update 처리 중 - 뉴스 여론 통계 비동기 생성 실패, hotissue:{}, userId:{}", isHotissue, userId);
                             return null;
                         }
                     }
@@ -466,18 +543,22 @@ public class NewsServiceImpl implements NewsService {
             aiNewsResponse = res.getData();
         } catch (AIException ex) {
             if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+                log.warn("[NEWS] update 실패 - 뉴스 생성 실패, hotissue:{} userId:{}", isHotissue, userId);
                 return null;
             }
             throw ex;
         }
+        log.info("[NEWS] update 처리 중 - 뉴스 생성 성공, hotissue:{} userId:{}", isHotissue, userId);
 
         // 4. 기존 타임라인 카드들과 합친 뒤, AI에 요청하여 타임라인 카드들을 병합한다.
         oldTimeline.addAll(aiNewsResponse.getTimeline());
         List<TimelineCardDTO> newTimeline = aiService.mergeTimelineCards(oldTimeline);
+        log.info("[NEWS] update 처리 중 - 타임라인 카드 병합 성공, hotissue:{} userId:{}", isHotissue, userId);
 
         // 2-2. 뉴스의 여론 통계 생성 응답을 기다린다.
         WrappedDTO<StatisticsDTO> resStats = statsAsync.join();
         StatisticsDTO statistics = (resStats != null && resStats.getData() != null) ? resStats.getData() : null;
+        log.info("[NEWS] update 처리 중 - 뉴스 여론 통계 비동기 생성 응답 반환, hotissue:{} userId:{}", isHotissue, userId);
 
         // 4. 저장
         // 4-1. 뉴스를 저장한다.
@@ -491,20 +572,24 @@ public class NewsServiceImpl implements NewsService {
             news.setRatioNega(statistics.getNegative());
         }
         newsRepository.save(news);
+        log.info("[NEWS] update 처리 중 - 뉴스 저장 완료, hotissue:{} userId:{}", isHotissue, userId);
 
         // 4-2. 타임라인 카드들을 저장한다.
         timelineCardRepository.deleteAllByNewsId(news.getId());
         saveTimelineCards(newTimeline, news);
+        log.info("[NEWS] update 처리 중 - 타임라인 카드 저장 완료, hotissue:{} userId:{}", isHotissue, userId);
 
         // 4-3. 기존 뉴스 이미지를 삭제하고 새로운 뉴스 이미지를 저장한다.
         if (newsImageRepository.findByNewsId(news.getId()).isPresent()) {
             Optional<NewsImage> oldNewsImage = newsImageRepository.findByNewsId(news.getId());
             oldNewsImage.ifPresent(newsImageRepository::delete);
+            log.info("[NEWS] update 처리 중 - 기존 뉴스 이미지 삭제, hotissue:{} userId:{}", isHotissue, userId);
         }
         NewsImage updatedNewsImage = new NewsImage();
         updatedNewsImage.setNews(news);
         updatedNewsImage.setUrl(aiNewsResponse.getImage());
         newsImageRepository.save(updatedNewsImage);
+        log.info("[NEWS] update 처리 중 - 새로운 뉴스 이미지 저장 완료, hotissue:{} userId:{}", isHotissue, userId);
 
         // 5. 기존에 북마크를 설정했던 회원들에게 알림 생성
         publishAlarm(
@@ -514,6 +599,7 @@ public class NewsServiceImpl implements NewsService {
                 AlarmType.NEWS,
                 newsId
         );
+        log.info("[NEWS] update 처리 중 - 뉴스를 북마크한 회원에게 업데이트 알림 발행, hotissue:{} userId:{}", isHotissue, userId);
 
         // 6. 생성된 뉴스에 대해 북마크 설정한다.
         Optional<Bookmark> bookmark = bookmarkRepository.findByUserAndNews(user, news);
@@ -523,6 +609,7 @@ public class NewsServiceImpl implements NewsService {
             savedBookmark.setNews(news);
             bookmarkRepository.save(savedBookmark);
         }
+        log.info("[NEWS] update 처리 중 - hotissue:{} userId:{}", isHotissue, userId);
 
         // 7. 뉴스의 상세 페이지 데이터를 반환한다.
         return new NewsDetailDTO(
@@ -539,19 +626,29 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public void delete(Long newsId, Long userId) {
+        log.info("[NEWS] delete 시작 - newsId:{}", newsId);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.USER_NOT_FOUND));
+        log.info("[NEWS] delete 처리 중 - 회원 조회 성공, newsId:{} userId:{}", newsId, userId);
+
 
         if (user.getRole() != Role.ADMIN) {
+            log.error("[NEWS] delete 처리 중 - 관리자가 아님, userId:{} userRole:{}", userId,  user.getRole());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, NewsResponseMessage.NEWS_DELETE_FORBIDDEN);
         }
+        log.info("[NEWS] delete 처리 중 - 관리자 권한 확인, newsId:{} userId:{}", newsId, userId);
+
 
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ResponseMessage.NEWS_NOT_FOUND));
+        log.info("[NEWS] delete 처리 중 - 뉴스 조회 성공, newsId:{} userId:{}", newsId, userId);
 
         if (news.getUpdatedAt().isAfter(LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS))) {
+            log.error("[NEWS] delete 실패 - 뉴스 삭제 조건이 충족되지 않음, newsId:{} userId:{}", newsId, userId);
             throw new ResponseStatusException(HttpStatus.CONFLICT, NewsResponseMessage.NEWS_DELETE_CONFLICT);
         }
+
 
         publishAlarm(
                 bookmarkRepository.findUsersByNews(news),
@@ -560,13 +657,17 @@ public class NewsServiceImpl implements NewsService {
                 null,
                 null
         );
+        log.info("[NEWS] delete 처리 중 - 삭제 알림 발행, newsId:{} userId:{}", newsId, userId);
 
+        log.info("[NEWS] delete 완료 - newsId:{} userId:{}", newsId, userId);
         newsRepository.delete(news);
     }
 
     @Override
     @Transactional
     public void createHotissueNews() {
+        log.info("[NEWS] createHotissueNews 시작");
+
         AIHotissueResponse aiHotissueResponse;
         WrappedDTO<AIHotissueResponse> res = aiService.createAIHotissueKeywords();
         aiHotissueResponse = res.getData();
@@ -575,11 +676,13 @@ public class NewsServiceImpl implements NewsService {
         for (News news : previousHotissuesList) {
             newsRepository.updateIsHotissue(news.getId(), false);
         }
+        log.info("[NEWS] createHotissueNews 처리 중 - 이전 핫이슈 뉴스들을 일반 뉴스로 전환 성공");
 
         for (String keyword : aiHotissueResponse.getKeywords()) {
             NewsCreateRequest req = new NewsCreateRequest(List.of(keyword));
             save(null, true, req);
         }
+        log.info("[NEWS] createHotissueNews 처리 중 - 새로운 핫이슈 뉴스 생성");
 
         publishAlarm(
                 userRepository.findAll().stream().map(User::getId).collect(Collectors.toList()),
@@ -588,10 +691,15 @@ public class NewsServiceImpl implements NewsService {
                 AlarmType.NEWS,
                 null
         );
+        log.info("[NEWS] createHotissueNews 처리 중 - 핫이슈 뉴스 생성 알림 생성 성공");
+
+        log.info("[NEWS] createHotissueNews 완료");
     }
 
     @Override
     public void deleteOldNewsAndOrphanTags() {
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 시작");
+
         LocalDateTime cutoff = LocalDateTime.now().minusDays(NewsServiceConstant.NEWS_DELETE_DAYS);
 
         // 삭제 예정
@@ -605,6 +713,7 @@ public class NewsServiceImpl implements NewsService {
                     news.getId()
             );
         }
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 처리 중 - 삭제 예정 뉴스 알림 발행");
 
         // 삭제
         List<News> newsDeletionList = newsRepository.findAllOlderThan(cutoff);
@@ -617,19 +726,28 @@ public class NewsServiceImpl implements NewsService {
                     null
             );
         }
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 처리 중 - 삭제 대상 뉴스 알림 발행");
 
         newsRepository.deleteAllOlderThan(cutoff);
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 처리 중 - 뉴스 삭제 성공");
+
         tagRepository.deleteAllOrphan();
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 처리 중 - 고아 태그 삭제 성공");
+
+        log.info("[NEWS] deleteOldNewsAndOrphanTags 완료");
     }
 
     @Override
     @Transactional
     public void makeNewsPublic() {
+        log.info("[NEWS] makeNewsPublic 시작");
+
         List<News> newsList = newsRepository.findAllByIsPublicFalseOrderByUpdatedAtDesc();
         for (News news : newsList) {
             news.setIsPublic(true);
             newsRepository.save(news);
         }
+        log.info("[NEWS] makeNewsPublic 처리 중 - 뉴스 공개 전환 성공");
 
         if (!newsList.isEmpty()) {
             publishAlarm(
@@ -639,7 +757,10 @@ public class NewsServiceImpl implements NewsService {
                     AlarmType.NEWS,
                     newsList.getFirst().getId()
             );
+            log.info("[NEWS] makeNewsPublic 처리 중 - KTB 뉴스 생성 알림 발행");
         }
+
+        log.info("[NEWS] makeNewsPublic 완료");
     }
 
 
