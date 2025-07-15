@@ -72,8 +72,7 @@ public class NewsServiceImpl implements NewsService {
 
     private final ApplicationEventPublisher eventPublisher;
 
-    private final AIService aiService;
-    private final AsyncAIService asyncAiService;
+    private final AiService aiService;
 
     private final NewsRepository newsRepository;
     private final TimelineCardRepository timelineCardRepository;
@@ -277,7 +276,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
         log.info("[NEWS] save 처리 중 - 뉴스 여론 통계 비동기 생성 시작, hotissue:{}, userId:{}", isHotissue, userId);
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = aiService
                 .getAIStatistics(req.getKeywords())
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
@@ -520,7 +519,7 @@ public class NewsServiceImpl implements NewsService {
 
         // 2-1. 뉴스의 여론 통계 생성을 비동기적으로 시작한다.
         log.info("[NEWS] update 처리 중 - 뉴스 여론 통계 비동기 생성 시작, hotissue:{} userId:{}", isHotissue, userId);
-        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = asyncAiService
+        CompletableFuture<WrappedDTO<StatisticsDTO>> statsAsync = aiService
                 .getAIStatistics(keywords)
                 .exceptionally(ex -> {
                     Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
