@@ -8,15 +8,18 @@ import com.tamnara.backend.global.exception.AIException;
 import com.tamnara.backend.news.constant.NewsExternalApiEndpoint;
 import com.tamnara.backend.news.constant.NewsServiceConstant;
 import com.tamnara.backend.news.domain.TimelineCardType;
+import com.tamnara.backend.news.dto.StatisticsDTO;
 import com.tamnara.backend.news.dto.TimelineCardDTO;
 import com.tamnara.backend.news.dto.request.AIHotissueRequest;
 import com.tamnara.backend.news.dto.request.AINewsRequest;
+import com.tamnara.backend.news.dto.request.AIStatisticsRequest;
 import com.tamnara.backend.news.dto.request.AITimelineMergeRequest;
 import com.tamnara.backend.news.dto.response.AIHotissueResponse;
 import com.tamnara.backend.news.dto.response.AINewsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -26,13 +29,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
-public class AIServiceImpl implements AIService {
+public class AiServiceImpl implements AiService {
 
     private final WebClient aiWebClient;
 
+    @Override
     public WrappedDTO<AINewsResponse> createAINews(List<String> keywords, LocalDate startAt, LocalDate endAt) {
         AINewsRequest aiNewsRequest = new AINewsRequest(
                 keywords,
@@ -58,6 +63,7 @@ public class AIServiceImpl implements AIService {
                 .block();
     }
 
+    @Override
     public List<TimelineCardDTO> mergeTimelineCards(List<TimelineCardDTO> timeline) {
         // 1. 1일카드 -> 1주카드
         timeline = mergeAITimelineCards(timeline, TimelineCardType.DAY, 7);
@@ -92,6 +98,28 @@ public class AIServiceImpl implements AIService {
                 )
                 .bodyToMono(new ParameterizedTypeReference<WrappedDTO<AIHotissueResponse>>() {})
                 .block();
+    }
+
+    @Async
+    @Override
+    public CompletableFuture<WrappedDTO<StatisticsDTO>> getAIStatistics(List<String> keywords) {
+        AIStatisticsRequest req = new AIStatisticsRequest(
+                keywords,
+                NewsServiceConstant.STATISTICS_AI_SEARCH_CNT
+        );
+
+        return aiWebClient.post()
+                .uri(NewsExternalApiEndpoint.STATISTIC_AI_ENDPOINT)
+                .bodyValue(req)
+                .retrieve()
+                .onStatus(
+                        HttpStatusCode::isError,
+                        clientResponse -> clientResponse
+                                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
+                                .flatMap(errorBody -> Mono.error(new AIException(clientResponse.statusCode(), errorBody)))
+                )
+                .bodyToMono(new ParameterizedTypeReference<WrappedDTO<StatisticsDTO>>() {})
+                .toFuture();
     }
 
     private List<TimelineCardDTO> mergeAITimelineCards(List<TimelineCardDTO> timeline, TimelineCardType duration, Integer countNum) {

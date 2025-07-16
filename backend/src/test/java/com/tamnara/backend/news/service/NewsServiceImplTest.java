@@ -85,8 +85,7 @@ class NewsServiceImplTest {
 
     @Mock private ApplicationEventPublisher eventPublisher;
 
-    @Mock private AIService aiService;
-    @Mock private AsyncAIService asyncAiService;
+    @Mock private AiService aiService;
 
     @Mock private NewsRepository newsRepository;
     @Mock private TimelineCardRepository timelineCardRepository;
@@ -532,7 +531,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // 뉴스 태그 저장
         Tag tag = new Tag();
@@ -546,7 +545,7 @@ class NewsServiceImplTest {
         // then
         verify(aiService, atLeastOnce()).createAINews(query, localDate.minusDays(NewsServiceConstant.NEWS_CREATE_DAYS), localDate);
         verify(aiService, atLeastOnce()).mergeTimelineCards(dayCardDTOs);
-        verify(asyncAiService, times(1)).getAIStatistics(query);
+        verify(aiService, times(1)).getAIStatistics(query);
         assertEquals(statisticsDTO.getData().getPositive(), response.getStatistics().getPositive());
         assertEquals(statisticsDTO.getData().getNeutral(), response.getStatistics().getNeutral());
         assertEquals(statisticsDTO.getData().getNegative(), response.getStatistics().getNegative());
@@ -654,7 +653,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
         NewsDetailDTO response = newsServiceImpl.save(user.getId(), false, newsCreateRequest);
@@ -723,7 +722,7 @@ class NewsServiceImplTest {
                 "메시지",
                 null
         );
-        when(asyncAiService.getAIStatistics(query)).thenReturn(
+        when(aiService.getAIStatistics(query)).thenReturn(
                 CompletableFuture.failedFuture(new AIException(HttpStatus.NOT_FOUND, statisticsDTO))
         );
 
@@ -739,7 +738,7 @@ class NewsServiceImplTest {
         // then
         verify(aiService, atLeastOnce()).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
         verify(aiService, atLeastOnce()).mergeTimelineCards(anyList());
-        verify(asyncAiService, times(1)).getAIStatistics(anyList());
+        verify(aiService, times(1)).getAIStatistics(anyList());
         assertEquals(0, response.getStatistics().getPositive());
         assertEquals(0, response.getStatistics().getNeutral());
         assertEquals(0, response.getStatistics().getNegative());
@@ -928,7 +927,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
         NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId(), false);
@@ -1031,7 +1030,7 @@ class NewsServiceImplTest {
                 "메시지",
                 null
         );
-        when(asyncAiService.getAIStatistics(query)).thenReturn(
+        when(aiService.getAIStatistics(query)).thenReturn(
                 CompletableFuture.failedFuture(new AIException(HttpStatus.NOT_FOUND, statisticsDTO))
         );
 
@@ -1041,7 +1040,7 @@ class NewsServiceImplTest {
         // then
         verify(aiService, atLeastOnce()).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
         verify(aiService, atLeastOnce()).mergeTimelineCards(anyList());
-        verify(asyncAiService, times(1)).getAIStatistics(anyList());
+        verify(aiService, times(1)).getAIStatistics(anyList());
         assertEquals(0, response.getStatistics().getPositive());
         assertEquals(0, response.getStatistics().getNeutral());
         assertEquals(0, response.getStatistics().getNegative());
@@ -1192,9 +1191,9 @@ class NewsServiceImplTest {
         when(aiService.mergeTimelineCards(dayCardDTOs)).thenReturn(List.of(weekCardDTO));
 
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(0)))).thenReturn(statsAiResponse);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(1)))).thenReturn(statsAiResponse);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(2)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(0)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(1)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(2)))).thenReturn(statsAiResponse);
         when(tagRepository.findByName(any(String.class))).thenReturn(Optional.of(tag));
 
         // when
@@ -1205,7 +1204,7 @@ class NewsServiceImplTest {
         verify(timelineCardRepository, atLeastOnce()).save(any(TimelineCard.class));
         verify(newsImageRepository, times(3)).save(any(NewsImage.class));
         verify(newsTagRepository, times(3)).save(any(NewsTag.class));
-        verify(asyncAiService, times(3)).getAIStatistics(anyList());
+        verify(aiService, times(3)).getAIStatistics(anyList());
         verify(aiService, times(3)).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
         verify(aiService, times(3)).mergeTimelineCards(anyList());
     }
@@ -1305,7 +1304,7 @@ class NewsServiceImplTest {
         when(aiService.mergeTimelineCards(dayCardDTOs)).thenReturn(List.of(weekCardDTO));
 
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(anyList())).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(anyList())).thenReturn(statsAiResponse);
         when(tagRepository.findByName(any(String.class))).thenReturn(Optional.of(tag));
 
         // when
@@ -1318,7 +1317,7 @@ class NewsServiceImplTest {
         verify(timelineCardRepository, atLeastOnce()).save(any(TimelineCard.class));
         verify(aiService, times(2)).createAINews(anyList(), any(LocalDate.class), any(LocalDate.class));
         verify(aiService, times(2)).mergeTimelineCards(anyList());
-        verify(asyncAiService, times(2)).getAIStatistics(anyList());
+        verify(aiService, times(2)).getAIStatistics(anyList());
         verify(newsImageRepository, times(2)).save(any(NewsImage.class));
         verify(newsTagRepository, times(1)).save(any(NewsTag.class));
 
@@ -1451,9 +1450,9 @@ class NewsServiceImplTest {
         when(aiService.mergeTimelineCards(dayCardDTOs)).thenReturn(List.of(weekCardDTO));
 
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(0)))).thenReturn(statsAiResponse);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(1)))).thenReturn(statsAiResponse);
-        when(asyncAiService.getAIStatistics(List.of(keywords.get(2)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(0)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(1)))).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(List.of(keywords.get(2)))).thenReturn(statsAiResponse);
         when(tagRepository.findByName(any(String.class))).thenReturn(Optional.of(tag));
 
         // when
@@ -1568,7 +1567,7 @@ class NewsServiceImplTest {
                 )
         );
         CompletableFuture<WrappedDTO<StatisticsDTO>> statsAiResponse = CompletableFuture.completedFuture(statisticsDTO);
-        when(asyncAiService.getAIStatistics(query)).thenReturn(statsAiResponse);
+        when(aiService.getAIStatistics(query)).thenReturn(statsAiResponse);
 
         // when
         NewsDetailDTO response = newsServiceImpl.update(news.getId(), user.getId(), false);
