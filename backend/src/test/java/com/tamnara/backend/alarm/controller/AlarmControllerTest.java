@@ -26,11 +26,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(controllers = AlarmController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -70,6 +72,42 @@ public class AlarmControllerTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
         );
+    }
+
+    @Test
+    void 로그아웃_상태에서_SSE_알림_스트리밍_불가_검증() throws Exception {
+        // given
+        SecurityContextHolder.clearContext();
+
+        // when & then
+        mockMvc.perform(get("/users/me/alarms/stream"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 로그인_상태에서_SSE_알림_스트리밍_검증() throws Exception {
+        // given
+        AlarmCardDTO alarmCardDTO1 = createAlarmCardDTO(1L, false, AlarmType.NEWS.toString(), 1L);
+        AlarmCardDTO alarmCardDTO2 = createAlarmCardDTO(2L, false, AlarmType.NEWS.toString(), 1L);
+
+        List<AlarmCardDTO> allAlarmCardDTOList = List.of(alarmCardDTO1, alarmCardDTO2);
+        List<AlarmCardDTO> bookmarkAlarmCardDTOList = List.of(alarmCardDTO1);
+
+        AlarmListResponse allAlarms = new AlarmListResponse(
+                AlarmServiceConstant.ALARM_RESPONSE_TYPE_ALL, allAlarmCardDTOList);
+        AlarmListResponse bookmarkAlarms = new AlarmListResponse(
+                AlarmServiceConstant.ALARM_RESPONSE_TYPE_BOOKMARK, bookmarkAlarmCardDTOList);
+
+        given(alarmService.getAllAlarmPageByUserId(USER_ID)).willReturn(allAlarms);
+        given(alarmService.getBookmarkAlarmPageByUserId(USER_ID)).willReturn(bookmarkAlarms);
+
+        // when & then
+        mockMvc.perform(get("/users/me/alarms/stream"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", startsWith("text/event-stream")))
+                .andExpect(content().string(containsString(AlarmResponseMessage.ALARM_FETCH_SUCCESS)))
+                .andExpect(content().string(containsString(AlarmServiceConstant.ALARM_RESPONSE_TYPE_ALL)))
+                .andExpect(content().string(containsString(AlarmServiceConstant.ALARM_RESPONSE_TYPE_BOOKMARK)));
     }
 
     @Test
