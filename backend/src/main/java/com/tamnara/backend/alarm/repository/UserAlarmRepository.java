@@ -10,10 +10,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Repository
 public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
     Page<UserAlarm> findByUserIdOrderByIdDesc(Long userId, Pageable pageable);
+    Optional<UserAlarm> findFirstByUserIdOrderByIdDesc(Long userId);
 
     @Query("""
         SELECT ua FROM UserAlarm ua
@@ -38,5 +40,4 @@ public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
     void checkUserAlarm(@Param("userAlarmId") Long userAlarmId, @Param("checkedAt") LocalDateTime checkedAt);
 
     boolean existsByUserIdAndIsCheckedFalse(Long userId);
-
 }
