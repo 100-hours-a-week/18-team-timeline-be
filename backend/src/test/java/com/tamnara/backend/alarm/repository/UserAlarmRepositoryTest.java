@@ -334,4 +334,36 @@ public class UserAlarmRepositoryTest {
         assertTrue(savedUserAlarm.getIsChecked());
         assertEquals(now, savedUserAlarm.getCheckedAt());
     }
+
+    @Test
+    void 미확인_회원알림이_존재할_경우_확인_검증() {
+        // given
+        UserAlarm userAlarm1 = createUserAlarm(alarm, false);
+        UserAlarm userAlarm2 = createUserAlarm(alarm, true);
+        userAlarmRepository.saveAndFlush(userAlarm1);
+        userAlarmRepository.saveAndFlush(userAlarm2);
+        em.clear();
+
+        // when
+        boolean hasUnchecked = userAlarmRepository.existsByUserIdAndIsCheckedFalse(user.getId());
+
+        // then
+        assertTrue(hasUnchecked);
+    }
+
+    @Test
+    void 미확인_회원알림이_존재하지_않을_경우_확인_검증() {
+        // given
+        UserAlarm userAlarm1 = createUserAlarm(alarm, true);
+        UserAlarm userAlarm2 = createUserAlarm(alarm, true);
+        userAlarmRepository.saveAndFlush(userAlarm1);
+        userAlarmRepository.saveAndFlush(userAlarm2);
+        em.clear();
+
+        // when
+        boolean hasUnchecked = userAlarmRepository.existsByUserIdAndIsCheckedFalse(user.getId());
+
+        // then
+        assertFalse(hasUnchecked);
+    }
 }
