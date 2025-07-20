@@ -267,6 +267,33 @@ public class UserAlarmRepositoryTest {
     }
 
     @Test
+    void 최신_단일_알림이_있을_경우_조회_검증() {
+        // given
+        UserAlarm userAlarm1 = createUserAlarm(alarm, false);
+        userAlarmRepository.saveAndFlush(userAlarm1);
+        UserAlarm userAlarm2 = createUserAlarm(alarm, false);
+        userAlarmRepository.saveAndFlush(userAlarm2);
+        em.clear();
+
+        // when
+        Optional<UserAlarm> userAlarm = userAlarmRepository.findFirstByUserIdOrderByIdDesc(user.getId());
+
+        // then
+        assertEquals(userAlarm2.getId(), userAlarm.get().getId());
+    }
+
+    @Test
+    void 최신_단일_알림이_없을_경우_조회_검증() {
+        // given
+
+        // when
+        Optional<UserAlarm> userAlarm = userAlarmRepository.findFirstByUserIdOrderByIdDesc(user.getId());
+
+        // then
+        assertTrue(userAlarm.isEmpty());
+    }
+
+    @Test
     void 북마크_알림_목록_조회_시_페이징과_ID_내림차순_정렬과_타겟_종류_검증() {
         News news1 = createNews();
         News news2 = createNews();
