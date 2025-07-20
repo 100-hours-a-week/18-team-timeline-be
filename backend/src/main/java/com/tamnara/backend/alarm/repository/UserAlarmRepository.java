@@ -36,4 +36,7 @@ public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
         WHERE ua.id = :userAlarmId
     """)
     void checkUserAlarm(@Param("userAlarmId") Long userAlarmId, @Param("checkedAt") LocalDateTime checkedAt);
+
+    boolean existsByUserIdAndIsCheckedFalse(Long userId);
+
 }
